@@ -161,20 +161,10 @@ function summaryStrip(row) {
   return JSON.stringify(o, null, 2);
 }
 
-/** 路径：目录与分隔符偏灰，文件名翠绿加粗 */
+/** 路径：整体统一颜色显示 */
 function NetPathHighlight({ path }) {
   if (path == null || path === "") return <span className="text-gray-400">—</span>;
-  const s = String(path);
-  const last = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
-  if (last < 0) {
-    return <span className="break-all font-semibold text-emerald-800">{s}</span>;
-  }
-  return (
-    <span className="break-all">
-      <span className="text-gray-600">{s.slice(0, last + 1)}</span>
-      <span className="font-semibold text-emerald-800">{s.slice(last + 1)}</span>
-    </span>
-  );
+  return <span className="break-all text-gray-800 dark:text-gray-200">{String(path)}</span>;
 }
 
 /** URL：协议、主机、路径分段着色 */
@@ -318,6 +308,7 @@ function SessionAuditDetail({ row, onBack }) {
   /** 溯源回放：enriched 数组下标；null 表示未选中或已结束 */
   const [replayStep, setReplayStep] = useState(null);
   const [replayPlaying, setReplayPlaying] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
 
   /** 溯源分析固定按时间先后顺序 */
   const trace = useMemo(() => buildSessionTrace(jsonlLines, "time"), [jsonlLines]);
@@ -468,7 +459,33 @@ function SessionAuditDetail({ row, onBack }) {
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">会话 ID</dt>
-            <dd className="mt-0.5 break-all font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">{row.sessionId ?? "—"}</dd>
+            <dd className="mt-0.5 flex items-start gap-1.5">
+              <span className="break-all font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">{row.sessionId ?? "—"}</span>
+              {row.sessionId && (
+                <button
+                  type="button"
+                  title="复制会话 ID"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(row.sessionId).then(() => {
+                      setIdCopied(true);
+                      setTimeout(() => setIdCopied(false), 1500);
+                    }).catch(() => {});
+                  }}
+                  className="mt-0.5 shrink-0 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition"
+                >
+                  {idCopied ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                      <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">更新时间</dt>

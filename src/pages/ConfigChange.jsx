@@ -10,9 +10,7 @@ import {
 } from "recharts";
 import TablePagination, { DEFAULT_TABLE_PAGE_SIZE } from "../components/TablePagination.jsx";
 import {
-  parseConfigAuditJsonl,
   stableRowId,
-  sortEvents,
   riskLevel,
   isGatewayModeChanged,
   byteDelta,
@@ -22,10 +20,8 @@ import {
   trendBuckets24h,
   trendBuckets30d,
   trendBucketsRange,
-  filterConfigAuditEvents,
+  parseTsMs,
 } from "../lib/configAudit.js";
-
-const FALLBACK_JSONL = `{"ts":"2026-03-11T12:39:11.726Z","source":"config-io","event":"config.write","configPath":"C:\\\\Users\\\\Kevin.li\\\\.openclaw\\\\openclaw.json","pid":22352,"ppid":10960,"cwd":"C:\\\\WINDOWS\\\\system32","argv":["node","openclaw.mjs","onboard"],"execArgv":[],"watchMode":false,"watchSession":null,"watchCommand":null,"existsBefore":false,"previousHash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","nextHash":"a26e7ef8bea02ce3c4fda6a487fb6c0ae645421c0034ea8d0b549855c2cd4dcb","previousBytes":null,"nextBytes":2085,"changedPathCount":null,"hasMetaBefore":false,"hasMetaAfter":true,"gatewayModeBefore":null,"gatewayModeAfter":"local","suspicious":[],"result":"rename"}`;
 
 function formatUtc(ts) {
   try {
@@ -69,6 +65,8 @@ function toDatetimeLocalValue(ms) {
 export default function ConfigChange() {
   const [allEvents, setAllEvents] = useState([]);
   const [loadError, setLoadError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [sortKey, setSortKey] = useState("ts");
   const [sortDir, setSortDir] = useState("desc");
@@ -78,8 +76,6 @@ export default function ConfigChange() {
   const [expandedEvent, setExpandedEvent] = useState(null);
   /** 展开区 Tab：overview | compare | proc | raw */
   const [detailTab, setDetailTab] = useState("overview");
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-
   /** 时间筛选：24h | 7d | 30d | custom */
   const [timePreset, setTimePreset] = useState("7d");
   const [customStart, setCustomStart] = useState("");
@@ -94,49 +90,82 @@ export default function ConfigChange() {
     }
   };
 
+  // 计算时间范围参数
+  const getTimeRangeParams = useMemo(() => {
+    const now = new Date();
+    let startIso = "";
+    let endIso = now.toISOString();
+
+    if (timePreset === "24h") {
+      const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      startIso = start.toISOString();
+    } else if (timePreset === "7d") {
+      const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      startIso = start.toISOString();
+    } else if (timePreset === "30d") {
+      const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      startIso = start.toISOString();
+    } else if (timePreset === "custom" && customStart && customEnd) {
+      startIso = new Date(customStart).toISOString();
+      endIso = new Date(customEnd).toISOString();
+    }
+
+    return { startIso, endIso };
+  }, [timePreset, customStart, customEnd]);
+
+  // 从 API 获取数据
   useEffect(() => {
     let cancelled = false;
-    fetch("/config-audit.jsonl")
+    setLoading(true);
+
+    const params = new URLSearchParams();
+    if (getTimeRangeParams.startIso) {
+      params.set("startIso", getTimeRangeParams.startIso);
+    }
+    if (getTimeRangeParams.endIso) {
+      params.set("endIso", getTimeRangeParams.endIso);
+    }
+    params.set("sortKey", sortKey === "ts" ? "event_time" : sortKey);
+    params.set("sortDir", sortDir);
+    params.set("limit", String(pageSize));
+    params.set("offset", String((page - 1) * pageSize));
+
+    fetch(`/api/config-audit-logs?${params.toString()}`)
       .then((r) => {
         if (!r.ok) throw new Error(String(r.status));
-        return r.text();
+        return r.json();
       })
-      .then((text) => {
+      .then((data) => {
         if (cancelled) return;
-        const list = parseConfigAuditJsonl(text);
-        setAllEvents(list);
+        // 将 event_time 映射为 ts 字段，保持与原有代码兼容
+        const pageOffset = (page - 1) * pageSize;
+        const events = (data.events || []).map((e, i) => ({
+          ...e,
+          ts: e.ts || e.event_time,
+          _rowKey: `${pageOffset}_${i}`,
+        }));
+        setAllEvents(events);
+        setTotalCount(data.total || 0);
         setLoadError(null);
+        setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        setAllEvents(parseConfigAuditJsonl(FALLBACK_JSONL));
-        setLoadError("无法加载 /config-audit.jsonl，已使用内置示例。请将 config-audit.jsonl 放到 public/ 目录。");
+        setAllEvents([]);
+        setTotalCount(0);
+        setLoadError(`无法加载配置变更数据: ${err.message}`);
+        setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getTimeRangeParams, sortKey, sortDir, page, pageSize]);
 
-  const filterForm = useMemo(
-    () => ({
-      timePreset,
-      customStart,
-      customEnd,
-    }),
-    [timePreset, customStart, customEnd],
-  );
-
-  const filtered = useMemo(
-    () => sortEvents(filterConfigAuditEvents(allEvents, filterForm), sortKey, sortDir),
-    [allEvents, filterForm, sortKey, sortDir],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // 数据已从 API 获取，直接使用 allEvents 作为当前页数据
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const pageSafe = Math.min(page, totalPages);
-  const pageSlice = useMemo(() => {
-    const p0 = pageSafe - 1;
-    return filtered.slice(p0 * pageSize, p0 * pageSize + pageSize);
-  }, [filtered, pageSafe, pageSize]);
+  const pageSlice = allEvents;
 
   useEffect(() => {
     setPage(1);
@@ -159,43 +188,24 @@ export default function ConfigChange() {
     }
   };
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-  };
-
-  const toggleSelectPage = (checked) => {
-    const ids = pageSlice.map((e) => stableRowId(e));
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      if (checked) ids.forEach((id) => n.add(id));
-      else ids.forEach((id) => n.delete(id));
-      return n;
-    });
-  };
-
   const copyText = (t) => {
     navigator.clipboard?.writeText(t).catch(() => {});
   };
 
   const chartData = useMemo(() => {
     const now = Date.now();
-    if (timePreset === "24h") return trendBuckets24h(filtered, now);
-    if (timePreset === "7d") return trendBuckets7d(filtered, now);
-    if (timePreset === "30d") return trendBuckets30d(filtered, now);
+    if (timePreset === "24h") return trendBuckets24h(allEvents, now);
+    if (timePreset === "7d") return trendBuckets7d(allEvents, now);
+    if (timePreset === "30d") return trendBuckets30d(allEvents, now);
     if (timePreset === "custom" && customStart && customEnd) {
       const a = new Date(customStart).getTime();
       const b = new Date(customEnd).getTime();
       if (!Number.isNaN(a) && !Number.isNaN(b) && b >= a) {
-        return trendBucketsRange(filtered, a, b);
+        return trendBucketsRange(allEvents, a, b);
       }
     }
-    return trendBuckets7d(filtered, now);
-  }, [filtered, timePreset, customStart, customEnd]);
+    return trendBuckets7d(allEvents, now);
+  }, [allEvents, timePreset, customStart, customEnd]);
 
   return (
     <div className="space-y-6">
@@ -214,7 +224,7 @@ export default function ConfigChange() {
               {timePreset === "7d" && "近 7 天按日统计"}
               {timePreset === "30d" && "近 30 天按日统计"}
               {timePreset === "custom" && "自定义区间内按日统计"}
-              （当前列表共 {filtered.length} 条，全部数据 {allEvents.length} 条）
+              {loading ? "（加载中...）" : `（当前页 ${allEvents.length} 条，共 ${totalCount} 条）`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -284,7 +294,7 @@ export default function ConfigChange() {
           <TablePagination
             page={pageSafe}
             pageSize={pageSize}
-            total={filtered.length}
+            total={totalCount}
             onPageChange={setPage}
             trailingControls={
               <>
@@ -310,14 +320,6 @@ export default function ConfigChange() {
               <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/80 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-800/80 dark:text-gray-400">
-                    <th className="w-10 px-2 py-3">
-                      <input
-                        type="checkbox"
-                        checked={pageSlice.length > 0 && pageSlice.every((e) => selectedIds.has(stableRowId(e)))}
-                        onChange={(e) => toggleSelectPage(e.target.checked)}
-                        className="rounded border-gray-300"
-                      />
-                    </th>
                     <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("ts")}>
                       事件时间 {sortKey === "ts" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
@@ -347,7 +349,7 @@ export default function ConfigChange() {
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {pageSlice.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={10} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
                         无匹配记录
                       </td>
                     </tr>
@@ -371,14 +373,6 @@ export default function ConfigChange() {
                               }
                             }}
                           >
-                            <td className="px-2 py-2" onClick={(ev) => ev.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.has(id)}
-                                onChange={() => toggleSelect(id)}
-                                className="rounded border-gray-300"
-                              />
-                            </td>
                             <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200">
                               {formatUtc(e.ts)}
                             </td>
@@ -441,7 +435,7 @@ export default function ConfigChange() {
                           </tr>
                           {expanded && (
                             <tr className="bg-gray-50/90 dark:bg-gray-900/70">
-                              <td colSpan={11} className="border-t border-gray-200 p-0 align-top dark:border-gray-700">
+                              <td colSpan={10} className="border-t border-gray-200 p-0 align-top dark:border-gray-700">
                                 <div className="p-4" onClick={(ev) => ev.stopPropagation()}>
                                   <div className="flex flex-wrap items-end justify-between gap-2 border-b border-gray-200 dark:border-gray-700">
                                     <div className="flex flex-wrap gap-1" role="tablist" aria-label="事件详情分区">

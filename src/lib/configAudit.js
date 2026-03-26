@@ -19,6 +19,7 @@ export function parseConfigAuditJsonl(text) {
 }
 
 export function stableRowId(e) {
+  if (e._rowKey != null) return e._rowKey;
   return `${e.ts}::${e.pid}::${e.nextHash}`;
 }
 

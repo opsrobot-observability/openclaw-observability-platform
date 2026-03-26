@@ -121,7 +121,7 @@ export default function AuditOverview() {
         </p>
       )}
 
-      {loading && !error && <p className="text-sm text-gray-500">正在加载仪表盘…</p>}
+      {loading && !error && <div className="text-sm text-gray-500 w-full h-full flex items-center justify-center">正在加载仪表盘…</div>}
 
       {!loading && data && (
         <>
@@ -214,7 +214,7 @@ export default function AuditOverview() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">近 7 日会话量趋势</h3>
               <div className="mt-2 h-[280px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.trends?.sessions7d ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <LineChart data={data.trends?.sessions7d ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} activeBar={{ stroke: 'none' }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                     <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -229,7 +229,7 @@ export default function AuditOverview() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">近 7 日风险操作趋势</h3>
               <div className="mt-2 h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.trends?.risk7d ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <LineChart activeDot={false} data={data.trends?.risk7d ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                     <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />

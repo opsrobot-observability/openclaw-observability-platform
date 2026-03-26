@@ -9,6 +9,7 @@ import {
   listOtelAgentSessionsLogTables,
   queryAgentSessionsLogsSearch,
 } from "../server/agentSessionsLogsSearchQuery.mjs";
+import { queryConfigAuditLogs, queryConfigAuditStats } from "../server/configAuditQuery.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -156,6 +157,47 @@ export function agentSessionsDevApi() {
           try {
             const rows = await queryAgentSessionsRawWithLogTokens();
             sendJson(res, 200, rows);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/config-audit-stats")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryConfigAuditStats({
+              startIso: u.searchParams.get("startIso") ?? undefined,
+              endIso: u.searchParams.get("endIso") ?? undefined,
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/config-audit-logs")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryConfigAuditLogs({
+              startIso: u.searchParams.get("startIso") ?? undefined,
+              endIso: u.searchParams.get("endIso") ?? undefined,
+              source: u.searchParams.get("source") ?? undefined,
+              event: u.searchParams.get("event") ?? undefined,
+              configPath: u.searchParams.get("configPath") ?? undefined,
+              pid: u.searchParams.get("pid") ? Number(u.searchParams.get("pid")) : undefined,
+              result: u.searchParams.get("result") ?? undefined,
+              suspicious: u.searchParams.get("suspicious") ?? "all",
+              gatewayChange: u.searchParams.get("gatewayChange") ?? undefined,
+              sortKey: u.searchParams.get("sortKey") ?? "event_time",
+              sortDir: u.searchParams.get("sortDir") ?? "desc",
+              limit: Number(u.searchParams.get("limit") ?? "100"),
+              offset: Number(u.searchParams.get("offset") ?? "0"),
+            });
+            sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
             sendJson(res, 500, { error: msg });

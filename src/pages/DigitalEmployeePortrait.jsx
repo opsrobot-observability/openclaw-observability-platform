@@ -342,15 +342,15 @@ export default function DigitalEmployeePortrait() {
   const p = current.portrait;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-12">
-      <aside className="lg:col-span-4">
+    <div className="flex flex-row gap-6 h-full overflow-hidden">
+      <aside className="w-64">
         <div className="app-card p-3">
           <p className="px-2 pb-2 text-xs font-medium text-gray-500">员工列表</p>
-          <ul className="space-y-1">
+          <ul className="space-y-1 w-full">
             {EMPLOYEES.map((e) => {
               const active = e.id === selectedId;
               return (
-                <li key={e.id}>
+                <li key={e.id} className="w-full">
                   <button
                     type="button"
                     onClick={() => setSelectedId(e.id)}
@@ -373,8 +373,8 @@ export default function DigitalEmployeePortrait() {
         </div>
       </aside>
 
-      <div className="flex flex-col gap-6 lg:col-span-8">
-        <div className="app-card overflow-hidden p-0">
+      <div className="flex flex-col gap-6 flex-1 h-full">
+        <div className="app-card p-0 h-full overflow-y-auto">
           <div className="border-b border-gray-100 bg-gradient-to-br from-primary/5 via-white to-gray-50/80 p-6 dark:border-gray-800 dark:from-primary/10 dark:via-gray-900 dark:to-gray-950 sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[#2563eb] text-2xl font-bold text-white shadow-md">
