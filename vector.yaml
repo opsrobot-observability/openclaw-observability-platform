@@ -5,7 +5,7 @@ api:
 sources:
   openclaw_sessions:
     type: exec
-    command: ["cat", "/Users/lxg/.openclaw/agents/main/sessions/sessions.json"]
+    command: [ "cat", "/Users/lxg/.openclaw/agents/main/sessions/sessions.json" ] #修改为实际的 openclaw  session 日志路径
     mode: scheduled
     scheduled:
       exec_interval_secs: 600
@@ -14,7 +14,7 @@ sources:
   openclaw_session_logs:
     type: file
     include:
-      - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl"
+    - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -24,14 +24,14 @@ transforms:
   filter_stdout:
     type: filter
     inputs:
-      - openclaw_sessions
+    - openclaw_sessions
     condition: '.stream == "stdout"'
 
   # 2. 将所有行合并为一个完整的 JSON 字符串
   aggregate_json:
     type: reduce
     inputs:
-      - filter_stdout
+    - filter_stdout
     group_by: []
     expire_after_ms: 5000
     merge_strategies:
@@ -41,7 +41,7 @@ transforms:
   parse_and_split:
     type: remap
     inputs:
-      - aggregate_json
+    - aggregate_json
     source: |
       parsed = parse_json!(string!(.message))
       obj = object!(parsed)
@@ -84,7 +84,7 @@ transforms:
   session_logs_transform:
     type: remap
     inputs:
-      - openclaw_session_logs
+    - openclaw_session_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -139,15 +139,15 @@ sinks:
   print_to_console:
     type: console
     inputs:
-      - parse_and_split
+    - parse_and_split
     encoding:
       codec: json
 
   to_doris:
     type: http
     inputs:
-      - parse_and_split
-    uri: "http://host.docker.internal:8040/api/otel/agent_sessions/_stream_load"
+    - parse_and_split
+    uri: "http://127.0.0.1:8040/api/otel/agent_sessions/_stream_load"
     method: put
     auth:
       strategy: basic
@@ -166,7 +166,7 @@ sinks:
   session_logs_to_console:
     type: console
     inputs:
-      - session_logs_transform
+    - session_logs_transform
     encoding:
       codec: json
 
@@ -174,8 +174,8 @@ sinks:
   session_logs_to_doris:
     type: http
     inputs:
-      - session_logs_transform
-    uri: "http://host.docker.internal:8040/api/otel/agent_sessions_logs/_stream_load"
+    - session_logs_transform
+    uri: "http://127.0.0.1:8040/api/otel/agent_sessions_logs/_stream_load" # doris 
     method: put
     auth:
       strategy: basic
