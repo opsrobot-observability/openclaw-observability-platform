@@ -1,0 +1,190 @@
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  openclaw_sessions:
+    type: exec
+    command: ["cat", "/Users/lxg/.openclaw/agents/main/sessions/sessions.json"]
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 600
+
+  # 采集 JSONL 会话日志文件（初次全量，后续增量）
+  openclaw_session_logs:
+    type: file
+    include:
+      - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
+
+transforms:
+  # 1. 过滤掉 stderr 事件，只保留 stdout
+  filter_stdout:
+    type: filter
+    inputs:
+      - openclaw_sessions
+    condition: '.stream == "stdout"'
+
+  # 2. 将所有行合并为一个完整的 JSON 字符串
+  aggregate_json:
+    type: reduce
+    inputs:
+      - filter_stdout
+    group_by: []
+    expire_after_ms: 5000
+    merge_strategies:
+      message: concat_newline
+
+  # 3. 解析 JSON，遍历每个 key-value 拆成独立记录
+  parse_and_split:
+    type: remap
+    inputs:
+      - aggregate_json
+    source: |
+      parsed = parse_json!(string!(.message))
+      obj = object!(parsed)
+      ks = keys(obj)
+      result = []
+      for_each(ks) -> |_idx, key| {
+        entry = get!(obj, [key])
+        result = push(result, {
+          "session_id": get(entry, ["sessionId"]) ?? "",
+          "session_key": get(entry, ["systemPromptReport","sessionKey"]) ?? "",
+          "display_name": get(entry, ["displayName"]) ?? "",
+          "agent_name": key,
+          "started_at": get(entry, ["startedAt"]) ?? null,
+          "updated_at": get(entry, ["updatedAt"]) ?? null,
+          "ended_at": get(entry, ["endedAt"]) ?? null,
+          "system_sent": get(entry, ["systemSent"]) ?? null,
+          "aborted_last_run": get(entry, ["abortedLastRun"]) ?? null,
+          "chat_type": get(entry, ["chatType"]) ?? "",
+          "channel": get(entry, ["channel"]) ?? "",
+          "group_id": get(entry, ["groupId"]) ?? "",
+          "origin_label": get(entry, ["origin", "label"]) ?? "",
+          "origin_provider": get(entry, ["origin", "provider"]) ?? "",
+          "origin_surface": get(entry, ["origin", "surface"]) ?? "",
+          "origin_chat_type": get(entry, ["origin", "chatType"]) ?? "",
+          "origin_from": get(entry, ["origin", "from"]) ?? "",
+          "origin_to": get(entry, ["origin", "to"]) ?? "",
+          "origin_account_id": get(entry, ["origin", "accountId"]) ?? "",
+          "delivery_context_channel": get(entry, ["deliveryContext", "channel"]) ?? "",
+          "delivery_context_to": get(entry, ["deliveryContext", "to"]) ?? "",
+          "delivery_context_account_id": get(entry, ["deliveryContext", "accountId"]) ?? "",
+          "last_channel": get(entry, ["lastChannel"]) ?? "",
+          "last_to": get(entry, ["lastTo"]) ?? "",
+          "last_account_id": get(entry, ["lastAccountId"]) ?? "",
+          "log_attributes": entry
+        })
+      }
+      . = result
+
+  # 4. 采集 JSONL 会话日志文件，从文件路径提取 sessionId，提取解析所有需要的嵌套字段
+  session_logs_transform:
+    type: remap
+    inputs:
+      - openclaw_session_logs
+    drop_on_error: false
+    drop_on_abort: false
+    source: |
+      # 从文件路径中提取文件名作为 sessionId（去掉 .jsonl 后缀）
+      filepath = string(.file) ?? ""
+      parts = split(filepath, "/")
+      filename = string(get!(parts, [length(parts) - 1])) ?? ""
+      session_id_val = replace(filename, ".jsonl", "")
+
+      # 解析原始 JSON
+      obj = parse_json(string(.message) ?? "{}") ?? {}
+
+      # 提取根级别字段
+      .type = get(obj, ["type"]) ?? null
+      .version = get(obj, ["version"]) ?? null
+      .id = get(obj, ["id"]) ?? null
+      .timestamp = get(obj, ["timestamp"]) ?? null
+      .parent_id = get(obj, ["parentId"]) ?? null
+      .provider = get(obj, ["provider"]) ?? null
+      .model_id = get(obj, ["modelId"]) ?? null
+      .thinking_level = get(obj, ["thinkingLevel"]) ?? null
+
+      # 提取 message 及 message.detail 嵌套字段
+      .message_details_cwd = get(obj, ["message", "details", "cwd"]) ?? null
+      .message_role = get(obj, ["message", "role"]) ?? null
+      .message_tool_call_id = get(obj, ["message", "toolCallId"]) ?? null
+      .message_tool_name = get(obj, ["message", "toolName"]) ?? null
+      .message_is_error = get(obj, ["message", "isError"]) ?? null
+      .message_details_status = get(obj, ["message", "details", "status"]) ?? null
+      .message_details_exit_code = get(obj, ["message", "details", "exitCode"]) ?? null
+      .message_api = get(obj, ["message", "api"]) ?? null
+      .message_stop_reason = get(obj, ["message", "stopReason"]) ?? null
+      .message_model = get(obj, ["message", "model"]) ?? null
+
+      # 提取 message.usage 及其嵌套字段
+      .message_usage_input = get(obj, ["message", "usage", "input"]) ?? 0
+      .message_usage_output = get(obj, ["message", "usage", "output"]) ?? 0
+      .message_usage_cache_read = get(obj, ["message", "usage", "cacheRead"]) ?? 0
+      .message_usage_cache_write = get(obj, ["message", "usage", "cacheWrite"]) ?? 0
+      .message_usage_total_tokens = get(obj, ["message", "usage", "totalTokens"]) ?? 0
+
+      # 设置主键与变体记录
+      .sessionId = session_id_val
+      .log_attributes = obj
+
+      # 清理无用字段以免写入无效列
+      del(.message)
+      del(.file)
+      del(.source_type)
+
+sinks:
+  print_to_console:
+    type: console
+    inputs:
+      - parse_and_split
+    encoding:
+      codec: json
+
+  to_doris:
+    type: http
+    inputs:
+      - parse_and_split
+    uri: "http://host.docker.internal:8040/api/otel/agent_sessions/_stream_load"
+    method: put
+    auth:
+      strategy: basic
+      user: "root"
+      password: ""
+    encoding:
+      codec: json
+    request:
+      headers:
+        Expect: "100-continue"
+        format: "json"
+        strip_outer_array: "true"
+        partial_columns: "true"
+
+  # 会话日志输出到控制台（调试用）
+  session_logs_to_console:
+    type: console
+    inputs:
+      - session_logs_transform
+    encoding:
+      codec: json
+
+  # 会话日志输出到 Doris agent_sessions_logs 表
+  session_logs_to_doris:
+    type: http
+    inputs:
+      - session_logs_transform
+    uri: "http://host.docker.internal:8040/api/otel/agent_sessions_logs/_stream_load"
+    method: put
+    auth:
+      strategy: basic
+      user: "root"
+      password: ""
+    encoding:
+      codec: json
+    request:
+      headers:
+        Expect: "100-continue"
+        format: "json"
+        strip_outer_array: "true"

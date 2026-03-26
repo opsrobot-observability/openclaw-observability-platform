@@ -33,32 +33,32 @@ const PAGE_META = {
 };
 
 const NAV = [
-  { id: "panorama", label: "全景概览", icon: "panorama" },
-  {
-    id: "digital-employee",
-    label: "数字员工",
-    icon: "digitalEmployee",
-    children: [
-      { id: "digital-employee-overview", label: "员工概览" },
-      { id: "digital-employee-list", label: "员工列表" },
-    ],
-  },
-  { id: "monitoring", label: "基础监控", icon: "monitoring" },
-  { id: "alerts", label: "告警事件", icon: "alerts" },
+  // { id: "panorama", label: "全景概览", icon: "panorama" },
+  // {
+  //   id: "digital-employee",
+  //   label: "数字员工",
+  //   icon: "digitalEmployee",
+  //   children: [
+  //     { id: "digital-employee-overview", label: "员工概览" },
+  //     { id: "digital-employee-list", label: "员工列表" },
+  //   ],
+  // },
+  // { id: "monitoring", label: "基础监控", icon: "monitoring" },
+  // { id: "alerts", label: "告警事件", icon: "alerts" },
   {
     id: "security-audit",
     label: "安全审计",
     icon: "audit",
     children: [
       { id: "audit-overview", label: "审计概览" },
-      { id: "audit", label: "行为审计" },
+      // { id: "audit", label: "行为审计" },
       { id: "config-change", label: "配置变更" },
       { id: "session-audit", label: "会话审计" },
       { id: "traceability", label: "全链路溯源" },
     ],
   },
   { id: "logs", label: "日志查询", icon: "logs" },
-  { id: "inspection", label: "定期巡检", icon: "inspection" },
+  // { id: "inspection", label: "定期巡检", icon: "inspection" },
   {
     id: "cost-analysis",
     label: "成本分析",
@@ -356,8 +356,8 @@ export default function Dashboard() {
             O
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">OpsRobot</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">运营中台</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">OpenclawObservability</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Openclaw可观测性平台</p>
           </div>
         </div>
 

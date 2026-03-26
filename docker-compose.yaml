@@ -1,0 +1,80 @@
+services:
+  # =============================================================================
+  # 前端服务 - 静态文件服务
+  # =============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw-observability-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - openclaw-observability
+
+  # =============================================================================
+  # API 服务 - Node.js 后端
+  # =============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: openclaw-observability-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8787}:8787"
+    environment:
+      - DORIS_HOST=${DORIS_HOST:-doris}
+      - DORIS_PORT=${DORIS_PORT:-9030}
+      - DORIS_USER=${DORIS_USER:-root}
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+      - DORIS_DATABASE=${DORIS_DATABASE:-otel}
+      - PORT=8787
+    depends_on:
+      doris:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8787/api/agent-sessions || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - openclaw-observability
+
+  # =============================================================================
+  # Apache Doris - All-in-One (FE + BE in single container)
+  # =============================================================================
+  doris:
+    image: ${DORIS_IMAGE:-apache/doris:4.0.3-all-slim}
+    container_name: doris
+    hostname: doris
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "${DORIS_FE_HTTP_PORT:-8030}:8030"  # FE HTTP port (Web UI)
+      - "${DORIS_FE_MYSQL_PORT:-9030}:9030"  # FE MySQL protocol port
+      - "${DORIS_BE_HTTP_PORT:-8040}:8040"   # BE HTTP port
+    environment:
+      - SKIP_CHECK_ULIMIT=true
+    volumes:
+      - doris_data:/opt/apache-doris
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -uroot -e 'SHOW BACKENDS\\G' | grep -q 'Alive: true' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    networks:
+      - openclaw-observability
+
+networks:
+  openclaw-observability:
+    driver: bridge
+
+volumes:
+  doris_data:

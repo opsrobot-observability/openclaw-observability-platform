@@ -13,8 +13,8 @@ const ROOT = path.join(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "datamodel", "otel");
 
 const config = {
-  host: process.env.DORIS_HOST ?? "3.tcp.cpolar.top",
-  port: Number(process.env.DORIS_PORT ?? 12193),
+  host: process.env.DORIS_HOST ?? "127.0.0.1",
+  port: Number(process.env.DORIS_PORT ?? 9030),
   user: process.env.DORIS_USER ?? "root",
   password: process.env.DORIS_PASSWORD ?? "",
   database: process.env.DORIS_DATABASE ?? "otel",
