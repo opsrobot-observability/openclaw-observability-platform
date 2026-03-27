@@ -1,9 +1,9 @@
 -- 初始化 OpenClaw Observability 数据库 schema
 -- 会自动创建 otel 数据库（如不存在）以及所需的表
 
-CREATE DATABASE IF NOT EXISTS otel;
+CREATE DATABASE IF NOT EXISTS opsRobot;
 
-USE otel;
+USE opsRobot;
 
 -- agent_sessions 表：会话维度数据
 CREATE TABLE IF NOT EXISTS agent_sessions (

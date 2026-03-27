@@ -19,31 +19,7 @@ services:
   # =============================================================================
   # 数据库初始化容器 - 等待 Doris 就绪后创建数据库和表
   # =============================================================================
-  db-init:
-    image: mysql:8
-    container_name: openclaw-observability-db-init
-    restart: "no"
-    volumes:
-      - ./scripts/init-doris-schema.sql:/docker-entrypoint-initdb.d/init-doris-schema.sql:ro
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        echo "等待 Doris FE 就绪..."
-        until mysql -h"$${DORIS_HOST:-doris}" -P"$${DORIS_PORT:-9030}" -uroot -e "SELECT 1" 2>/dev/null; do
-          echo "等待中..."
-          sleep 2
-        done
-        echo "Doris 已就绪，开始初始化..."
-        mysql -h"$${DORIS_HOST:-doris}" -P"$${DORIS_PORT:-9030}" -uroot < /docker-entrypoint-initdb.d/init-doris-schema.sql
-        echo "数据库初始化完成"
-    environment:
-      - DORIS_HOST=${DORIS_HOST:-doris}
-      - DORIS_PORT=${DORIS_PORT:-9030}
-    depends_on:
-      doris:
-        condition: service_healthy
-    networks:
-      - openclaw-observability
+  # 已移除：初始化逻辑直接集成到 doris 容器内部
 
   # =============================================================================
   # API 服务 - Node.js 后端
@@ -61,13 +37,11 @@ services:
       - DORIS_PORT=${DORIS_PORT:-9030}
       - DORIS_USER=${DORIS_USER:-root}
       - DORIS_PASSWORD=${DORIS_PASSWORD:-}
-      - DORIS_DATABASE=${DORIS_DATABASE:-otel}
+      - DORIS_DATABASE=${DORIS_DATABASE:-opsRobot}
       - PORT=8787
     depends_on:
       doris:
         condition: service_healthy
-      db-init:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8787 || exit 1"]
       interval: 10s
@@ -94,6 +68,9 @@ services:
       - SKIP_CHECK_ULIMIT=true
     volumes:
       - doris_data:/opt/apache-doris
+      - ./scripts/init-doris-schema.sql:/opt/apache-doris/init-doris-schema.sql:ro
+      - ./scripts/start-doris.sh:/start-doris.sh:ro
+    entrypoint: ["/bin/bash", "/start-doris.sh"]
     healthcheck:
       test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -uroot -e 'SHOW BACKENDS\\G' | grep -q 'Alive: true' || exit 1"]
       interval: 15s
