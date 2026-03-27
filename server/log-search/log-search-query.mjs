@@ -2,7 +2,7 @@
  * 日志查询：Doris `otel` 下 `agent_sessions_logs` 主表或日表（如 `agent_sessions_logs_20260324`），左连 `agent_sessions`
  */
 import mysql from "mysql2/promise";
-import { getDorisConfig } from "./agentSessionsQuery.mjs";
+import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
 const MAX_LIMIT = 500;
 const MAX_OFFSET = 5000;

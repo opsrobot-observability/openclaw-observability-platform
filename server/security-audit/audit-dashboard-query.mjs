@@ -2,7 +2,7 @@
  * 审计概览仪表盘：基于 agent_sessions / agent_sessions_logs 的聚合与趋势
  */
 import mysql from "mysql2/promise";
-import { getDorisConfig } from "./agentSessionsQuery.mjs";
+import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
 /** @param {Record<string, unknown>} row */
 function normalizeAggRow(row) {

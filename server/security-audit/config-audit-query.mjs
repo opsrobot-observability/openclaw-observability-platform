@@ -2,7 +2,7 @@
  * 配置变更审计查询 - 从 Doris otel.audit_logs 表读取
  */
 import mysql from "mysql2/promise";
-import { getDorisConfig } from "./agentSessionsQuery.mjs";
+import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
 /**
  * 查询配置变更审计日志
@@ -118,10 +118,10 @@ export async function queryConfigAuditLogs({
 
     // 查询数据
     const dataSql = `
-      SELECT 
+      SELECT
         event_time,
         log_attributes
-      FROM audit_logs 
+      FROM audit_logs
       ${whereClause}
       ORDER BY ${sortColumn} ${sortDirection}
       LIMIT ? OFFSET ?
@@ -133,8 +133,8 @@ export async function queryConfigAuditLogs({
     const events = dataRows.map((row) => {
       let attrs = {};
       try {
-        attrs = typeof row.log_attributes === "string" 
-          ? JSON.parse(row.log_attributes) 
+        attrs = typeof row.log_attributes === "string"
+          ? JSON.parse(row.log_attributes)
           : row.log_attributes;
       } catch {
         attrs = {};
@@ -189,7 +189,7 @@ export async function queryConfigAuditStats({ startIso, endIso } = {}) {
 
     // 按来源统计
     const [sourceRows] = await conn.query(`
-      SELECT 
+      SELECT
         GET_JSON_STRING(CAST(log_attributes AS STRING), '$.source') AS source,
         COUNT(*) AS cnt
       FROM audit_logs ${whereClause}
@@ -199,7 +199,7 @@ export async function queryConfigAuditStats({ startIso, endIso } = {}) {
 
     // 按事件类型统计
     const [eventRows] = await conn.query(`
-      SELECT 
+      SELECT
         GET_JSON_STRING(CAST(log_attributes AS STRING), '$.event') AS event,
         COUNT(*) AS cnt
       FROM audit_logs ${whereClause}
@@ -209,7 +209,7 @@ export async function queryConfigAuditStats({ startIso, endIso } = {}) {
 
     // 按结果统计
     const [resultRows] = await conn.query(`
-      SELECT 
+      SELECT
         GET_JSON_STRING(CAST(log_attributes AS STRING), '$.result') AS result,
         COUNT(*) AS cnt
       FROM audit_logs ${whereClause}
