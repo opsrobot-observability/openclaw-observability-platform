@@ -1,17 +1,17 @@
 api:
-  enabled: true
+  enabled: false
   address: 0.0.0.0:8686
 
 sources:
-  openclaw_sessions:
+  sessions:
     type: exec
     command: [ "cat", "/Users/lxg/.openclaw/agents/main/sessions/sessions.json" ] #修改为实际的 openclaw  session 日志路径
     mode: scheduled
     scheduled:
-      exec_interval_secs: 600
+      exec_interval_secs: 60
 
-  # 采集 JSONL 会话日志文件（初次全量，后续增量）
-  openclaw_session_logs:
+  # 采集 JSONL 会话日志文件
+  session_logs:
     type: file
     include:
     - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
@@ -20,7 +20,7 @@ sources:
       strategy: device_and_inode
 
   # 采集 gateway 日志文件
-  openclaw_gateway_logs:
+  gateway_logs:
     type: file
     include:
     - "/Users/lxg/.openclaw/logs/gateway.log"
@@ -29,8 +29,8 @@ sources:
     fingerprint:
       strategy: device_and_inode
 
-  # 采集 config-audit 日志文件
-  openclaw_config_audit_logs:
+  # 采集 audit_logs 日志文件
+  audit_logs:
     type: file
     include:
     - "/Users/lxg/.openclaw/logs/config-audit.jsonl"
@@ -43,7 +43,7 @@ transforms:
   filter_stdout:
     type: filter
     inputs:
-    - openclaw_sessions
+    - sessions
     condition: '.stream == "stdout"'
 
   # 2. 将所有行合并为一个完整的 JSON 字符串
@@ -57,11 +57,12 @@ transforms:
       message: concat_newline
 
   # 3. 解析 JSON，遍历每个 key-value 拆成独立记录
-  parse_and_split:
+  session_transform:
     type: remap
     inputs:
     - aggregate_json
     source: |
+  
       parsed = parse_json!(string!(.message))
       obj = object!(parsed)
       ks = keys(obj)
@@ -69,31 +70,28 @@ transforms:
       for_each(ks) -> |_idx, key| {
         entry = get!(obj, [key])
         result = push(result, {
-          "session_id": get(entry, ["sessionId"]) ?? "",
-          "session_key": get(entry, ["systemPromptReport","sessionKey"]) ?? "",
-          "display_name": get(entry, ["displayName"]) ?? "",
+          "session_id": string(get(entry, ["sessionId"]) ?? "") ?? "",
+          "session_key": string(get(entry, ["systemPromptReport","sessionKey"]) ?? "") ?? "",
+          "display_name": string(get(entry, ["displayName"]) ?? "") ?? "",
           "agent_name": key,
-          "started_at": get(entry, ["startedAt"]) ?? null,
-          "updated_at": get(entry, ["updatedAt"]) ?? null,
-          "ended_at": get(entry, ["endedAt"]) ?? null,
           "system_sent": get(entry, ["systemSent"]) ?? null,
           "aborted_last_run": get(entry, ["abortedLastRun"]) ?? null,
-          "chat_type": get(entry, ["chatType"]) ?? "",
-          "channel": get(entry, ["channel"]) ?? "",
-          "group_id": get(entry, ["groupId"]) ?? "",
-          "origin_label": get(entry, ["origin", "label"]) ?? "",
-          "origin_provider": get(entry, ["origin", "provider"]) ?? "",
-          "origin_surface": get(entry, ["origin", "surface"]) ?? "",
-          "origin_chat_type": get(entry, ["origin", "chatType"]) ?? "",
-          "origin_from": get(entry, ["origin", "from"]) ?? "",
-          "origin_to": get(entry, ["origin", "to"]) ?? "",
-          "origin_account_id": get(entry, ["origin", "accountId"]) ?? "",
-          "delivery_context_channel": get(entry, ["deliveryContext", "channel"]) ?? "",
-          "delivery_context_to": get(entry, ["deliveryContext", "to"]) ?? "",
-          "delivery_context_account_id": get(entry, ["deliveryContext", "accountId"]) ?? "",
-          "last_channel": get(entry, ["lastChannel"]) ?? "",
-          "last_to": get(entry, ["lastTo"]) ?? "",
-          "last_account_id": get(entry, ["lastAccountId"]) ?? "",
+          "chat_type": string(get(entry, ["chatType"]) ?? "") ?? "",
+          "channel": string(get(entry, ["channel"]) ?? "") ?? "",
+          "group_id": string(get(entry, ["groupId"]) ?? "") ?? "",
+          "origin_label": string(get(entry, ["origin", "label"]) ?? "") ?? "",
+          "origin_provider": string(get(entry, ["origin", "provider"]) ?? "") ?? "",
+          "origin_surface": string(get(entry, ["origin", "surface"]) ?? "") ?? "",
+          "origin_chat_type": string(get(entry, ["origin", "chatType"]) ?? "") ?? "",
+          "origin_from": string(get(entry, ["origin", "from"]) ?? "") ?? "",
+          "origin_to": string(get(entry, ["origin", "to"]) ?? "") ?? "",
+          "origin_account_id": string(get(entry, ["origin", "accountId"]) ?? "") ?? "",
+          "delivery_context_channel": string(get(entry, ["deliveryContext", "channel"]) ?? "") ?? "",
+          "delivery_context_to": string(get(entry, ["deliveryContext", "to"]) ?? "") ?? "",
+          "delivery_context_account_id": string(get(entry, ["deliveryContext", "accountId"]) ?? "") ?? "",
+          "last_channel": string(get(entry, ["lastChannel"]) ?? "") ?? "",
+          "last_to": string(get(entry, ["lastTo"]) ?? "") ?? "",
+          "last_account_id": string(get(entry, ["lastAccountId"]) ?? "") ?? "",
           "log_attributes": entry
         })
       }
@@ -103,7 +101,7 @@ transforms:
   session_logs_transform:
     type: remap
     inputs:
-    - openclaw_session_logs
+    - session_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -159,7 +157,7 @@ transforms:
   gateway_logs_transform:
     type: remap
     inputs:
-    - openclaw_gateway_logs
+    - gateway_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -201,10 +199,10 @@ transforms:
 
   # 6. 解析 config-audit JSONL 日志格式
   # 每行一个 JSON 对象，提取 event_time 和 log_attributes
-  config_audit_logs_transform:
+  audit_logs_transform:
     type: remap
     inputs:
-    - openclaw_config_audit_logs
+    - audit_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -242,18 +240,18 @@ transforms:
       del(.host)
 
 sinks:
-  # print_to_console:
-  #   type: console
-  #   inputs:
-  #   - parse_and_split
-  #   encoding:
-  #     codec: json
+  print_to_console:
+    type: console
+    inputs:
+    - session_transform
+    encoding:
+      codec: json
 
-  to_doris:
+  session_to_doris:
     type: http
     inputs:
-    - parse_and_split
-    uri: "http://host.docker.internal:8040/api/otel/agent_sessions/_stream_load"
+    - session_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_sessions/_stream_load"
     method: put
     auth:
       strategy: basic
@@ -281,7 +279,7 @@ sinks:
     type: http
     inputs:
     - session_logs_transform
-    uri: "http://host.docker.internal:8040/api/otel/agent_sessions_logs/_stream_load" # doris
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_sessions_logs/_stream_load" # doris
     method: put
     auth:
       strategy: basic
@@ -296,19 +294,19 @@ sinks:
         strip_outer_array: "true"
 
   # gateway 日志输出到控制台（调试用）
-  gateway_logs_to_console:
-    type: console
-    inputs:
-    - gateway_logs_transform
-    encoding:
-      codec: json
+  # gateway_logs_to_console:
+  #   type: console
+  #   inputs:
+  #   - gateway_logs_transform
+  #   encoding:
+  #     codec: json
 
   # gateway 日志输出到 Doris gateway_logs 表
   gateway_logs_to_doris:
     type: http
     inputs:
     - gateway_logs_transform
-    uri: "http://host.docker.internal:8040/api/otel/gateway_logs/_stream_load"
+    uri: "http://127.0.0.1:8040/api/opsRobot/gateway_logs/_stream_load"
     method: put
     auth:
       strategy: basic
@@ -323,19 +321,19 @@ sinks:
         strip_outer_array: "true"
 
   # config-audit 日志输出到控制台（调试用）
-  config_audit_logs_to_console:
-    type: console
-    inputs:
-    - config_audit_logs_transform
-    encoding:
-      codec: json
+  # audit_logs_to_console:
+  #   type: console
+  #   inputs:
+  #   - audit_logs_transform
+  #   encoding:
+  #     codec: json
 
   # config-audit 日志输出到 Doris audit_logs 表
-  config_audit_logs_to_doris:
+  audit_logs_to_doris:
     type: http
     inputs:
-    - config_audit_logs_transform
-    uri: "http://host.docker.internal:8040/api/otel/audit_logs/_stream_load"
+    - audit_logs_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/audit_logs/_stream_load"
     method: put
     auth:
       strategy: basic

@@ -114,6 +114,7 @@ export default function AuditOverview() {
         </p>
       )}
 
+<<<<<<< HEAD
       <section className="app-card p-4 sm:p-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">审计概览</h2>
         <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
@@ -124,6 +125,8 @@ export default function AuditOverview() {
         </p>
       </section>
 
+=======
+>>>>>>> 96e5ae8b6aabce0d28902cddc5aa67061ce6d1a8
       {loading && !error && <LoadingSpinner message="正在加载仪表盘…" />}
 
       {!loading && data && (

@@ -305,10 +305,6 @@ export default function LogSearch() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">日志检索</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              库 <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">{otelDatabase}</code>
-              · 表名与 「日志库」一致（主表或按日分表）；按时间范围查询，支持关键字与多列过滤
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {[

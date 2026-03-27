@@ -1629,16 +1629,9 @@ export default function SessionAudit() {
       )}
 
       <section className="app-card p-4 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">会话索引审计</h2>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              点击行<strong>下钻</strong>查看会话详情（索引元数据 + JSONL 转写时间线）。列表主表来自{" "}
-              <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">otel.agent_sessions</code>
-              ；总 Token、工具/网络/文件/exec 次数及风险分级由{" "}
-              <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">otel.agent_sessions_logs</code>
-              汇总，规则与详情页「工具调用 / 网络和文件 / 风险感知」一致。
-            </p>
           </div>
           <div className="min-w-[200px] flex-1 sm:max-w-sm">
             <label className="sr-only" htmlFor="session-audit-search">

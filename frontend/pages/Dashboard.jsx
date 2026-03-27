@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LogSearch from "./LogSearch.jsx";
 import DigitalEmployeeOverview from "./DigitalEmployeeOverview.jsx";
@@ -299,6 +300,92 @@ function Icon({ name, className = "h-5 w-5" }) {
   }
 }
 
+function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, setSidebarOpen }) {
+  const wrapRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current) return;
+    const el = wrapRef.current;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setPos({ top: r.top, left: r.right + 8 });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        className={[
+          "flex w-full items-center justify-center rounded-lg py-2.5 transition-colors duration-200",
+          childActive
+            ? "bg-primary-soft/80 text-primary dark:bg-primary/15 dark:text-primary"
+            : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+        ].join(" ")}
+      >
+        <Icon
+          name={item.icon}
+          className={`h-5 w-5 ${childActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}
+        />
+      </button>
+      {open && createPortal(
+        <div
+          className="fixed z-[200] w-44 -translate-x-2 pt-0 pl-2"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white shadow-xl backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/95">
+            <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2.5 dark:border-gray-700/60">
+              <Icon
+                name={item.icon}
+                className={`h-4 w-4 ${childActive ? "text-primary" : "text-gray-400"}`}
+              />
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{item.label}</span>
+            </div>
+            <div className="p-1">
+              {item.children.map((child) => {
+                const active = activeNav === child.id;
+                return (
+                  <button
+                    key={child.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveNav(child.id);
+                      setSidebarOpen(false);
+                    }}
+                    className={[
+                      "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150",
+                      active
+                        ? "bg-primary-soft font-medium text-primary dark:bg-primary/15 dark:text-primary"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100",
+                    ].join(" ")}
+                  >
+                    {child.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 function statusBadgeClass(status) {
   switch (status) {
     case "已完成":
@@ -413,13 +500,13 @@ export default function Dashboard() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         ].join(" ")}
       >
-        <div className={`flex h-16 items-center border-b border-gray-100 dark:border-gray-800 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-4"}`}>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#2563eb] text-sm font-bold text-white shadow-sm">
-            O
+        <div className={`flex h-16 items-center ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-4"}`}>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-centerr from-primarytext-sm font-bold text-white">
+            <img src="./ops-logo.png" alt="" />
           </div>
           {!sidebarCollapsed && (
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">OpenclawObservability</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">opsRobot</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Openclaw可观测性平台</p>
             </div>
           )}
@@ -432,28 +519,13 @@ export default function Dashboard() {
               return (
                 <div key={item.id} className="space-y-0.5">
                   {sidebarCollapsed ? (
-                    <button
-                      type="button"
-                      title={item.label}
-                      onClick={() =>
-                        setNavGroupOpen((prev) => ({
-                          ...prev,
-                          [item.id]: !(prev[item.id] ?? true),
-                        }))
-                      }
-                      className={[
-                        "group relative flex w-full items-center justify-center rounded-lg py-2.5 transition-colors duration-200",
-                        childActive
-                          ? "bg-primary-soft/80 text-primary dark:bg-primary/15 dark:text-primary"
-                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
-                      ].join(" ")}
-                    >
-                      <Icon
-                        name={item.icon}
-                        className={`h-5 w-5 ${childActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}
-                      />
-                      <span className="pointer-events-none absolute left-full top-1/2 z-50 mx-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 lg:block hidden" />
-                    </button>
+                    <CollapsedNavGroupFlyout
+                      item={item}
+                      childActive={childActive}
+                      activeNav={activeNav}
+                      setActiveNav={setActiveNav}
+                      setSidebarOpen={setSidebarOpen}
+                    />
                   ) : (
                     <>
                       <button
@@ -580,13 +652,11 @@ export default function Dashboard() {
                 <Icon name="sidebarPanel" className="h-3.5 w-3.5" />
               </span>
             </span>
-            <span
-              className={`overflow-hidden transition-all duration-300 ${
-                sidebarCollapsed ? "w-0 opacity-0" : "w-12 opacity-100"
-              }`}
+           { !sidebarCollapsed && <span
+              className={`overflow-hidden transition-all duration-300 w-12 opacity-100 mt-0.5`}
             >
               <span className="whitespace-nowrap">收起侧栏</span>
-            </span>
+            </span>}
           </button>
         </div>
 
@@ -606,8 +676,7 @@ export default function Dashboard() {
 
       {/* Main */}
       <div className={[
-        "relative flex min-h-0 w-0 flex-1 flex-col transition-[padding-left] duration-200",
-        sidebarCollapsed ? "lg:pl-16" : "",
+        "relative flex min-h-0 w-0 flex-1 flex-col transition-[padding-left] duration-200"
       ].join(" ")}>
         <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-gray-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/90 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
