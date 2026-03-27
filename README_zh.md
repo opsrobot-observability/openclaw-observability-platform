@@ -158,12 +158,21 @@ npm run dev
 
 ```yaml
 sources:
-  openclaw_sessions:
+  sessions:
     command: ["cat", "/path/to/openclaw/sessions/sessions.json"]
 
-  openclaw_session_logs:
+  session_logs:
     include:
       - "/path/to/openclaw/agents/*/sessions/*.jsonl"
+
+  gateway_logs:
+    include:
+      - "/path/to/openclaw/logs/gateway.log"
+      - "/path/to/openclaw/logs/gateway.err.log"
+
+  audit_logs:
+    include:
+      - "/path/to/openclaw/logs/config-audit.jsonl"
 ```
 
 macos vector 安装：
@@ -192,24 +201,15 @@ vector --config vector.yaml
 
 ---
 
-## 版本兼容性 
+## 版本兼容性
 本项目紧随 OpenClaw 社区的发展，目前已基于 OpenClaw 最新版本 完成了开发、功能验证及稳定性测试。为确保各项可观测性指标的准确抓取与展示，建议在以下环境中使用：
 
-组件
-推荐版本
-说明
-OpenClaw
-latest (v1.x+)
-核心调度与管理平台
-Linux Kernel
-4.18+
-eBPF 探针运行的最低内核要求
-Docker
-20.10.0+
-推荐容器运行时环境
-Docker Compose
-v2.0.0+
-推荐用于本地快速编排验证
+| 组件 | 推荐版本 | 说明 |
+|------|----------|------|
+| OpenClaw | latest (v3.x+) | 核心调度与管理平台 |
+| Linux Kernel | 4.18+ | eBPF 探针运行的最低内核要求 |
+| Docker | 20.10.0+ | 推荐容器运行时环境 |
+| Docker Compose | v2.0.0+ | 推荐用于本地快速编排验证 |
 
 
 ## 参与贡献与社区：

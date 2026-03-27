@@ -41,7 +41,7 @@ PROPERTIES (
 
 -- agent_sessions_logs 表：对话日志
 CREATE TABLE IF NOT EXISTS agent_sessions_logs (
-  `sessionId` VARCHAR(128),
+  `sessionId` VARCHAR(128) ,
   `timestamp` VARCHAR(64),
   `type` VARCHAR(64),
   `version` VARCHAR(32),

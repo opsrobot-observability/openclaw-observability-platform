@@ -503,7 +503,7 @@ export default function Dashboard() {
           </div>
           {!sidebarCollapsed && (
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">OpenclawObservability</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">opsRobot</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Openclaw可观测性平台</p>
             </div>
           )}

@@ -10,7 +10,7 @@ sources:
     scheduled:
       exec_interval_secs: 60
 
-  # 采集 JSONL 会话日志文件（初次全量，后续增量）
+  # 采集 JSONL 会话日志文件
   session_logs:
     type: file
     include:
@@ -20,7 +20,7 @@ sources:
       strategy: device_and_inode
 
   # 采集 gateway 日志文件
-  openclaw_gateway_logs:
+  gateway_logs:
     type: file
     include:
     - "/Users/lxg/.openclaw/logs/gateway.log"
@@ -29,8 +29,8 @@ sources:
     fingerprint:
       strategy: device_and_inode
 
-  # 采集 config-audit 日志文件
-  openclaw_config_audit_logs:
+  # 采集 audit_logs 日志文件
+  audit_logs:
     type: file
     include:
     - "/Users/lxg/.openclaw/logs/config-audit.jsonl"
@@ -157,7 +157,7 @@ transforms:
   gateway_logs_transform:
     type: remap
     inputs:
-    - openclaw_gateway_logs
+    - gateway_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -202,7 +202,7 @@ transforms:
   audit_logs_transform:
     type: remap
     inputs:
-    - openclaw_config_audit_logs
+    - audit_logs
     drop_on_error: false
     drop_on_abort: false
     source: |
@@ -321,7 +321,7 @@ sinks:
         strip_outer_array: "true"
 
   # config-audit 日志输出到控制台（调试用）
-  # config_audit_logs_to_console:
+  # audit_logs_to_console:
   #   type: console
   #   inputs:
   #   - audit_logs_transform

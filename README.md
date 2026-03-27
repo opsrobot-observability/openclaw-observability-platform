@@ -159,14 +159,22 @@ Modify the data source paths in `vector.yaml` to point to your actual OpenClaw l
 
 ```yaml
 sources:
-  openclaw_sessions:
+  sessions:
     command: ["cat", "/path/to/openclaw/sessions/sessions.json"]
 
-  openclaw_session_logs:
+  session_logs:
     include:
       - "/path/to/openclaw/agents/*/sessions/*.jsonl"
-```
 
+  gateway_logs:
+    include:
+      - "/path/to/openclaw/logs/gateway.log"
+      - "/path/to/openclaw/logs/gateway.err.log"
+
+  audit_logs:
+    include:
+      - "/path/to/openclaw/logs/config-audit.jsonl"
+```
 #### Vector Installation (macOS)
 
 ```bash
