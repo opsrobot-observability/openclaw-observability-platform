@@ -3,7 +3,7 @@
  */
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";
-import { getDorisConfig } from "./agentSessionsQuery.mjs";
+import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
 /** @param {Record<string, unknown>} row */
 function normalizeAggRow(row) {

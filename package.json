@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "api": "node server/serveAgentSessionsApi.mjs",
+    "api": "node backend/serveAgentSessionsApi.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },

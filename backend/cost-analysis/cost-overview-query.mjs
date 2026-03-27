@@ -2,7 +2,7 @@
  * 成本概览：`otel.agent_sessions_logs`（关联 `agent_sessions` 取 Agent 名）
  */
 import mysql from "mysql2/promise";
-import { getDorisConfig } from "./agentSessionsQuery.mjs";
+import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
 /** @param {Record<string, unknown>} row */
 function normalizeAggRow(row) {

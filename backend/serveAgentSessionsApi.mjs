@@ -13,14 +13,14 @@ import {
   queryAgentSessionsLogsRaw,
   queryAgentSessionsRawWithLogTokens,
 } from "./agentSessionsQuery.mjs";
-import { queryAuditDashboardMetrics } from "./auditDashboardQuery.mjs";
-import { queryCostOverviewSnapshot } from "./costOverviewQuery.mjs";
-import { queryAgentCostList, queryLlmCostDetail } from "./agentLlmCostTablesQuery.mjs";
+import { queryAuditDashboardMetrics } from "./security-audit/audit-dashboard-query.mjs";
+import { queryCostOverviewSnapshot } from "./cost-analysis/cost-overview-query.mjs";
+import { queryAgentCostList, queryLlmCostDetail } from "./cost-analysis/agent-llm-cost-tables-query.mjs";
 import {
   listOtelAgentSessionsLogTables,
   queryAgentSessionsLogsSearch,
-} from "./agentSessionsLogsSearchQuery.mjs";
-import { queryConfigAuditLogs, queryConfigAuditStats } from "./configAuditQuery.mjs";
+} from "./log-search/log-search-query.mjs";
+import { queryConfigAuditLogs, queryConfigAuditStats } from "./security-audit/config-audit-query.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 
