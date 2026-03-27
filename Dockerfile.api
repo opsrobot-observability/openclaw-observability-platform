@@ -10,7 +10,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # 复制服务端代码
-COPY server/ ./server/
+COPY backend/ ./backend/
 
 # 复制共享的 lib 目录（前端与 API 共用）
 COPY src/lib/ ./src/lib/
@@ -19,4 +19,4 @@ COPY src/lib/ ./src/lib/
 EXPOSE 8787
 
 # 启动 API 服务
-CMD ["node", "server/serveAgentSessionsApi.mjs"]
+CMD ["node", "backend/serveAgentSessionsApi.mjs"]

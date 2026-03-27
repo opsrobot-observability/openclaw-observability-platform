@@ -1,15 +1,15 @@
 import {
   queryAgentSessionsLogsRaw,
   queryAgentSessionsRawWithLogTokens,
-} from "../server/agentSessionsQuery.mjs";
-import { queryAuditDashboardMetrics } from "../server/security-audit/audit-dashboard-query.mjs";
-import { queryCostOverviewSnapshot } from "../server/cost-analysis/cost-overview-query.mjs";
-import { queryAgentCostList, queryLlmCostDetail } from "../server/cost-analysis/agent-llm-cost-tables-query.mjs";
+} from "../backend/agentSessionsQuery.mjs";
+import { queryAuditDashboardMetrics } from "../backend/security-audit/audit-dashboard-query.mjs";
+import { queryCostOverviewSnapshot } from "../backend/cost-analysis/cost-overview-query.mjs";
+import { queryAgentCostList, queryLlmCostDetail } from "../backend/cost-analysis/agent-llm-cost-tables-query.mjs";
 import {
   listOtelAgentSessionsLogTables,
   queryAgentSessionsLogsSearch,
-} from "../server/log-search/log-search-query.mjs";
-import { queryConfigAuditLogs, queryConfigAuditStats } from "../server/security-audit/config-audit-query.mjs";
+} from "../backend/log-search/log-search-query.mjs";
+import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
