@@ -8,6 +8,7 @@ export const DEFAULT_TABLE_PAGE_SIZE = 20;
  * @param {number} total - 总条数
  * @param {(p: number) => void} onPageChange
  * @param {import("react").ReactNode} [trailingControls] — 渲染在「下一页」右侧，例如每页条数选择器
+ * @param {boolean} [loading] — 为 true 时左侧显示加载文案，右侧控件半透且不可点
  */
 export default function TablePagination({
   page,
@@ -16,26 +17,34 @@ export default function TablePagination({
   onPageChange,
   className = "",
   trailingControls = null,
+  loading = false,
 }) {
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
-  const canPrev = total > 0 && page > 1;
-  const canNext = total > 0 && totalPages > 0 && page < totalPages;
+  const canPrev = !loading && total > 0 && page > 1;
+  const canNext = !loading && total > 0 && totalPages > 0 && page < totalPages;
 
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-4 ${className}`}
     >
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        第 <span className="tabular-nums text-gray-900 dark:text-gray-100">{start}</span>–
-        <span className="tabular-nums text-gray-900 dark:text-gray-100">{end}</span> 条，共{" "}
-        <span className="tabular-nums text-gray-900 dark:text-gray-100">{total}</span> 条
-        {!trailingControls && (
-          <span className="text-gray-400 dark:text-gray-500"> · 每页 {pageSize} 条</span>
-        )}
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
+      {loading ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">正在加载列表数据…</p>
+      ) : (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          第 <span className="tabular-nums text-gray-900 dark:text-gray-100">{start}</span>–
+          <span className="tabular-nums text-gray-900 dark:text-gray-100">{end}</span> 条，共{" "}
+          <span className="tabular-nums text-gray-900 dark:text-gray-100">{total}</span> 条
+          {!trailingControls && (
+            <span className="text-gray-400 dark:text-gray-500"> · 每页 {pageSize} 条</span>
+          )}
+        </p>
+      )}
+      <div
+        className={`flex flex-wrap items-center gap-2 ${loading ? "pointer-events-none opacity-50" : ""}`}
+        aria-hidden={loading || undefined}
+      >
         <button
           type="button"
           disabled={!canPrev}

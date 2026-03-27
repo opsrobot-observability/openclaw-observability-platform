@@ -107,16 +107,6 @@ export default function AuditOverview() {
 
   return (
     <div className="space-y-8">
-      <section className="app-card p-4 sm:p-6">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">审计概览</h2>
-        <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-          基于 {" "}
-          <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">otel.agent_sessions</code> 与{" "}
-          <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">otel.agent_sessions_logs</code>
-          聚合：核心指标（今日/本周/本月）、风险统计、实时态势、近 7 日趋势与 TOP 排行。风险分级为日志行级 SQL 近似，与前端「风险感知」启发式可能略有差异。
-        </p>
-      </section>
-
       {error && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
           无法加载：{error}
@@ -174,7 +164,7 @@ export default function AuditOverview() {
               {loading ? (
                 <LoadingSpinner message="" className="py-6" />
               ) : (
-                <>
+                <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                   <MetricCard
                     title="当前在线会话"
                     value={num(data.realtime?.onlineSessions)}
@@ -187,7 +177,7 @@ export default function AuditOverview() {
                     hint="aborted_last_run 非 0，近 24 小时有活动"
                     accent="border-rose-200 bg-rose-50/70 dark:border-rose-900/40 dark:bg-rose-950/25"
                   />
-                </>
+                </div>
               )}
             </div>
           </section>

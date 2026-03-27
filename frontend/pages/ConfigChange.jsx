@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import CodeBlock from "../components/CodeBlock.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import {
   Bar,
   BarChart,
@@ -225,7 +226,7 @@ export default function ConfigChange() {
               {timePreset === "7d" && "近 7 天按日统计"}
               {timePreset === "30d" && "近 30 天按日统计"}
               {timePreset === "custom" && "自定义区间内按日统计"}
-              {loading ? "（加载中...）" : `（当前页 ${allEvents.length} 条，共 ${totalCount} 条）`}
+              {!loading && `（当前页 ${allEvents.length} 条，共 ${totalCount} 条）`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -273,21 +274,25 @@ export default function ConfigChange() {
         </div>
 
         <div className="mt-4 h-32 w-full min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={36} />
-              <Tooltip
-                contentStyle={{ fontSize: 12 }}
-                formatter={(value) => [`${value} 次`, "变更事件"]}
-                labelFormatter={(label) =>
-                  timePreset === "24h" ? `时间 ${label}` : `日期 ${label}`
-                }
-              />
-              <Bar dataKey="count" name="变更事件数" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={48} />
-            </BarChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <LoadingSpinner message="正在加载趋势…" className="!py-4" />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={36} />
+                <Tooltip
+                  contentStyle={{ fontSize: 12 }}
+                  formatter={(value) => [`${value} 次`, "变更事件"]}
+                  labelFormatter={(label) =>
+                    timePreset === "24h" ? `时间 ${label}` : `日期 ${label}`
+                  }
+                />
+                <Bar dataKey="count" name="变更事件数" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={48} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 
@@ -297,6 +302,7 @@ export default function ConfigChange() {
             pageSize={pageSize}
             total={totalCount}
             onPageChange={setPage}
+            loading={loading}
             trailingControls={
               <>
                 <span className="text-sm text-gray-600 dark:text-gray-400">每页</span>
@@ -348,7 +354,13 @@ export default function ConfigChange() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {pageSlice.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={10} className="p-0 align-middle">
+                        <LoadingSpinner message="正在加载配置变更…" className="!py-16" />
+                      </td>
+                    </tr>
+                  ) : pageSlice.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
                         无匹配记录
@@ -471,56 +483,68 @@ export default function ConfigChange() {
                                       收起
                                     </button>
                                   </div>
-                                  <div className="min-h-[12rem] rounded-b-lg border border-t-0 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-950">
+                                  <div className="min-h-[12rem] rounded-b-lg border border-t-0 border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-950">
                                     {detailTab === "overview" && (
-                                      <div className="grid gap-3 sm:grid-cols-2" role="tabpanel">
-                                        {[
-                                          ["事件时间", formatUtc(e.ts)],
-                                          ["来源", e.source ?? "—"],
-                                          ["事件类型", e.event ?? "—"],
-                                          ["配置文件路径", e.configPath ?? "—"],
-                                          ["进程 ID", String(e.pid ?? "—")],
-                                          ["父进程 ID", String(e.ppid ?? "—")],
-                                          ["写入结果", e.result ?? "—"],
-                                        ].map(([k, v]) => (
-                                          <div key={k} className="text-xs">
-                                            <p className="font-medium text-gray-500 dark:text-gray-400">{k}</p>
-                                            <p className="mt-0.5 break-all font-mono text-gray-900 dark:text-gray-100">{v}</p>
-                                          </div>
-                                        ))}
-                                        <div className="text-xs sm:col-span-2">
-                                          <p className="font-medium text-gray-500">是否可疑</p>
-                                          <div className="mt-1.5 flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 dark:border-gray-800 dark:bg-gray-900/50">
-                                            <span
-                                              className={[
-                                                "inline-flex w-fit items-center rounded-md px-2.5 py-1 text-xs font-semibold",
-                                                suspiciousBadgeClasses(!!e.suspicious?.length),
-                                              ].join(" ")}
-                                            >
-                                              {e.suspicious?.length ? `可疑（${e.suspicious.length}）` : "正常"}
-                                            </span>
-                                            {e.suspicious?.length ? (
-                                              <p className="break-all font-mono text-xs leading-relaxed text-gray-800 dark:text-gray-200">
-                                                {e.suspicious.join("；")}
-                                              </p>
-                                            ) : (
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">无可疑项</p>
-                                            )}
-                                          </div>
+                                      <div className="space-y-2.5 text-xs" role="tabpanel">
+                                        <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+                                          {[
+                                            ["事件时间", formatUtc(e.ts)],
+                                            ["来源", e.source ?? "—"],
+                                            ["事件类型", e.event ?? "—"],
+                                            ["配置文件路径", e.configPath ?? "—"],
+                                            ["进程 ID", String(e.pid ?? "—")],
+                                            ["父进程 ID", String(e.ppid ?? "—")],
+                                            ["写入结果", e.result ?? "—"],
+                                          ].map(([k, v]) => (
+                                            <div key={k} className="flex min-w-0 items-start gap-2">
+                                              <span className="w-[7.5rem] shrink-0 pt-px text-[11px] font-medium leading-tight text-gray-500 dark:text-gray-400">
+                                                {k}
+                                              </span>
+                                              <span className="min-w-0 flex-1 break-all font-mono text-[11px] leading-tight text-gray-900 dark:text-gray-100">
+                                                {v}
+                                              </span>
+                                            </div>
+                                          ))}
                                         </div>
-                                        {[
-                                          ["写入前网关模式", e.gatewayModeBefore == null ? "null" : String(e.gatewayModeBefore)],
-                                          ["写入后网关模式", e.gatewayModeAfter == null ? "null" : String(e.gatewayModeAfter)],
-                                          ["写入前文件存在", String(e.existsBefore ?? "—")],
-                                          ["写入前含 meta", String(e.hasMetaBefore ?? "—")],
-                                          ["写入后含 meta", String(e.hasMetaAfter ?? "—")],
-                                          ["监视模式", String(e.watchMode ?? "—")],
-                                        ].map(([k, v]) => (
-                                          <div key={k} className="text-xs">
-                                            <p className="font-medium text-gray-500 dark:text-gray-400">{k}</p>
-                                            <p className="mt-0.5 break-all font-mono text-gray-900 dark:text-gray-100">{v}</p>
-                                          </div>
-                                        ))}
+                                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-100 bg-gray-50/90 px-2 py-1.5 dark:border-gray-800 dark:bg-gray-900/50">
+                                          <span className="shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                            是否可疑
+                                          </span>
+                                          <span
+                                            className={[
+                                              "inline-flex shrink-0 items-center rounded px-2 py-0.5 text-[11px] font-semibold",
+                                              suspiciousBadgeClasses(!!e.suspicious?.length),
+                                            ].join(" ")}
+                                          >
+                                            {e.suspicious?.length ? `可疑（${e.suspicious.length}）` : "正常"}
+                                          </span>
+                                          {e.suspicious?.length ? (
+                                            <span className="min-w-0 flex-1 basis-full sm:basis-auto break-all font-mono text-[11px] leading-snug text-gray-800 dark:text-gray-200 sm:pl-0">
+                                              {e.suspicious.join("；")}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">无可疑项</span>
+                                          )}
+                                        </div>
+                                        <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+                                          {[
+                                            ["写入前网关模式", e.gatewayModeBefore == null ? "null" : String(e.gatewayModeBefore)],
+                                            ["写入后网关模式", e.gatewayModeAfter == null ? "null" : String(e.gatewayModeAfter)],
+                                            ["写入前文件存在", String(e.existsBefore ?? "—")],
+                                            ["写入前含 meta", String(e.hasMetaBefore ?? "—")],
+                                            ["写入后含 meta", String(e.hasMetaAfter ?? "—")],
+                                            ["监视模式", String(e.watchMode ?? "—")],
+                                          ].map(([k, v]) => (
+                                            <div key={k} className="flex min-w-0 items-start gap-2">
+                                              <span className="w-[7.5rem] shrink-0 pt-px text-[11px] font-medium leading-tight text-gray-500 dark:text-gray-400">
+                                                {k}
+                                              </span>
+                                              <span className="min-w-0 flex-1 break-all font-mono text-[11px] leading-tight text-gray-900 dark:text-gray-100">
+                                                {v}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
                                     {detailTab === "compare" && (

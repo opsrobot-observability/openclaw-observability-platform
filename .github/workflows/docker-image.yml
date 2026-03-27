@@ -2,9 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main","initproject" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main","initproject" ]
 
 jobs:
   build-and-push:
@@ -25,21 +25,27 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: set lower case owner name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: ${{ github.repository_owner }}
 
       - name: Extract metadata for Docker images
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository_owner }}/openclaw-observability-platform-backend
-            ghcr.io/${{ github.repository_owner }}/openclaw-observability-platform-frontend
+            ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-backend
+            ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-frontend
 
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/openclaw-observability-backend:latest,ghcr.io/${{ github.repository_owner }}/openclaw-observability-api:${{ github.sha }}
+          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-backend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -49,6 +55,6 @@ jobs:
           context: .
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/openclaw-observability-frontend:latest,ghcr.io/${{ github.repository_owner }}/openclaw-observability-web:${{ github.sha }}
+          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-frontend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

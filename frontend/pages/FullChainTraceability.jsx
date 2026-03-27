@@ -70,11 +70,6 @@ export default function FullChainTraceability() {
     <div className="space-y-6">
       <section className="app-card p-4 sm:p-6">
         <h2 className="text-base font-semibold text-gray-900">会话溯源</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          输入<strong className="font-medium text-gray-700">会话 ID</strong>
-          ，查看从接入、会话编排、数字员工、工具 / MCP 到审计与结束的完整过程与每步详情（演示数据）。
-        </p>
-
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">

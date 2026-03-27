@@ -177,10 +177,6 @@ export default function AgentCostDetail() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agent 成本列表</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              按 Agent 汇总 Token、单调用均值、调用次数与成功率；点击行可<strong className="font-medium text-gray-700 dark:text-gray-300">查看</strong>
-              查看输入/输出拆分
-            </p>
           </div>
           <button
             type="button"
