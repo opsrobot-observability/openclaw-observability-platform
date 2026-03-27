@@ -1655,22 +1655,31 @@ export default function SessionAudit() {
           </div>
         </div>
 
-        <TablePagination page={pageSafe} pageSize={pageSize} total={sorted.length} onPageChange={setPage} className="mt-4" />
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <span>每页</span>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="app-input py-1.5 px-2"
-          >
-            {[10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          <span>条</span>
-        </div>
+        <TablePagination
+          page={pageSafe}
+          pageSize={pageSize}
+          total={sorted.length}
+          onPageChange={setPage}
+          className="mt-4"
+          loading={loading}
+          trailingControls={
+            <label className="ml-1 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+              <span className="shrink-0">每页</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="app-input min-w-[4.5rem] py-1.5 px-2"
+              >
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <span className="shrink-0">条</span>
+            </label>
+          }
+        />
 
         <div className="mt-4 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
           <div className="overflow-x-auto">
@@ -1727,7 +1736,13 @@ export default function SessionAudit() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {pageSlice.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={17} className="p-0 align-middle">
+                      <LoadingSpinner message="正在加载会话列表…" className="!py-16" />
+                    </td>
+                  </tr>
+                ) : pageSlice.length === 0 ? (
                   <tr>
                     <td colSpan={17} className="px-4 py-10 text-center text-gray-500">
                       无匹配记录

@@ -174,7 +174,7 @@ export default function AuditOverview() {
               {loading ? (
                 <LoadingSpinner message="" className="py-6" />
               ) : (
-                <>
+                <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                   <MetricCard
                     title="当前在线会话"
                     value={num(data.realtime?.onlineSessions)}
@@ -187,7 +187,7 @@ export default function AuditOverview() {
                     hint="aborted_last_run 非 0，近 24 小时有活动"
                     accent="border-rose-200 bg-rose-50/70 dark:border-rose-900/40 dark:bg-rose-950/25"
                   />
-                </>
+                </div>
               )}
             </div>
           </section>
