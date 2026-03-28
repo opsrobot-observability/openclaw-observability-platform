@@ -2,9 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main","initproject" ]
-  pull_request:
-    branches: [ "main","initproject" ]
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - '[0-9]*.[0-9]*.[0-9]*-*'
 
 jobs:
   build-and-push:
