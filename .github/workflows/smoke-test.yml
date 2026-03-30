@@ -13,7 +13,7 @@ on:
 
 jobs:
   smoke-test:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, ARM64, default]
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -64,12 +64,14 @@ jobs:
         docker compose -f docker-compose-build.yml logs
         exit 1
 
-    - name: Run webtest-agent tests
+    - name: Trigger Openclaw webtest-agent
       run: |
-        echo "Running webtest-agent tests against http://127.0.0.1:3000"
-        # TODO: Configure webtest-agent to test http://127.0.0.1:3000
-        # The test should perform comprehensive testing of the frontend
-        webtest-agent --url http://127.0.0.1:3000 --report ./test-results/
+        echo "Sending test request to Openclaw webtest-agent..."
+        OPENCLAW_GATEWAY_PORT=18789 \
+        OPENCLAW_GATEWAY_TOKEN=c84c7081538b3cd476f687c3da3706346591b0cb675169207d05f0a0c4b77cd6 \
+        openclaw agent \
+          --agent webtest-agent \
+          --message "对http：127.0.0.1:3000进行全面测试，结果写回到https://github.com/opsrobot-observability/openclaw-observability-platform 当前的pullrequest"
 
     - name: Upload test results
       if: always()
