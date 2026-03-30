@@ -2,6 +2,8 @@ api:
   enabled: false
   address: 0.0.0.0:8686
 
+timezone: "Asia/Shanghai"
+
 sources:
   sessions:
     type: exec
@@ -110,9 +112,9 @@ transforms:
       # 提取根级别字段
       .type = get(obj, ["type"]) ?? null
       .version = get(obj, ["version"]) ?? null
-      .id = get(obj, ["id"]) ?? null
+      .message_id = get(obj, ["id"]) ?? null
       .timestamp = get(obj, ["timestamp"]) ?? null
-      .parent_id = get(obj, ["parentId"]) ?? null
+      .message_parent_id = get(obj, ["parentId"]) ?? null
       .provider = get(obj, ["provider"]) ?? null
       .model_id = get(obj, ["modelId"]) ?? null
       .thinking_level = get(obj, ["thinkingLevel"]) ?? null
@@ -172,7 +174,7 @@ transforms:
       ts_raw = string!(get!(parts, ["ts"]))
       parsed_ts, err = parse_timestamp(ts_raw, "%+")
       if err == null {
-          .event_time = format_timestamp!(parsed_ts, "%Y-%m-%d %H:%M:%S")
+          .event_time = format_timestamp!(parsed_ts, "%Y-%m-%d %H:%M:%S", timezone: "Asia/Shanghai")
       }
       .module = string!(get!(parts, ["module"]))
       .log_attributes = raw_message
@@ -217,7 +219,7 @@ transforms:
 
       parsed_ts, err = parse_timestamp(ts_raw, "%+")
       if err == null {
-          .event_time = format_timestamp!(parsed_ts, "%Y-%m-%d %H:%M:%S")
+          .event_time = format_timestamp!(parsed_ts, "%Y-%m-%d %H:%M:%S", timezone: "Asia/Shanghai")
       }
 
       # log_attributes 为当前行记录（整个 JSON 对象）

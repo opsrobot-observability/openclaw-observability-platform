@@ -1,0 +1,44 @@
+receivers:
+  # 官方原生接收OpenClaw上报的OTLP指标
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # 官方原生批量处理，优化性能
+  batch:
+    timeout: 2s
+
+exporters:
+  # 调试日志，确认数据正常接收
+  debug:
+    verbosity: basic
+
+  # 官方原生Doris Exporter，你的镜像已支持，无无效配置
+  doris:
+    # Doris FE HTTP地址（Stream Load用）- 必须使用 FE 端口 8030，不是 BE 端口 8040
+    endpoint: "http://doris:8040"
+    # Doris FE MySQL地址（元数据用）
+    mysql_endpoint: "doris:9030"
+    # 你的Doris库名
+    database: "opsRobot"
+    # Doris账号（空密码）
+    username: "root"
+    password: ""
+    # 开启自动建表，解决表找不到的核心问题
+    create_schema: true
+    # 超时重试配置，提升稳定性
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [doris, debug]

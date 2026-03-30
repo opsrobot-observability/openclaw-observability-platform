@@ -144,8 +144,8 @@ export async function queryAgentSessionsLogsSearch(p) {
           COALESCE(l.\`message_role\`,''),
           COALESCE(l.\`message_tool_name\`,''),
           COALESCE(l.\`sessionId\`,''),
-          COALESCE(l.\`id\`,''),
-          COALESCE(l.\`parent_id\`,''),
+          COALESCE(l.\`message_id\`,''),
+          COALESCE(l.\`message_parent_id\`,''),
           COALESCE(s.\`agent_name\`,'')
         ))
       ) > 0
@@ -173,7 +173,7 @@ WHERE ${whereSql}
 
     const listSql = `
 SELECT
-  l.\`id\`,
+  l.\`message_id\`,
   l.\`sessionId\`,
   l.\`timestamp\`,
   l.\`type\`,
@@ -184,7 +184,7 @@ SELECT
   l.\`message_role\`,
   l.\`message_tool_name\`,
   l.\`message_is_error\`,
-  l.\`parent_id\`,
+  l.\`message_parent_id\`,
   l.\`log_attributes\`,
   s.\`agent_name\`,
   s.\`channel\`

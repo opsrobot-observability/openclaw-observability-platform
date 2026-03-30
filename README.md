@@ -53,30 +53,30 @@ Built on the **KWeaver Core** framework, OpenClaw Observability Platform integra
 │                    OpenClaw Observability Platform              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐ │
-│  │   Frontend   │    │  Backend API  │    │  Apache Doris     │ │
-│  │   (Vite+     │◄──►│  (Node.js)    │◄──►│  (OLAP Database)  │ │
-│  │   React)     │    │  Port: 8787   │    │  Port: 9030       │ │
-│  │  Port: 3000  │    └──────────────┘    └──────────────────┘ │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
+│  │   Frontend   │    │  Backend API │    │  Apache Doris    │   │
+│  │   (Vite+     │◄──►│  (Node.js)   │◄──►│  (OLAP Database) │   │
+│  │   React)     │    │  Port: 8787  │    │  Port: 9030      │   │
+│  │  Port: 3000  │    └──────────────┘    └──────────────────┘   │
 │  └──────────────┘                                               │
-│           ▲                                                    │
-│           │                                                    │
-│  ┌────────┴────────────────────────────────────────────────┐   │
-│  │                  OTel  Data Pipeline                    │   │
-│  │                                                         │   │
-│  │  ┌─────────────┐   ┌─────────────┐   ┌──────────────┐  │    │
-│  │  │   Sources   │──►│ Transform   │──►│    Sinks     │  │    │
-│  │  │  (File/Exec)│   │  (Remap/    │   │ (HTTP to     │  │    │
-│  │  │             │   │   Reduce)   │   │  Doris)      │  │    │
-│  │  └─────────────┘   └─────────────┘   └──────────────┘  │    │
-│  └────────────────────────────────────────────────────────┘    │
-│           ▲                                                    │
-│           │                                                    │
-│  ┌────────┴──────────────┐                                     │
-│  │   OpenClaw Agent       │                                    │
-│  │   Session Logs         │                                    │
-│  │   (sessions.json /     │                                    │
-│  │    *.jsonl)            │                                    │
+│           ▲                                                     │
+│           │                                                     │
+│  ┌────────┴────────────────────────────────────────────────┐    │
+│  │                  OTel  Data Pipeline                    │    │
+│  │                                                         │    │
+│  │  ┌─────────────┐   ┌─────────────┐   ┌──────────────┐   │    │
+│  │  │   Sources   │──►│ Transform   │──►│    Sinks     │   │    │
+│  │  │  (File/Exec)│   │  (Remap/    │   │ (HTTP to     │   │    │
+│  │  │             │   │   Reduce)   │   │  Doris)      │   │    │
+│  │  └─────────────┘   └─────────────┘   └──────────────┘   │    │
+│  └────────────────────────────────────────────────────────-┘    │
+│           ▲                                                     │
+│           │                                                     │
+│  ┌────────┴─────────────-─┐                                     │
+│  │   OpenClaw Agent       │                                     │
+│  │   Session Logs         │                                     │
+│  │   (sessions.json /     │                                     │
+│  │    *.jsonl)            │                                     │
 │  └────────────────────────┘                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -94,16 +94,16 @@ Built on the **KWeaver Core** framework, OpenClaw Observability Platform integra
 ### How It Works
 
 ```
-┌─────────┐    ┌───────────────────┐    ┌─────────────────┐    ┌──────────────┐
-│OpenClaw │───►│ Vector Pipeline   │───►│ Apache Doris     │◄───│   Frontend   │
-│ Agent   │    │ (Data Collection  │    │ (Storage &      │    │  (Visualization) │
-│ Logs    │    │  & Transformation)│    │  Analytics)     │    │              │
-└─────────┘    └───────────────────┘    └─────────────────┘    └──────┬───────┘
-                                                                          │
-                                           ┌─────────────────┐            │
-                                           │   Backend API    │◄───────────┘
-                                           │   (Node.js)      │
-                                           │   Port: 8787     │
+┌─────────┐    ┌───────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│OpenClaw │───►│ Vector Pipeline   │───►│ Apache Doris    │◄───│    Frontend     │
+│ Agent   │    │ (Data Collection  │    │ (Storage &      │    │ (Visualization) │
+│ Logs    │    │  & Transformation)│    │  Analytics)     │    │                 │
+└─────────┘    └───────────────────┘    └─────────────────┘    └────────┬────────┘
+                                                                        │
+                                           ┌─────────────────┐          │
+                                           │   Backend API   │◄─────────┘
+                                           │   (Node.js)     │
+                                           │   Port: 8787    │
                                            └─────────────────┘
 ```
 

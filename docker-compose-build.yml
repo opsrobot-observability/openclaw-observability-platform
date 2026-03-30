@@ -1,34 +1,39 @@
+name: openclaw-observability-platform
+
+
 services:
   # =============================================================================
-  # 前端服务 - 静态文件服务
+  # frontend - 静态文件服务
   # =============================================================================
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./frontend/Dockerfile
+    container_name: frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
-      api:
+      backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
-      - openclaw-observability
+      - openclaw-net
 
+  
   # =============================================================================
-  # 数据库初始化容器 - 等待 Doris 就绪后创建数据库和表
+  # backend 服务 - Node.js 后端
   # =============================================================================
-  # 已移除：初始化逻辑直接集成到 doris 容器内部
-
-  # =============================================================================
-  # API 服务 - Node.js 后端
-  # =============================================================================
-  api:
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile.api
-    container_name: openclaw-observability-platform-backend
-
+      dockerfile: ./backend/Dockerfile
+    container_name: backend
     restart: unless-stopped
     ports:
       - "${API_PORT:-8787}:8787"
@@ -49,10 +54,10 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - openclaw-observability
+      - openclaw-net
 
   # =============================================================================
-  # Apache Doris - All-in-One (FE + BE in single container)
+  # Apache Doris - 单节点服务
   # =============================================================================
   doris:
     image: ${DORIS_IMAGE:-apache/doris:4.0.3-all-slim}
@@ -60,12 +65,21 @@ services:
     hostname: doris
     restart: unless-stopped
     privileged: true
+    deploy:
+      resources:
+        limits:
+          cpus: 4
+          memory: 16G
+        reservations:
+          cpus: 1
+          memory: 4G
     ports:
       - "${DORIS_FE_HTTP_PORT:-8030}:8030"  # FE HTTP port (Web UI)
       - "${DORIS_FE_MYSQL_PORT:-9030}:9030"  # FE MySQL protocol port
       - "${DORIS_BE_HTTP_PORT:-8040}:8040"   # BE HTTP port
     environment:
       - SKIP_CHECK_ULIMIT=true
+      - "TZ=${TIMEZONE:-Asia/Shanghai}"
     volumes:
       - doris_data:/opt/apache-doris
       - ./scripts/init-doris-schema.sql:/opt/apache-doris/init-doris-schema.sql:ro
@@ -78,11 +92,38 @@ services:
       retries: 20
       start_period: 180s
     networks:
-      - openclaw-observability
+      - openclaw-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.144.0
+    hostname: otel-collector
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otelcol/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics (collector self-monitoring)
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # Health check extension
+    environment:
+      - DORIS_FE_HTTP_ENDPOINT=${DORIS_FE_HTTP_ENDPOINT:-http://doris:8040}
+      - DORIS_FE_MYSQL_ENDPOINT=${DORIS_FE_MYSQL_ENDPOINT:-doris:9030}
+      - DORIS_USERNAME=${DORIS_USERNAME:-root}
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+      - DORIS_DATABASE=${DORIS_DATABASE:-otel}
+      - DORIS_TABLE_LOGS=${DORIS_TABLE_LOGS:-otel_logs}
+      - DORIS_TABLE_TRACES=${DORIS_TABLE_TRACES:-otel_traces}
+      - DORIS_TABLE_METRICS=${DORIS_TABLE_METRICS:-otel_metrics}
+    restart: unless-stopped
+    networks:
+      - openclaw-net
 
 networks:
-  openclaw-observability:
+  openclaw-net:
     driver: bridge
+    name: openclaw-observability-platform-network
 
 volumes:
   doris_data:

@@ -6,9 +6,7 @@ services:
   # frontend - 静态文件服务
   # =============================================================================
   frontend:
-    build:
-      context: .
-      dockerfile: ./frontend/Dockerfile
+    image: ghcr.io/aishu-opsrobot/openclaw-observability-platform-frontend:latest
     container_name: frontend
     restart: unless-stopped
     ports:
@@ -30,9 +28,7 @@ services:
   # backend 服务 - Node.js 后端
   # =============================================================================
   backend:
-    build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+    image: ghcr.io/aishu-opsrobot/openclaw-observability-platform-backend:latest
     container_name: backend
     restart: unless-stopped
     ports:
@@ -65,12 +61,21 @@ services:
     hostname: doris
     restart: unless-stopped
     privileged: true
+    deploy:
+      resources:
+        limits:
+          cpus: 4
+          memory: 16G
+        reservations:
+          cpus: 1
+          memory: 4G
     ports:
       - "${DORIS_FE_HTTP_PORT:-8030}:8030"  # FE HTTP port (Web UI)
       - "${DORIS_FE_MYSQL_PORT:-9030}:9030"  # FE MySQL protocol port
       - "${DORIS_BE_HTTP_PORT:-8040}:8040"   # BE HTTP port
     environment:
       - SKIP_CHECK_ULIMIT=true
+      - "TZ=${TIMEZONE:-Asia/Shanghai}"
     volumes:
       - doris_data:/opt/apache-doris
       - ./scripts/init-doris-schema.sql:/opt/apache-doris/init-doris-schema.sql:ro
@@ -82,6 +87,32 @@ services:
       timeout: 10s
       retries: 20
       start_period: 180s
+    networks:
+      - openclaw-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.144.0
+    hostname: otel-collector
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otelcol/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics (collector self-monitoring)
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # Health check extension
+    environment:
+      - DORIS_FE_HTTP_ENDPOINT=${DORIS_FE_HTTP_ENDPOINT:-http://doris:8040}
+      - DORIS_FE_MYSQL_ENDPOINT=${DORIS_FE_MYSQL_ENDPOINT:-doris:9030}
+      - DORIS_USERNAME=${DORIS_USERNAME:-root}
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+      - DORIS_DATABASE=${DORIS_DATABASE:-otel}
+      - DORIS_TABLE_LOGS=${DORIS_TABLE_LOGS:-otel_logs}
+      - DORIS_TABLE_TRACES=${DORIS_TABLE_TRACES:-otel_traces}
+      - DORIS_TABLE_METRICS=${DORIS_TABLE_METRICS:-otel_metrics}
+    restart: unless-stopped
     networks:
       - openclaw-net
 
