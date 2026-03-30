@@ -1,7 +1,6 @@
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import LogSearch from "./LogSearch.jsx";
 import DigitalEmployeeOverview from "./DigitalEmployeeOverview.jsx";
 import DigitalEmployeePortrait from "./DigitalEmployeePortrait.jsx";
 import CostAnalysis from "./CostAnalysis.jsx";
@@ -25,13 +24,12 @@ const PAGE_META = {
     title: "审计概览",
     subtitle: "核心指标、风险统计、实时态势、趋势与排行",
   },
-  "session-audit": { title: "会话审计", subtitle: "OpenClaw 会话索引、模型与 Token 用量合规留痕" },
+  "session-audit": { title: "会话溯源", subtitle: "OpenClaw 会话索引、模型与 Token 用量合规留痕" },
   traceability: { title: "全链路溯源", subtitle: "按会话 ID 查看链路时间轴与步骤详情" },
-  logs: { title: "日志查询", subtitle: "Doris otel.agent_sessions_logs 检索、趋势与详情" },
   inspection: { title: "定期巡检", subtitle: "巡检任务与报告" },
   "cost-overview": { title: "成本概览", subtitle: "总成本、日均与维度占比、趋势" },
-  "cost-overview-2": { title: "成本概览2", subtitle: "总成本、日均与维度占比、趋势" },
-  "agent-cost-detail": { title: "Agent 成本列表", subtitle: "总消耗、单任务均值、调用量与成功率" },
+  "cost-overview-2": { title: "会话成本明细", subtitle: "Agent、用户、Gateway、大模型多维过滤" },
+  "agent-cost-detail": { title: "Agent 成本明细", subtitle: "总消耗、单任务均值、调用量与成功率" },
   "llm-cost": { title: "LLM 成本明细", subtitle: "按模型维度的 Token 与费用" },
 };
 
@@ -56,11 +54,10 @@ const NAV = [
       { id: "audit-overview", label: "审计概览" },
       // { id: "audit", label: "行为审计" },
       { id: "config-change", label: "配置变更" },
-      { id: "session-audit", label: "会话审计" },
+      { id: "session-audit", label: "会话溯源" },
       // { id: "traceability", label: "全链路溯源" },
     ],
   },
-  { id: "logs", label: "日志查询", icon: "logs" },
   // { id: "inspection", label: "定期巡检", icon: "inspection" },
   {
     id: "cost-analysis",
@@ -68,8 +65,8 @@ const NAV = [
     icon: "costAnalysis",
     children: [
       { id: "cost-overview", label: "成本概览" },
-      { id: "cost-overview-2", label: "成本概览2" },
-      { id: "agent-cost-detail", label: "Agent成本列表" },
+      { id: "cost-overview-2", label: "会话成本明细" },
+      { id: "agent-cost-detail", label: "Agent成本明细" },
       { id: "llm-cost", label: "LLM成本明细" },
     ],
   },
@@ -236,12 +233,6 @@ function Icon({ name, className = "h-5 w-5" }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
         </svg>
       );
-    case "logs":
-      return (
-        <svg className={common} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-        </svg>
-      );
     case "inspection":
       return (
         <svg className={common} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -402,7 +393,14 @@ function statusBadgeClass(status) {
 }
 
 export default function Dashboard() {
-  const [activeNav, setActiveNavRaw] = useState(() => localStorage.getItem("nav-active") || "audit-overview");
+  const [activeNav, setActiveNavRaw] = useState(() => {
+    const v = localStorage.getItem("nav-active");
+    if (v === "logs") {
+      localStorage.setItem("nav-active", "audit-overview");
+      return "audit-overview";
+    }
+    return v || "audit-overview";
+  });
   const [navGroupOpen, setNavGroupOpenRaw] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("nav-group-open")) || {
@@ -726,9 +724,7 @@ export default function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {activeNav === "logs" ? (
-            <LogSearch />
-          ) : activeNav === "cost-overview" ? (
+          {activeNav === "cost-overview" ? (
             <CostAnalysis />
           ) : activeNav === "cost-overview-2" ? (
             <CostOverview2 />

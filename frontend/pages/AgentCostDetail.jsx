@@ -176,7 +176,7 @@ export default function AgentCostDetail() {
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agent 成本列表</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agent 成本明细</h2>
           </div>
           <button
             type="button"

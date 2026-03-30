@@ -14,7 +14,6 @@ import {
   formatDurationMs,
   extractToolInvocations,
   extractNetworkAndFileOps,
-  getJsonlLineTimeMs,
   extractMessageLines,
   messageTextContent,
   extractSessionRisks,
@@ -39,13 +38,6 @@ function formatMs(ms) {
   } catch {
     return "—";
   }
-}
-
-function formatLineTimeLabel(s) {
-  if (s == null || s === "") return "—";
-  const str = String(s);
-  if (/^\d{10,}$/.test(str)) return formatMs(Number(str));
-  return str;
 }
 
 function num(n) {
@@ -141,7 +133,6 @@ function strArgs(obj) {
 
 const DETAIL_TABS = [
   { id: "trace", label: "溯源分析" },
-  { id: "flow", label: "会话过程" },
   { id: "chat", label: "对话详情" },
   { id: "intent", label: "意图识别" },
   { id: "model", label: "模型调用" },
@@ -306,7 +297,7 @@ function ChatAssistantMessageBody({ msg, strArgs }) {
 /**
  * 单会话下钻：索引元数据 + 拉取 `public/sessions/{sessionId}.jsonl` 时间线
  */
-function SessionAuditDetail({ row, onBack }) {
+function SessionAuditDetail({ row }) {
   const [jsonlLines, setJsonlLines] = useState([]);
   const [jsonlStatus, setJsonlStatus] = useState("idle");
   const [jsonlError, setJsonlError] = useState(null);
@@ -428,36 +419,27 @@ function SessionAuditDetail({ row, onBack }) {
     });
   };
 
-  /** 风险项 →「会话过程」对应行并展开原始 JSON，滚动到可视区 */
+  /** 风险项 →「溯源分析」时间线对应行并展开原始 JSON，滚动到可视区 */
   const openRiskSourceLine = (lineIndex) => {
     if (lineIndex < 0 || lineIndex >= jsonlLines.length) return;
-    setDetailTab("flow");
+    setDetailTab("trace");
     setRawOpen((prev) => {
       const n = new Set(prev);
       n.add(lineIndex);
       return n;
     });
+    const enrichedIdx = trace.enriched.findIndex((e) => e.originalIndex === lineIndex);
     window.requestAnimationFrame(() => {
       window.setTimeout(() => {
-        document.getElementById(`session-line-${lineIndex}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (enrichedIdx >= 0) {
+          document.getElementById(`trace-replay-${enrichedIdx}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }, 80);
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="app-btn-outline inline-flex items-center gap-2 px-3 py-2 text-sm"
-        >
-          ← 返回会话列表
-        </button>
-        <span className="text-sm text-gray-400">|</span>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">会话详情</h2>
-      </div>
-
       <section className="app-card p-4 sm:p-6">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">索引元数据</h3>
         <p className="mt-2 rounded-lg border border-primary/20 bg-primary-soft/50 px-2.5 py-2 font-mono text-[11px] leading-relaxed text-primary break-all ring-1 ring-primary/10">
@@ -542,17 +524,13 @@ function SessionAuditDetail({ row, onBack }) {
       </section>
 
       <section className="app-card p-4 sm:p-6">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">会话转写分析</h3>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            溯源按时间先后；会话过程按记录行序；对话详情为聊天视图；意图识别为用户与 thinking 推理；模型调用汇总各轮用量；工具与网络/文件为结构化汇总；风险感知为启发式审计项。转写数据优先来自 Doris{" "}
-            <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">otel.agent_sessions_logs</code>
-            （列 <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">log_attributes</code>
-            存完整 JSONL 行）；失败时可回退 <code className="rounded bg-gray-100 px-1 font-mono text-[11px] dark:bg-gray-800">public/sessions/{`{sessionId}`}.jsonl</code>。
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">会话转写分析</h3>
 
-        {jsonlStatus === "loading" && <LoadingSpinner message="正在加载转写…" />}
+        {jsonlStatus === "loading" && (
+          <div className="mt-4">
+            <LoadingSpinner message="正在加载转写…" />
+          </div>
+        )}
         {jsonlStatus === "error" && (
           <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{jsonlError}</p>
         )}
@@ -878,79 +856,8 @@ function SessionAuditDetail({ row, onBack }) {
               </>
             )}
 
-            {detailTab === "flow" && (
-              <div className="mt-4">
-                <p className="text-xs text-gray-600">
-                  按 JSONL 写入顺序展示每条记录，共 <span className="tabular-nums font-medium">{jsonlLines.length}</span> 个事件。
-                </p>
-                <ul className="mt-4 space-y-3 border-l-2 border-gray-200 pl-4">
-                  {jsonlLines.map((line, originalIndex) => {
-                    const sum = summarizeJsonlLine(line);
-                    const tMs = getJsonlLineTimeMs(line);
-                    const raw = rawOpen.has(originalIndex);
-                    return (
-                      <li
-                        id={`session-line-${originalIndex}`}
-                        key={`flow-${originalIndex}-${sum.kind}`}
-                        className="relative scroll-mt-24"
-                      >
-                        <span className="absolute -left-[21px] top-3 h-3 w-3 rounded-full border-2 border-white bg-gray-300 ring-1 ring-gray-200 dark:border-gray-950" />
-                        <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs tabular-nums text-gray-400">#{originalIndex + 1}</span>
-                                <span className="font-mono text-[10px] text-gray-500">{line.type ?? "—"}</span>
-                                <span
-                                  className={[
-                                    "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                                    kindBadgeClass(sum.kind),
-                                  ].join(" ")}
-                                >
-                                  {sum.title}
-                                </span>
-                                {tMs != null ? (
-                                  <span className="text-xs font-medium tabular-nums text-gray-800">{formatMs(tMs)}</span>
-                                ) : (
-                                  <span className="text-xs text-gray-500">
-                                    {sum.timeLabel ? formatLineTimeLabel(sum.timeLabel) : "无时间戳"}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800">{sum.subtitle || "—"}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleRaw(originalIndex)}
-                              className="app-btn-outline shrink-0 px-2 py-1 text-xs"
-                            >
-                              {raw ? "隐藏原始行" : "原始 JSON"}
-                            </button>
-                          </div>
-                          {raw && (
-                            <div className="flex items-start justify-between gap-2">
-                              <CodeBlock text={JSON.stringify(line, null, 2)} variant="dark" height="lg" font="mono" className="mt-3 flex-1">
-                                {JSON.stringify(line, null, 2)}
-                              </CodeBlock>
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-
             {detailTab === "chat" && (
               <div className="mt-4">
-                <p className="text-xs text-gray-600">
-                  仅展示 <code className="rounded bg-gray-100 px-1 font-mono text-[11px]">type: message</code> 的对话，共{" "}
-                  <span className="tabular-nums font-medium">{chatMessages.length}</span> 条；命中风险规则的条目在下方以{" "}
-                  <span className="font-medium text-red-800">风险·高</span> /{" "}
-                  <span className="font-medium text-amber-900">中</span> /{" "}
-                  <span className="font-medium text-sky-900">低</span> 标记（与「风险感知」一致，悬停可看原因）。
-                </p>
                 {chatMessages.length === 0 ? (
                   <p className="mt-4 text-sm text-gray-500">暂无对话消息。</p>
                 ) : (
@@ -1063,11 +970,6 @@ function SessionAuditDetail({ row, onBack }) {
 
             {detailTab === "intent" && (
               <div className="mt-4 space-y-4">
-                <p className="text-xs leading-relaxed text-gray-600">
-                  来源：首条用户消息（任务上下文）与助手消息中的{" "}
-                  <code className="rounded bg-gray-100 px-1 font-mono text-[11px]">thinking</code>{" "}
-                  推理块（模型对意图与步骤的理解）。
-                </p>
                 {intentDetail.userSummary ? (
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3">
                     <p className="text-xs font-medium text-slate-600">用户输入（首条）</p>
@@ -1113,9 +1015,6 @@ function SessionAuditDetail({ row, onBack }) {
 
             {detailTab === "model" && (
               <div className="mt-4 space-y-4">
-                <p className="text-xs leading-relaxed text-gray-600">
-                  汇总助手各轮的 model / provider / api、Token 与费用；下列出会话中的模型切换、思考档位与模型快照。
-                </p>
                 <div className="flex flex-wrap gap-3 text-xs">
                   <div className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
                     <span className="text-gray-500">助手轮次</span>{" "}
@@ -1416,10 +1315,6 @@ function SessionAuditDetail({ row, onBack }) {
 
             {detailTab === "risk" && (
               <div className="mt-4 space-y-4">
-                <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">
-                  基于 JSONL 的启发式风险项：解析失败、工具/扩展错误、非零退出码、进程异常、停止原因、异常时间间隔、可疑命令行等。仅供参考，请结合业务复核。
-                  <span className="mt-1 block text-gray-700 dark:text-gray-300">点击任意条目将跳转至「会话过程」中对应行，并自动展开该条原始 JSON。</span>
-                </p>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="rounded-md bg-red-50 px-2 py-1 font-medium text-red-800 ring-1 ring-red-200/80">
                     高 {riskItems.filter((x) => x.severity === "high").length}
@@ -1434,7 +1329,7 @@ function SessionAuditDetail({ row, onBack }) {
                 </div>
                 {riskItems.length === 0 ? (
                   <p className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-900">
-                    当前未发现匹配上述规则的风险项。
+                    当前未发现风险项。
                   </p>
                 ) : (
                   <ul className="space-y-3">
@@ -1619,7 +1514,7 @@ export default function SessionAudit() {
   };
 
   if (detailRow) {
-    return <SessionAuditDetail row={detailRow} onBack={() => setDetailRow(null)} />;
+    return <SessionAuditDetail row={detailRow} />;
   }
 
   return (
@@ -1631,7 +1526,7 @@ export default function SessionAudit() {
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">会话索引审计</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">会话列表</h2>
           </div>
           <div className="min-w-[200px] flex-1 sm:max-w-sm">
             <label className="sr-only" htmlFor="session-audit-search">

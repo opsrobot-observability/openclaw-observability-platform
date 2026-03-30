@@ -71,7 +71,7 @@ export default function CostTimeRangeFilter({
   return (
     <div
       className={[
-        "rounded-lg border border-gray-100 bg-gray-50/80 p-4 dark:border-gray-800 dark:bg-gray-900/50",
+        "rounded-lg border border-gray-100 bg-white/80 p-4 dark:border-gray-800 dark:bg-gray-900/50",
         className,
       ].join(" ")}
     >

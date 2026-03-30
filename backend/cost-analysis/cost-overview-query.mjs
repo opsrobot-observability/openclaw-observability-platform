@@ -104,6 +104,34 @@ ORDER BY tokens DESC
 }
 
 /**
+ * 按 Agent 统计 Token 消耗详情：总Token、平均单次Token、调用次数
+ * @param {import("mysql2/promise").Connection} conn
+ * @param {string} startDay
+ * @param {string} endDay
+ */
+async function agentTokenDetail(conn, startDay, endDay) {
+  const sql = `
+SELECT
+  COALESCE(NULLIF(TRIM(s.agent_name), ''), '(未命名 Agent)') AS agent_name,
+  COALESCE(SUM(l.\`message_usage_total_tokens\`), 0) AS total_tokens,
+  COUNT(*) AS call_count,
+  CASE
+    WHEN COUNT(*) > 0 THEN COALESCE(SUM(l.\`message_usage_total_tokens\`), 0) / COUNT(*)
+    ELSE 0
+  END AS avg_tokens_per_call
+FROM agent_sessions_logs l
+LEFT JOIN agent_sessions s ON s.session_id = l.\`sessionId\`
+WHERE LENGTH(l.\`timestamp\`) >= 10
+  AND SUBSTR(l.\`timestamp\`, 1, 10) >= ?
+  AND SUBSTR(l.\`timestamp\`, 1, 10) <= ?
+GROUP BY agent_name
+ORDER BY total_tokens DESC
+`;
+  const [rows] = await conn.query(sql, [startDay, endDay]);
+  return Array.isArray(rows) ? rows.map((r) => normalizeAggRow(r)) : [];
+}
+
+/**
  * @param {import("mysql2/promise").Connection} conn
  * @param {string} startDay
  * @param {string} endDay
@@ -373,6 +401,9 @@ export async function queryCostOverviewSnapshot(opts = {}) {
       fill: AGENT_COLORS[i % AGENT_COLORS.length],
     }));
 
+    // Agent Token 消耗详情
+    const agentTokenDetailRows = await agentTokenDetail(conn, monthStartStr, todayStr);
+
     // Top10 会话 Token 消耗
     const topSessionRows = await topSessionsByTokens(conn, monthStartStr, todayStr, 10);
     const topSessions = topSessionRows.map((r) => {
@@ -434,6 +465,12 @@ export async function queryCostOverviewSnapshot(opts = {}) {
       },
       modelShare,
       topSessions,
+      agentTokenDetail: agentTokenDetailRows.map((r) => ({
+        agentName: String(r.agent_name),
+        totalTokens: Number(r.total_tokens) || 0,
+        avgTokensPerCall: Math.round((Number(r.avg_tokens_per_call) || 0) * 100) / 100,
+        callCount: Number(r.call_count) || 0,
+      })),
       legend:
         "按日志行 `timestamp` 前 10 位（YYYY-MM-DD）汇总 `message_usage_*`；与 `agent_sessions.session_id` 左连接取 `agent_name`。无人民币字段时以 Token 为成本代理指标。",
     };

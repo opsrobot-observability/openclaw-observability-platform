@@ -18,7 +18,7 @@ import {
   YAxis,
 } from "recharts";
 
-/** Token 折算费用：与成本概览2 一致，仅作代理指标（元/百万 Token） */
+/** Token 折算费用：仅作代理指标（元/百万 Token） */
 const COST_YUAN_PER_M_TOKEN = 3;
 
 /** Token 数展示：自适应 K / M / B 单位 */
@@ -120,6 +120,7 @@ export default function CostAnalysis() {
   const agentShare = snapshot?.agentShare ?? [];
   const modelShare = snapshot?.modelShare ?? [];
   const topSessions = snapshot?.topSessions ?? [];
+  const agentTokenDetail = snapshot?.agentTokenDetail ?? [];
   const inOutPie = snapshot?.inOut?.pie ?? [];
   const cards = snapshot?.cards;
   const meta = snapshot?.meta;
@@ -554,9 +555,9 @@ export default function CostAnalysis() {
         </div>
       </section>
 
-      {/* Agent 占比 + Top10 会话 并排 */}
-      <section className="grid gap-3 lg:grid-cols-2 lg:items-start">
-        <div className="app-card p-3 sm:p-4">
+      {/* Agent 占比 + Top10 会话：宽屏两列并排 */}
+      <section className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
+        <div className="app-card flex flex-col p-3 sm:p-4">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">Agent Token 消耗占比</h2>
           <div className="mx-auto mt-2 w-full min-w-0 max-w-3xl">
             {agentShare.length > 0 ? (
@@ -577,53 +578,61 @@ export default function CostAnalysis() {
           </div>
         </div>
 
-        {/* Top10 会话 Token 消耗 */}
-        <div className="app-card p-3 sm:p-4">
+        <div className="app-card flex min-h-0 flex-col p-3 sm:p-4">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">Top10 会话 Token 消耗</h2>
-          <div className="mt-2 overflow-x-auto">
+          <div className="mt-2 min-h-0 flex-1">
             {topSessions.length > 0 ? (
-              <table className="w-full text-[11px]">
-                <thead>
-                  <tr className="border-b border-gray-100 text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                    <th className="pb-1.5 pr-3 text-left font-medium">会话</th>
-                    <th className="pb-1.5 pr-3 text-right font-medium">总 Token</th>
-                    <th className="pb-1.5 pr-3 text-right font-medium">输入</th>
-                    <th className="pb-1.5 text-right font-medium">输出</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topSessions.map((s, i) => (
-                    <tr
-                      key={s.sessionId}
-                      className="border-b border-gray-50 dark:border-gray-800/60 last:border-0"
-                    >
-                      <td className="py-1 pr-3">
-                        <div className="truncate font-mono text-gray-500 dark:text-gray-400">{s.sessionId}</div>
-                        <div className="truncate text-[10px] text-gray-400">{s.agentName}</div>
-                      </td>
-                      <td className="py-1 pr-3 text-right tabular-nums font-medium text-gray-900 dark:text-gray-100">
-                        {s.tokens}M
-                      </td>
-                      <td className="py-1 pr-3 text-right tabular-nums text-primary dark:text-blue-300">
-                        <div>{s.inputPct > 0 ? `${s.inputPct}%` : "—"}</div>
-                        <div className="text-[10px] text-gray-400">{s.inputTokens > 0 ? `${s.inputTokens}M` : ""}</div>
-                      </td>
-                      <td className="py-1 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
-                        <div>{s.outputPct > 0 ? `${s.outputPct}%` : "—"}</div>
-                        <div className="text-[10px] text-gray-400">{s.outputTokens > 0 ? `${s.outputTokens}M` : ""}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={topSessions}
+                  layout="vertical"
+                  margin={{ top: 4, right: 60, left: 0, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tickFormatter={(v) => `${v}M`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="sessionId"
+                    width={120}
+                    tick={{ fontSize: 10, fill: "#6b7280" }}
+                    tickFormatter={(v) =>
+                      v.length > 16 ? `${v.slice(0, 14)}…` : v
+                    }
+                  />
+                  <Tooltip
+                    formatter={(v) => [`${v}M Tokens`, "总消耗"]}
+                    contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                    labelFormatter={(label) => {
+                      const s = topSessions.find((x) => x.sessionId === label);
+                      if (!s) return label;
+                      return (
+                        <div className="space-y-1 text-left">
+                          <div className="font-mono text-[11px]">{s.sessionId}</div>
+                          <div className="text-[10px] text-gray-500">{s.agentName}</div>
+                          {s.userName && (
+                            <div className="text-[10px] text-gray-500">用户：{s.userName}</div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="tokens" name="总消耗" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                    {topSessions.map((s, i) => (
+                      <Cell key={`cell-${i}`} fill={i === 0 ? "#4f46e5" : i < 3 ? "#6366f1" : "#a5b4fc"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
               <p className="py-8 text-center text-sm text-gray-400">暂无会话数据</p>
             )}
           </div>
         </div>
       </section>
-
-      <p className="text-center text-xs text-gray-400 dark:text-gray-500">数据来自 Doris · otel 库</p>
     </div>
   );
 }

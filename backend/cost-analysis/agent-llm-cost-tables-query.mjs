@@ -1,5 +1,5 @@
 /**
- * Agent 成本列表、LLM 成本明细：基于 Doris `otel.agent_sessions_logs`，左连 `agent_sessions` 取 Agent 名
+ * Agent 成本明细、LLM 成本明细：基于 Doris `otel.agent_sessions_logs`，左连 `agent_sessions` 取 Agent 名
  */
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";

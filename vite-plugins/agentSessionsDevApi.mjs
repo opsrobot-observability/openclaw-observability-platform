@@ -4,7 +4,10 @@ import {
 } from "../backend/agentSessionsQuery.mjs";
 import { queryAuditDashboardMetrics } from "../backend/security-audit/audit-dashboard-query.mjs";
 import { queryCostOverviewSnapshot } from "../backend/cost-analysis/cost-overview-query.mjs";
-import { queryCostOverview2Data } from "../backend/cost-analysis/cost-overview-2-query.mjs";
+import {
+  querySessionCostDetail,
+  querySessionCostOptions,
+} from "../backend/cost-analysis/cost-overview-2-query.mjs";
 import { queryAgentCostList, queryLlmCostDetail } from "../backend/cost-analysis/agent-llm-cost-tables-query.mjs";
 import {
   listOtelAgentSessionsLogTables,
@@ -28,6 +31,8 @@ function sendJson(res, status, body) {
  * - GET /api/cost-overview — 成本概览（`otel.agent_sessions_logs` + `agent_sessions`）
  * - GET /api/agent-cost-list?startDay=&endDay=
  * - GET /api/llm-cost-detail?startDay=&endDay=
+ * - GET /api/session-cost-detail?startDay=&endDay=
+ * - GET /api/session-cost-options?startDay=&endDay=
  */
 export function agentSessionsDevApi() {
   return {
@@ -36,31 +41,6 @@ export function agentSessionsDevApi() {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url || "";
         if (req.method !== "GET") return next();
-
-        // 精确匹配优先 - cost-overview-2 必须在 cost-overview 之前
-        if (url.startsWith("/api/cost-overview-2")) {
-          try {
-            const u = new URL(url, "http://vite.local");
-            const filters = {
-              timePreset: u.searchParams.get("timePreset") ?? "7",
-              timeStart: u.searchParams.get("timeStart") ?? "",
-              timeEnd: u.searchParams.get("timeEnd") ?? "",
-              model: u.searchParams.get("model") ?? "all",
-              env: u.searchParams.get("env") ?? "all",
-              userType: u.searchParams.get("userType") ?? "all",
-              projectId: u.searchParams.get("projectId") ?? "",
-            };
-            // 转换 timePreset 为数字或字符串
-            const pt = filters.timePreset;
-            filters.timePreset = isNaN(Number(pt)) ? pt : Number(pt);
-            const data = await queryCostOverview2Data(filters);
-            sendJson(res, 200, data);
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            sendJson(res, 500, { error: msg });
-          }
-          return;
-        }
 
         if (url === "/api/cost-overview" || url.startsWith("/api/cost-overview?")) {
           try {
@@ -103,6 +83,51 @@ export function agentSessionsDevApi() {
               return;
             }
             const data = await queryLlmCostDetail(startDay, endDay);
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/session-cost-detail")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const startDay = u.searchParams.get("startDay");
+            const endDay = u.searchParams.get("endDay");
+            if (!startDay || !endDay) {
+              sendJson(res, 400, { error: "missing startDay or endDay (YYYY-MM-DD)" });
+              return;
+            }
+            const data = await querySessionCostDetail({
+              startDay,
+              endDay,
+              agents: u.searchParams.get("agents") ? u.searchParams.get("agents").split(",") : [],
+              users: u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [],
+              gateways: u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [],
+              models: u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [],
+              page: Number(u.searchParams.get("page") ?? "1"),
+              pageSize: Number(u.searchParams.get("pageSize") ?? "20"),
+              sortKey: u.searchParams.get("sortKey") ?? "totalTokens",
+              sortOrder: u.searchParams.get("sortOrder") ?? "desc",
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/session-cost-options")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await querySessionCostOptions({
+              startDay: u.searchParams.get("startDay") || undefined,
+              endDay: u.searchParams.get("endDay") || undefined,
+              limit: Number(u.searchParams.get("limit") ?? "50"),
+            });
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);

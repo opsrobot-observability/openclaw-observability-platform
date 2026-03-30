@@ -39,31 +39,6 @@ function MetricCard({ title, value, hint, accent }) {
   );
 }
 
-function TopTable({ title, rows, nameKey, countKey, loading }) {
-  return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/60">
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
-      {loading ? (
-        <LoadingSpinner message="" className="py-6" />
-      ) : !rows?.length ? (
-        <p className="mt-3 text-sm text-gray-500">暂无数据</p>
-      ) : (
-        <ol className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
-          {rows.map((row, i) => (
-            <li key={`${String(row[nameKey])}-${i}`} className="flex justify-between gap-2 py-2 text-sm first:pt-0">
-              <span className="min-w-0 truncate text-gray-700 dark:text-gray-300" title={String(row[nameKey])}>
-                <span className="mr-2 tabular-nums text-gray-400">{i + 1}.</span>
-                {row[nameKey] ?? "—"}
-              </span>
-              <span className="shrink-0 tabular-nums font-medium text-gray-900 dark:text-gray-100">{num(row[countKey])}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}
-
 export default function AuditOverview() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -255,34 +230,6 @@ export default function AuditOverview() {
                 )}
               </div>
             </div>
-          </section>
-
-          {/* TOP */}
-          <section>
-            <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">TOP 排行（本月）</h3>
-            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-              「风险相关」榜仅来自 <code className="rounded bg-gray-100 px-1 font-mono dark:bg-gray-800">agent_sessions_logs</code>
-              ；名称优先 <code className="font-mono">message_tool_name</code>，其次尝试从 <code className="font-mono">log_attributes</code> 取{" "}
-              <code className="font-mono">$.message.toolName</code>，否则用退出码 / 工具错误 / 助手停止原因等标签。
-            </p>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <TopTable title="高频用户（按会话创建）" rows={data.tops?.users} nameKey="name" countKey="cnt" loading={loading} />
-              <TopTable title="高频访问设备（通道 / 接收方）" rows={data.tops?.devices} nameKey="name" countKey="cnt" loading={loading} />
-              <TopTable
-                title="高频风险相关（agent_sessions_logs · 本月）"
-                rows={data.tops?.riskOps}
-                nameKey="name"
-                countKey="cnt"
-                loading={loading}
-              />
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-gray-100 bg-gray-50/80 p-4 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
-            <p className="font-medium text-gray-700 dark:text-gray-300">口径说明</p>
-            <p className="mt-2">{data.legend?.windows ?? ""}</p>
-            <p className="mt-2">{data.legend?.realtime ?? ""}</p>
-            <p className="mt-2">{data.legend?.topRiskOps ?? ""}</p>
           </section>
         </>
       )}

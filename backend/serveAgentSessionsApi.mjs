@@ -7,6 +7,8 @@
  * - GET /api/cost-overview
  * - GET /api/agent-cost-list?startDay=&endDay=
  * - GET /api/llm-cost-detail?startDay=&endDay=
+ * - GET /api/session-cost-detail?startDay=&endDay=
+ * - GET /api/session-cost-options?startDay=&endDay=
  */
 import http from "node:http";
 import {
@@ -21,6 +23,10 @@ import {
   queryAgentSessionsLogsSearch,
 } from "./log-search/log-search-query.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "./security-audit/config-audit-query.mjs";
+import {
+  querySessionCostDetail,
+  querySessionCostOptions,
+} from "./cost-analysis/cost-overview-2-query.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 
@@ -170,6 +176,51 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (url.startsWith("/api/session-cost-detail")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const startDay = u.searchParams.get("startDay");
+      const endDay = u.searchParams.get("endDay");
+      if (!startDay || !endDay) {
+        sendJson(res, 400, { error: "missing startDay or endDay (YYYY-MM-DD)" });
+        return;
+      }
+      const data = await querySessionCostDetail({
+        startDay,
+        endDay,
+        agents: u.searchParams.get("agents") ? u.searchParams.get("agents").split(",") : [],
+        users: u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [],
+        gateways: u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [],
+        models: u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [],
+        page: Number(u.searchParams.get("page") ?? "1"),
+        pageSize: Number(u.searchParams.get("pageSize") ?? "20"),
+        sortKey: u.searchParams.get("sortKey") ?? "totalTokens",
+        sortOrder: u.searchParams.get("sortOrder") ?? "desc",
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/session-cost-options")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await querySessionCostOptions({
+        startDay: u.searchParams.get("startDay") || undefined,
+        endDay: u.searchParams.get("endDay") || undefined,
+        limit: Number(u.searchParams.get("limit") ?? "50"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   // 配置变更审计日志查询
   if (url.startsWith("/api/config-audit-logs")) {
     try {
@@ -227,4 +278,6 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/agent-sessions-logs?sessionId=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/config-audit-logs`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/config-audit-stats`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-detail?startDay=&endDay=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-options?startDay=&endDay=`);
 });
