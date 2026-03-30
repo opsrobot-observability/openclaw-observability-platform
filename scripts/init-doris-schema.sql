@@ -44,9 +44,9 @@ PROPERTIES (
 
 -- agent_sessions_logs 表：对话日志
 CREATE TABLE IF NOT EXISTS agent_sessions_logs (
+  `sessionId` VARCHAR(128) NOT NULL,
+  `timestamp` VARCHAR(64) NOT NULL,
   `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `sessionId` VARCHAR(128) ,
-  `timestamp` VARCHAR(64),
   `type` VARCHAR(64),
   `version` VARCHAR(32),
   `parent_id` VARCHAR(128),
@@ -70,15 +70,15 @@ CREATE TABLE IF NOT EXISTS agent_sessions_logs (
   `message_usage_total_tokens` BIGINT,
   `log_attributes` variant
 ) ENGINE=OLAP
-DUPLICATE KEY(sessionId, timestamp)
+UNIQUE KEY(sessionId, timestamp)
 DISTRIBUTED BY HASH(sessionId) BUCKETS 10
 PROPERTIES ('replication_num' = '1');
 
 
 -- audit_logs 表：审计日志
 CREATE TABLE IF NOT EXISTS `audit_logs` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `event_time` datetime NOT NULL COMMENT "审计时间",
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `log_attributes` variant NOT NULL COMMENT "动态审计属性"
 ) ENGINE=OLAP
 DUPLICATE KEY(`event_time`)
@@ -87,8 +87,8 @@ PROPERTIES ('replication_num' = '1');
 
 -- gateway_logs 表：网关日志
 CREATE TABLE IF NOT EXISTS `gateway_logs` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `event_time` datetime NOT NULL COMMENT "审计时间",
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `module` varchar(64) NOT NULL DEFAULT "" COMMENT "模块",
   `level` varchar(64) NOT NULL DEFAULT "" COMMENT "级别",
   `log_attributes` variant NOT NULL COMMENT "动态审计属性"
