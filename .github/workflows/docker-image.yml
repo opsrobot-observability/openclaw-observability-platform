@@ -45,7 +45,7 @@ jobs:
           file: ./backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-backend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-backend:${{ github.sha }}
+          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-backend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -55,6 +55,6 @@ jobs:
           context: .
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-frontend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-frontend:${{ github.sha }}
+          tags: ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-frontend:latest,ghcr.io/${{ env.OWNER_LC }}/openclaw-observability-platform-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

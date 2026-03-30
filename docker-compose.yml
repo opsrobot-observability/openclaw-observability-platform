@@ -28,7 +28,7 @@ services:
   # backend 服务 - Node.js 后端
   # =============================================================================
   backend:
-    image: ghcr.io/aishu-opsrobot/openclaw-observability-platform-backend:laetest
+    image: ghcr.io/aishu-opsrobot/openclaw-observability-platform-backend:latest
     container_name: backend
     restart: unless-stopped
     ports:
