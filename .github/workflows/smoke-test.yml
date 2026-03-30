@@ -1,0 +1,87 @@
+name: smoke-test
+
+on:
+  push:
+    branches:
+      - main
+      - it_test
+  pull_request:
+    branches:
+      - main
+      - it_test
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and start containers
+      run: docker compose -f docker-compose-build.yml up -d --build
+
+    - name: Wait for services to be healthy
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
+
+        MAX_WAIT=600
+        INTERVAL=15
+        ELAPSED=0
+
+        while [ $ELAPSED -lt $MAX_WAIT ]; do
+          DORIS_HEALTH=$(docker inspect doris --format='{{.State.Health.Status}}' 2>/dev/null || echo "none")
+          BACKEND_HEALTH=$(docker inspect backend --format='{{.State.Health.Status}}' 2>/dev/null || echo "none")
+          FRONTEND_HEALTH=$(docker inspect frontend --format='{{.State.Health.Status}}' 2>/dev/null || echo "none")
+
+          echo "Current health status - doris: $DORIS_HEALTH, backend: $BACKEND_HEALTH, frontend: $FRONTEND_HEALTH"
+
+          if [ "$DORIS_HEALTH" = "healthy" ] && [ "$BACKEND_HEALTH" = "healthy" ] && [ "$FRONTEND_HEALTH" = "healthy" ]; then
+            echo "All services are healthy!"
+            exit 0
+          fi
+
+          DORIS_RUNNING=$(docker inspect doris --format='{{.State.Running}}' 2>/dev/null || echo "false")
+          BACKEND_RUNNING=$(docker inspect backend --format='{{.State.Running}}' 2>/dev/null || echo "false")
+          FRONTEND_RUNNING=$(docker inspect frontend --format='{{.State.Running}}' 2>/dev/null || echo "false")
+
+          if [ "$DORIS_RUNNING" = "true" ] && [ "$BACKEND_RUNNING" = "true" ] && [ "$FRONTEND_RUNNING" = "true" ]; then
+            if [ "$DORIS_HEALTH" != "starting" ] && [ "$BACKEND_HEALTH" != "starting" ] && [ "$FRONTEND_HEALTH" != "starting" ]; then
+              echo "All services are running!"
+              exit 0
+            fi
+          fi
+
+          sleep $INTERVAL
+          ELAPSED=$((ELAPSED + INTERVAL))
+        done
+
+        echo "Timeout waiting for services to be healthy"
+        docker compose -f docker-compose-build.yml logs
+        exit 1
+
+    - name: Run webtest-agent tests
+      run: |
+        echo "Running webtest-agent tests against http://127.0.0.1:3000"
+        # TODO: Configure webtest-agent to test http://127.0.0.1:3000
+        # The test should perform comprehensive testing of the frontend
+        webtest-agent --url http://127.0.0.1:3000 --report ./test-results/
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: smoke-test-results
+        path: ./test-results/
+
+    - name: Show logs on failure
+      if: failure()
+      run: docker compose -f docker-compose-build.yml logs
+
+    - name: Cleanup
+      if: always()
+      run: docker compose -f docker-compose-build.yml down -v
