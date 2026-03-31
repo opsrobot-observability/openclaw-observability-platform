@@ -142,10 +142,6 @@ function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, s
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
-  useEffect(() => {
-    setHeaderExtra(null);
-  }, [activeNav]);
-
   useLayoutEffect(() => {
     if (!open || !wrapRef.current) return;
     const el = wrapRef.current;
@@ -275,6 +271,10 @@ export default function Dashboard() {
     setActiveNavRaw(id);
     localStorage.setItem("nav-active", id);
   };
+
+  useEffect(() => {
+    setHeaderExtra(null);
+  }, [activeNav]);
 
   const setNavGroupOpen = (updater) => {
     setNavGroupOpenRaw((prev) => {
