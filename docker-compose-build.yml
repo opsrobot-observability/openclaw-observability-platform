@@ -44,7 +44,7 @@ services:
       - PORT=8787
     depends_on:
       doris-fe:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "nc -z 127.0.0.1 8787 || exit 1" ]
       interval: 10s

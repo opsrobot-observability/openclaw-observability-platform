@@ -137,14 +137,10 @@ const ROWS = [
   },
 ];
 
-function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, setSidebarOpen }) {
+function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, setHeaderExtra, setSidebarOpen }) {
   const wrapRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    setHeaderExtra(null);
-  }, [activeNav]);
 
   useLayoutEffect(() => {
     if (!open || !wrapRef.current) return;
@@ -274,6 +270,7 @@ export default function Dashboard() {
   const setActiveNav = (id) => {
     setActiveNavRaw(id);
     localStorage.setItem("nav-active", id);
+    setHeaderExtra(null);
   };
 
   const setNavGroupOpen = (updater) => {
@@ -375,6 +372,7 @@ export default function Dashboard() {
                       childActive={childActive}
                       activeNav={activeNav}
                       setActiveNav={setActiveNav}
+                      setHeaderExtra={setHeaderExtra}
                       setSidebarOpen={setSidebarOpen}
                     />
                   ) : (
