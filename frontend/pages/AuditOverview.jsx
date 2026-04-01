@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import intl from "react-intl-universal";
 import CostTimeRangeFilter from "../components/CostTimeRangeFilter.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import {
@@ -88,70 +89,81 @@ export default function AuditOverview() {
 
       {error && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
-          无法加载：{error}
-          <span className="mt-1 block text-xs">开发环境请使用 npm run dev；预览请先 npm run api 再 npm run preview。</span>
+          {intl.get("common.loadFailed", { error })}
+          <span className="mt-1 block text-xs">{intl.get("common.devHint")}</span>
         </p>
       )}
 
-      {loading && !error && <LoadingSpinner message="正在加载仪表盘…" />}
+      {loading && !error && <LoadingSpinner message={intl.get("auditOverview.loadingDashboard")} />}
 
       {!loading && data && (
         <>
           {/* 核心指标 — 改为单行 4 类，跟随统计时间展示 */}
           <section>
-            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">核心指标</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.coreMetrics")}</h3>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <MetricCard
-                title="会话总数"
+                title={intl.get("auditOverview.sessionTotal")}
                 value={num(data.summary?.session_total)}
-                hint={`近 ${activeDays} 日 started_at 落在窗口内`}
+                hint={intl.get("auditOverview.sessionTotalHint", { days: activeDays })}
               />
               <MetricCard
-                title="活跃会话数"
+                title={intl.get("auditOverview.activeSessions")}
                 value={num(data.summary?.active_sessions)}
-                hint={`近 ${activeDays} 日 updated_at 落在窗口内`}
+                hint={intl.get("auditOverview.activeSessionsHint", { days: activeDays })}
                 accent="bg-primary-soft/30 dark:bg-primary/10"
               />
-              <MetricCard title="用户访问数" value={num(data.summary?.user_access)} hint="账号字段去重" />
-              <MetricCard title="设备连接数" value={num(data.summary?.device_connections)} hint="channel + last_to 去重" />
+              <MetricCard
+                title={intl.get("auditOverview.userAccess")}
+                value={num(data.summary?.user_access)}
+                hint={intl.get("auditOverview.userAccessHint")}
+              />
+              <MetricCard
+                title={intl.get("auditOverview.deviceConnections")}
+                value={num(data.summary?.device_connections)}
+                hint={intl.get("auditOverview.deviceConnectionsHint")}
+              />
             </div>
           </section>
 
           {/* 风险 + 实时 */}
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="space-y-3 xl:col-span-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">风险统计（全库日志行）</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.riskStats")}</h3>
               {loading ? (
                 <LoadingSpinner message="" className="py-8" />
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <MetricCard title="高风险操作" value={num(data.risk?.high)} accent="border-red-200 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/30" />
-                  <MetricCard title="中风险操作" value={num(data.risk?.medium)} accent="border-amber-200 bg-amber-50/80 dark:border-amber-900/40 dark:bg-amber-950/30" />
-                  <MetricCard title="低风险操作" value={num(data.risk?.low)} accent="border-sky-200 bg-sky-50/80 dark:border-sky-900/40 dark:bg-sky-950/30" />
+                  <MetricCard title={intl.get("auditOverview.highRisk")} value={num(data.risk?.high)} accent="border-red-200 bg-red-50/80 dark:border-red-900/40 dark:bg-red-950/30" />
+                  <MetricCard title={intl.get("auditOverview.mediumRisk")} value={num(data.risk?.medium)} accent="border-amber-200 bg-amber-50/80 dark:border-amber-900/40 dark:bg-amber-950/30" />
+                  <MetricCard title={intl.get("auditOverview.lowRisk")} value={num(data.risk?.low)} accent="border-sky-200 bg-sky-50/80 dark:border-sky-900/40 dark:bg-sky-950/30" />
                   <MetricCard
-                    title="风险会话占比"
+                    title={intl.get("auditOverview.riskSessionRatio")}
                     value={pctRatio(data.risk?.riskSessionRatio)}
-                    hint={`本月有风险记录的会话 ${num(data.risk?.riskSessionCount)} / 本月新建会话 ${num(data.risk?.sessionsInMonth)}`}
+                    hint={intl.get("auditOverview.riskSessionRatioHint", {
+                      riskCount: num(data.risk?.riskSessionCount),
+                      totalCount: num(data.risk?.sessionsInMonth),
+                    })}
                   />
                 </div>
               )}
             </div>
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">实时数据</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.realtime")}</h3>
               {loading ? (
                 <LoadingSpinner message="" className="py-6" />
               ) : (
                 <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                   <MetricCard
-                    title="当前在线会话"
+                    title={intl.get("auditOverview.onlineSessions")}
                     value={num(data.realtime?.onlineSessions)}
-                    hint="近 5 分钟有更新且 ended_at 为空"
+                    hint={intl.get("auditOverview.onlineSessionsHint")}
                     accent="border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/25"
                   />
                   <MetricCard
-                    title="异常断开会话（24h）"
+                    title={intl.get("auditOverview.abnormalDisconnect")}
                     value={num(data.realtime?.abnormalDisconnectSessions)}
-                    hint="aborted_last_run 非 0，近 24 小时有活动"
+                    hint={intl.get("auditOverview.abnormalDisconnectHint")}
                     accent="border-rose-200 bg-rose-50/70 dark:border-rose-900/40 dark:bg-rose-950/25"
                   />
                 </div>
@@ -162,7 +174,7 @@ export default function AuditOverview() {
           {/* 饼图 + 趋势 */}
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className="app-card border border-gray-100 p-4 dark:border-gray-800">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">风险操作结构（饼图）</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.riskPieTitle")}</h3>
               <div className="mt-2 h-[280px] w-full">
                 {loading ? (
                   <LoadingSpinner message="" className="h-full" />
@@ -187,13 +199,13 @@ export default function AuditOverview() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-500">暂无风险样本</div>
+                  <div className="flex h-full items-center justify-center text-sm text-gray-500">{intl.get("auditOverview.noRiskSample")}</div>
                 )}
               </div>
             </div>
 
             <div className="app-card border border-gray-100 p-4 dark:border-gray-800">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">近 {activeDays} 日会话量趋势</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.sessionTrendTitle", { days: activeDays })}</h3>
               <div className="mt-2 h-[280px] w-full">
                 {loading ? (
                   <LoadingSpinner message="" className="h-full" />
@@ -203,8 +215,11 @@ export default function AuditOverview() {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                       <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                      <Tooltip labelFormatter={(l) => `日期 ${l}`} formatter={(v) => [num(v), "会话数"]} />
-                      <Line type="monotone" dataKey="sessions" name="会话数" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
+                      <Tooltip
+                        labelFormatter={(l) => intl.get("auditOverview.dateLabel", { label: l })}
+                        formatter={(v) => [num(v), intl.get("auditOverview.sessionCount")]}
+                      />
+                      <Line type="monotone" dataKey="sessions" name={intl.get("auditOverview.sessionCount")} stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
@@ -212,7 +227,7 @@ export default function AuditOverview() {
             </div>
 
             <div className="app-card border border-gray-100 p-4 xl:col-span-2 dark:border-gray-800">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">近 {activeDays} 日风险操作趋势</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("auditOverview.riskTrendTitle", { days: activeDays })}</h3>
               <div className="mt-2 h-[300px] w-full">
                 {loading ? (
                   <LoadingSpinner message="" className="h-full" />
@@ -224,9 +239,9 @@ export default function AuditOverview() {
                       <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                       <Tooltip formatter={(v) => num(v)} />
                       <Legend />
-                      <Line type="monotone" dataKey="high" name="高" stroke="#ef4444" strokeWidth={2} dot={{ r: 2 }} />
-                      <Line type="monotone" dataKey="medium" name="中" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
-                      <Line type="monotone" dataKey="low" name="低" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2 }} />
+                      <Line type="monotone" dataKey="high" name={intl.get("auditOverview.high")} stroke="#ef4444" strokeWidth={2} dot={{ r: 2 }} />
+                      <Line type="monotone" dataKey="medium" name={intl.get("auditOverview.medium")} stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
+                      <Line type="monotone" dataKey="low" name={intl.get("auditOverview.low")} stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 )}

@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CodeBlock from "../components/CodeBlock.jsx";
 import CostTimeRangeFilter from "../components/CostTimeRangeFilter.jsx";
 import { TRACE_SESSION_SAMPLES, findTraceSessionByQuery } from "../data/traceSessions.js";
+import intl from "react-intl-universal";
 
 function formatDateTime(iso) {
   try {
@@ -43,9 +44,9 @@ function statusBadgeClass(status) {
 
 function outcomeBadge(outcome) {
   const map = {
-    success: { label: "成功", cls: "bg-emerald-50 text-emerald-800 ring-emerald-600/15" },
-    degraded: { label: "降级完成", cls: "bg-amber-50 text-amber-900 ring-amber-600/15" },
-    error: { label: "失败", cls: "bg-rose-50 text-rose-800 ring-rose-600/15" },
+    success: { label: intl.get("fullChain.success"), cls: "bg-emerald-50 text-emerald-800 ring-emerald-600/15" },
+    degraded: { label: intl.get("fullChain.degraded"), cls: "bg-amber-50 text-amber-900 ring-amber-600/15" },
+    error: { label: intl.get("fullChain.failed"), cls: "bg-rose-50 text-rose-800 ring-rose-600/15" },
   };
   const o = map[outcome] ?? { label: outcome, cls: "bg-gray-100 text-gray-700" };
   return (
@@ -81,13 +82,13 @@ export default function FullChainTraceability({ setHeaderExtra }) {
             onClick={handleBack}
             className="rounded-md px-1.5 py-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            全文链路溯源
+            {intl.get("fullChain.backToList")}
           </button>
           <span className="text-gray-400">/</span>
           <span className="font-mono text-[13px] font-semibold text-violet-700 dark:text-violet-300">
             {session.session_id}
           </span>
-          <span className="ml-1 text-xs text-gray-400 font-medium font-sans">详情查看</span>
+          <span className="ml-1 text-xs text-gray-400 font-medium font-sans">{intl.get("fullChain.detailView")}</span>
         </div>
       );
     } else {
@@ -102,7 +103,7 @@ export default function FullChainTraceability({ setHeaderExtra }) {
       <CostTimeRangeFilter activeDays={activeDays} onPreset={setActiveDays} />
 
       <section className="app-card p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6 dark:text-gray-100 dark:border-gray-800">会话列表</h2>
+        <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6 dark:text-gray-100 dark:border-gray-800">{intl.get("fullChain.sessionList")}</h2>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -115,7 +116,7 @@ export default function FullChainTraceability({ setHeaderExtra }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
-              placeholder="例如 sess_a1b2c3d4e5f67890"
+              placeholder={intl.get("fullChain.searchPlaceholder")}
               className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 font-mono text-sm text-gray-900 placeholder:text-gray-400 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -124,12 +125,12 @@ export default function FullChainTraceability({ setHeaderExtra }) {
             onClick={runSearch}
             className="shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90"
           >
-            溯源查询
+            {intl.get("fullChain.traceQuery")}
           </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-500">快速填入样例：</span>
+          <span className="text-xs text-gray-500">{intl.get("fullChain.quickFill")}</span>
           {exampleIds.map((id) => (
             <button
               key={id}
@@ -149,52 +150,53 @@ export default function FullChainTraceability({ setHeaderExtra }) {
 
       {query && !session && (
         <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-6 text-center text-sm text-amber-900">
-          未找到与会话 ID 匹配的演示数据，请检查拼写或点击上方样例。
+          {intl.get("fullChain.noMatch")}
         </div>
       )}
 
       {session && (
         <>
           <section className="app-card p-4 sm:p-6">
-            <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6 dark:text-gray-100 dark:border-gray-800">索引元数据</h2>
+            <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6 dark:text-gray-100 dark:border-gray-800">{intl.get("fullChain.indexMeta")}</h2>
             <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>
                   {outcomeBadge(session.outcome)}
                 </div>
-                <p className="font-mono text-xs text-gray-500 break-all">会话 ID：{session.session_id}</p>
+                <p className="font-mono text-xs text-gray-500 break-all">{intl.get("fullChain.sessionIdLabel", { id: session.session_id })}</p>
                 <p className="text-sm text-gray-600">
-                  数字员工：<span className="font-medium text-gray-800">{session.agentName}</span>
+                  {intl.get("fullChain.digitalEmployee")}
+                  <span className="font-medium text-gray-800">{session.agentName}</span>
                   <span className="mx-2 text-gray-300">·</span>
-                  渠道 {session.channel}
+                  {intl.get("fullChain.channel")} {session.channel}
                   <span className="mx-2 text-gray-300">·</span>
-                  租户 {session.tenant}
+                  {intl.get("fullChain.tenant")} {session.tenant}
                 </p>
               </div>
               <dl className="grid shrink-0 grid-cols-2 gap-x-6 gap-y-2 text-sm sm:text-right">
                 <div>
-                  <dt className="text-xs text-gray-500">开始时间</dt>
+                  <dt className="text-xs text-gray-500">{intl.get("fullChain.startTime")}</dt>
                   <dd className="font-mono text-gray-900">{formatDateTime(session.startedAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">结束时间</dt>
+                  <dt className="text-xs text-gray-500">{intl.get("fullChain.endTime")}</dt>
                   <dd className="font-mono text-gray-900">{formatDateTime(session.endedAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">持续时长</dt>
+                  <dt className="text-xs text-gray-500">{intl.get("fullChain.duration")}</dt>
                   <dd className="tabular-nums text-gray-900">{durationMs(session.startedAt, session.endedAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Token（约）</dt>
+                  <dt className="text-xs text-gray-500">{intl.get("fullChain.tokenApprox")}</dt>
                   <dd className="tabular-nums text-gray-900">{session.totalTokens.toLocaleString("zh-CN")}</dd>
                 </div>
               </dl>
             </div>
 
             <div className="mt-6">
-              <h4 className="text-sm font-semibold text-gray-900">链路时间轴</h4>
-              <p className="mt-1 text-xs text-gray-500">按时间顺序展示各组件调用；点击步骤可展开元数据与说明。</p>
+              <h4 className="text-sm font-semibold text-gray-900">{intl.get("fullChain.timeline")}</h4>
+              <p className="mt-1 text-xs text-gray-500">{intl.get("fullChain.timelineDesc")}</p>
 
               <ol className="relative mt-6 space-y-0 border-l-2 border-gray-200 pl-6">
                 {session.steps.map((step, idx) => {
@@ -214,7 +216,7 @@ export default function FullChainTraceability({ setHeaderExtra }) {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xs font-medium uppercase tracking-wide text-primary">{step.phase}</span>
                               <span className={`rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(step.status)}`}>
-                                {step.status === "ok" ? "成功" : step.status === "error" ? "失败" : step.status === "warn" ? "警告" : step.status}
+                                {step.status === "ok" ? intl.get("fullChain.success") : step.status === "error" ? intl.get("fullChain.failed") : step.status === "warn" ? intl.get("fullChain.warning") : step.status}
                               </span>
                               <span className="text-sm font-semibold text-gray-900">{step.action}</span>
                             </div>
@@ -225,7 +227,7 @@ export default function FullChainTraceability({ setHeaderExtra }) {
                           <div className="flex shrink-0 items-center gap-4 font-mono text-xs text-gray-600">
                             <span>{formatDateTime(step.ts)}</span>
                             <span className="tabular-nums">+{step.latencyMs} ms</span>
-                            <span className="text-gray-400">{open ? "收起" : "详情"}</span>
+                            <span className="text-gray-400">{open ? intl.get("common.collapse") : intl.get("fullChain.detail")}</span>
                           </div>
                         </button>
                         {open && (
@@ -247,20 +249,20 @@ export default function FullChainTraceability({ setHeaderExtra }) {
           </section>
 
           <section className="app-card p-4 sm:p-6">
-            <h4 className="text-sm font-semibold text-gray-900">参与者</h4>
+            <h4 className="text-sm font-semibold text-gray-900">{intl.get("fullChain.participants")}</h4>
             <div className="mt-3 overflow-hidden rounded-lg border border-gray-100">
               <table className="w-full border-collapse text-left text-sm">
                 <tbody className="divide-y divide-gray-100">
                   <tr>
-                    <th className="w-32 bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">用户 / 主体</th>
+                    <th className="w-32 bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">{intl.get("fullChain.userSubject")}</th>
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-900">{session.user}</td>
                   </tr>
                   <tr>
-                    <th className="bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">数字员工</th>
+                    <th className="bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">{intl.get("fullChain.digitalEmployeeLabel")}</th>
                     <td className="px-4 py-2.5 text-gray-900">{session.agentName}</td>
                   </tr>
                   <tr>
-                    <th className="bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">涉及服务（去重）</th>
+                    <th className="bg-gray-50/90 px-4 py-2.5 font-medium text-gray-600">{intl.get("fullChain.involvedServices")}</th>
                     <td className="px-4 py-2.5 text-xs text-gray-700">
                       {[...new Set(session.steps.map((s) => s.service))].join(" → ")}
                     </td>
@@ -273,10 +275,10 @@ export default function FullChainTraceability({ setHeaderExtra }) {
       )}
 
       {!query && (
-        <p className="text-center text-xs text-gray-400">演示数据 · 可对接 Trace ID、日志平台与审计流水</p>
+        <p className="text-center text-xs text-gray-400">{intl.get("fullChain.demoHint")}</p>
       )}
       {session && (
-        <p className="text-center text-xs text-gray-400">以上为静态样例；生产环境请对接实时检索与权限控制</p>
+        <p className="text-center text-xs text-gray-400">{intl.get("fullChain.productionHint")}</p>
       )}
     </div>
   );

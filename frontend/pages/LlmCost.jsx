@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import intl from "react-intl-universal";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import CostTimeRangeFilter, {
   defaultRangeLastDays,
@@ -137,14 +138,14 @@ export default function LlmCost() {
   function handleExportCsv() {
     if (!rangeValid || sortedRows.length === 0) return;
     const headers = [
-      "时间范围开始",
-      "时间范围结束",
-      "模型",
-      "提供商",
-      "统计归属日",
-      "Token 消耗",
-      "占比",
-      "输入输出占比",
+      intl.get("llmCost.timeRangeStart"),
+      intl.get("llmCost.timeRangeEnd"),
+      intl.get("llmCost.model"),
+      intl.get("llmCost.provider"),
+      intl.get("llmCost.statDate"),
+      intl.get("llmCost.tokenConsumption"),
+      intl.get("llmCost.share"),
+      intl.get("llmCost.inputOutput"),
     ];
     const csvData = sortedRows.map((r) => [
       rangeStart,
@@ -175,7 +176,7 @@ export default function LlmCost() {
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">模型成本明细</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{intl.get("llmCost.title")}</h2>
           </div>
           <button
             type="button"
@@ -183,40 +184,40 @@ export default function LlmCost() {
             onClick={handleExportCsv}
             className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
           >
-            导出 CSV
+            {intl.get("common.exportCsv")}
           </button>
         </div>
-        {loading ? <LoadingSpinner message="加载中…" /> : null}
+        {loading ? <LoadingSpinner message={intl.get("llmCost.loading")} /> : null}
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[880px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/90 dark:border-gray-800 dark:bg-gray-900/50">
-                  <SortableTableTh label="模型" columnKey="model" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableTableTh label={intl.get("llmCost.model")} columnKey="model" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                   <SortableTableTh label="Provider" columnKey="provider" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
-                  <SortableTableTh label="统计归属日" columnKey="statDate" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
-                  <SortableTableTh label="Token 消耗" columnKey="tokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
-                  <SortableTableTh label="占比" columnKey="share" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
-                  <SortableTableTh label="输入 / 输出" columnKey="inputOut" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableTableTh label={intl.get("llmCost.statDate")} columnKey="statDate" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableTableTh label={intl.get("llmCost.tokenConsumption")} columnKey="tokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableTableTh label={intl.get("llmCost.share")} columnKey="share" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableTableTh label={intl.get("llmCost.inputOutput")} columnKey="inputOut" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {!rangeValid ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
-                      请先选择有效的时间范围
+                      {intl.get("common.selectTimeRange")}
                     </td>
                   </tr>
                 ) : loading ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
-                      加载中…
+                      {intl.get("llmCost.loading")}
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
-                      该时间范围内暂无明细，请扩大区间或调整筛选
+                      {intl.get("llmCost.noDataInRange")}
                     </td>
                   </tr>
                 ) : (
@@ -265,24 +266,28 @@ export default function LlmCost() {
         <>
           <button
             type="button"
-            aria-label="关闭下钻"
+            aria-label={intl.get("llmCost.closeDrill")}
             className="fixed inset-0 z-40 bg-gray-900/40 transition-opacity duration-200"
             onClick={() => setDrillRow(null)}
           />
           <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950">
             <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">LLM 下钻明细</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{intl.get("llmCost.drillTitle")}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{drillRow.model}</p>
                 <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
-                  归属日 {drillRow.statDate} · Provider {drillRow.provider} · 汇总 {drillRow.tokens} Token
+                  {intl.get("llmCost.drillInfo", {
+                    statDate: drillRow.statDate,
+                    provider: drillRow.provider,
+                    tokens: drillRow.tokens,
+                  })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setDrillRow(null)}
                 className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                aria-label="关闭"
+                aria-label={intl.get("common.close")}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -290,14 +295,14 @@ export default function LlmCost() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">按输入 / 输出侧拆分 Token（与汇总行可略有舍入差）</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{intl.get("llmCost.drillDesc")}</p>
               <div className="mt-4 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/90 dark:border-gray-800 dark:bg-gray-900/50">
-                      <th className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">分段</th>
+                      <th className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">{intl.get("llmCost.segment")}</th>
                       <th className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">Token</th>
-                      <th className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">占比</th>
+                      <th className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300">{intl.get("llmCost.share")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">

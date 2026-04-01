@@ -1,4 +1,5 @@
 import { useState } from "react";
+import intl from "react-intl-universal";
 
 /** 生产力标签样式 */
 function productivityTagClass(tag) {
@@ -332,6 +333,19 @@ function statusClass(s) {
   }
 }
 
+function statusLabel(s) {
+  switch (s) {
+    case "运行中":
+      return intl.get("digitalEmployee.statusRunning");
+    case "试运行":
+      return intl.get("digitalEmployee.statusTrial");
+    case "已暂停":
+      return intl.get("digitalEmployee.statusPaused");
+    default:
+      return s;
+  }
+}
+
 function SectionTitle({ children }) {
   return <h4 className="text-sm font-semibold text-gray-900">{children}</h4>;
 }
@@ -345,7 +359,7 @@ export default function DigitalEmployeePortrait() {
     <div className="flex flex-row gap-6 h-full overflow-hidden">
       <aside className="w-64">
         <div className="app-card p-3">
-          <p className="px-2 pb-2 text-xs font-medium text-gray-500">员工列表</p>
+          <p className="px-2 pb-2 text-xs font-medium text-gray-500">{intl.get("digitalEmployee.employeeList")}</p>
           <ul className="space-y-1 w-full">
             {EMPLOYEES.map((e) => {
               const active = e.id === selectedId;
@@ -389,14 +403,14 @@ export default function DigitalEmployeePortrait() {
                       statusClass(current.status),
                     ].join(" ")}
                   >
-                    {current.status}
+                    {statusLabel(current.status)}
                   </span>
                 </div>
                 <p className="mt-2 font-mono text-xs text-gray-500">{current.id}</p>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">{current.summary}</p>
 
                 <div className="mt-4">
-                  <p className="text-xs font-medium text-gray-500">1. 数字员工生产力标签</p>
+                  <p className="text-xs font-medium text-gray-500">{intl.get("digitalEmployee.productivityTags")}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {p.productivityTags.map((t) => (
                       <span
@@ -428,23 +442,23 @@ export default function DigitalEmployeePortrait() {
 
           <div className="grid gap-4 border-b border-gray-100 p-6 sm:grid-cols-3">
             <div className="rounded-lg bg-gray-50/80 p-4 ring-1 ring-gray-100">
-              <p className="text-xs font-medium text-gray-500">会话 / 任务量</p>
+              <p className="text-xs font-medium text-gray-500">{intl.get("digitalEmployee.sessionCount")}</p>
               <p className="mt-2 text-lg font-semibold tabular-nums text-gray-900">{current.metrics.sessions}</p>
             </div>
             <div className="rounded-lg bg-gray-50/80 p-4 ring-1 ring-gray-100">
-              <p className="text-xs font-medium text-gray-500">满意度</p>
+              <p className="text-xs font-medium text-gray-500">{intl.get("digitalEmployee.satisfaction")}</p>
               <p className="mt-2 text-lg font-semibold tabular-nums text-gray-900">{current.metrics.satisfaction}</p>
             </div>
             <div className="rounded-lg bg-gray-50/80 p-4 ring-1 ring-gray-100">
-              <p className="text-xs font-medium text-gray-500">典型延迟 (P95)</p>
+              <p className="text-xs font-medium text-gray-500">{intl.get("digitalEmployee.typicalLatency")}</p>
               <p className="mt-2 text-lg font-semibold tabular-nums text-gray-900">{current.metrics.latency}</p>
             </div>
           </div>
 
           <div className="space-y-6 p-6">
             <section className="space-y-3">
-              <SectionTitle>2. 技能擅长领域分析</SectionTitle>
-              <p className="text-xs text-gray-500">按领域相对得分（演示维度：运维 / 办公 / 数据处理 / 安全合规）</p>
+              <SectionTitle>{intl.get("digitalEmployee.domainAnalysis")}</SectionTitle>
+              <p className="text-xs text-gray-500">{intl.get("digitalEmployee.domainAnalysisDesc")}</p>
               <div className="space-y-3">
                 {p.domainScores.map((row) => (
                   <div key={row.domain}>
@@ -464,7 +478,7 @@ export default function DigitalEmployeePortrait() {
             </section>
 
             <section className="space-y-3 border-t border-gray-100 pt-6">
-              <SectionTitle>3. 任务执行偏好与效率特征</SectionTitle>
+              <SectionTitle>{intl.get("digitalEmployee.executionPrefs")}</SectionTitle>
               <ul className="space-y-2">
                 {p.executionPrefs.map((line, i) => (
                   <li
@@ -479,7 +493,7 @@ export default function DigitalEmployeePortrait() {
             </section>
 
             <section className="space-y-3 border-t border-gray-100 pt-6">
-              <SectionTitle>4. 短板能力识别</SectionTitle>
+              <SectionTitle>{intl.get("digitalEmployee.weaknesses")}</SectionTitle>
               <ul className="space-y-2">
                 {p.weaknesses.map((line, i) => (
                   <li
@@ -496,7 +510,7 @@ export default function DigitalEmployeePortrait() {
             </section>
 
             <section className="space-y-3 border-t border-gray-100 pt-6">
-              <SectionTitle>5. 适配场景推荐</SectionTitle>
+              <SectionTitle>{intl.get("digitalEmployee.scenarios")}</SectionTitle>
               <ul className="flex flex-wrap gap-2">
                 {p.scenarios.map((s) => (
                   <li
@@ -510,7 +524,7 @@ export default function DigitalEmployeePortrait() {
             </section>
 
             <section className="space-y-3 border-t border-gray-100 pt-6">
-              <SectionTitle>6. 生产力波动原因分析</SectionTitle>
+              <SectionTitle>{intl.get("digitalEmployee.fluctuation")}</SectionTitle>
               <ul className="space-y-2">
                 {p.fluctuation.map((line, i) => (
                   <li key={i} className="text-sm leading-relaxed text-gray-700">
@@ -524,9 +538,9 @@ export default function DigitalEmployeePortrait() {
             </section>
 
             <div className="border-t border-gray-100 pt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">关联服务</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{intl.get("digitalEmployee.relatedService")}</p>
               <p className="mt-2 font-mono text-sm text-primary">{current.model}</p>
-              <p className="mt-6 text-xs font-medium uppercase tracking-wide text-gray-400">近期动态</p>
+              <p className="mt-6 text-xs font-medium uppercase tracking-wide text-gray-400">{intl.get("digitalEmployee.recentActivity")}</p>
               <ul className="mt-3 space-y-2">
                 {current.recent.map((line, i) => (
                   <li

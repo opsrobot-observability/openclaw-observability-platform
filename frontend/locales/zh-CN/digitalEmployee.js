@@ -1,0 +1,28 @@
+export default {
+  "digitalEmployee.overviewTitle": "概览说明",
+  "digitalEmployee.overviewDesc": "汇总 OpenClaw 数字员工的在岗规模、会话与性能指标。数据为演示，可对接实际统计服务。",
+  "digitalEmployee.onDuty": "在岗数字员工",
+  "digitalEmployee.onDutyHint": "含试运行",
+  "digitalEmployee.todayDialogue": "今日对话量",
+  "digitalEmployee.todayDialogueHint": "较昨日 +6%",
+  "digitalEmployee.avgResponse": "平均响应 (P95)",
+  "digitalEmployee.avgResponseHint": "目标小于 2s",
+
+  "digitalEmployee.employeeList": "员工列表",
+  "digitalEmployee.sessionCount": "会话 / 任务量",
+  "digitalEmployee.satisfaction": "满意度",
+  "digitalEmployee.typicalLatency": "典型延迟 (P95)",
+  "digitalEmployee.productivityTags": "1. 数字员工生产力标签",
+  "digitalEmployee.domainAnalysis": "2. 技能擅长领域分析",
+  "digitalEmployee.domainAnalysisDesc": "按领域相对得分（演示维度：运维 / 办公 / 数据处理 / 安全合规）",
+  "digitalEmployee.executionPrefs": "3. 任务执行偏好与效率特征",
+  "digitalEmployee.weaknesses": "4. 短板能力识别",
+  "digitalEmployee.scenarios": "5. 适配场景推荐",
+  "digitalEmployee.fluctuation": "6. 生产力波动原因分析",
+  "digitalEmployee.relatedService": "关联服务",
+  "digitalEmployee.recentActivity": "近期动态",
+
+  "digitalEmployee.statusRunning": "运行中",
+  "digitalEmployee.statusTrial": "试运行",
+  "digitalEmployee.statusPaused": "已暂停",
+};

@@ -1,11 +1,11 @@
 import { useMemo } from "react";
+import intl from "react-intl-universal";
 import Icon from "./Icon.jsx";
 
 export function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
-/** 用于 datetime-local 的 value */
 export function toDatetimeLocalValue(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
@@ -15,10 +15,6 @@ export function parseLocalMs(s) {
   return Number.isNaN(t.getTime()) ? null : t.getTime();
 }
 
-/**
- * datetime-local 区间 → Doris 按日 YYYY-MM-DD（本地日历日，含首尾整日）
- * @returns {{ startDay: string, endDay: string } | null}
- */
 export function rangeToDayBounds(rangeStart, rangeEnd) {
   const s = parseLocalMs(rangeStart);
   const e = parseLocalMs(rangeEnd);
@@ -39,23 +35,11 @@ export function defaultRangeLastDays(days) {
 }
 
 const TIME_PRESETS = [
-  { label: "近 7 日", days: 7 },
-  { label: "近 30 日", days: 30 },
-  { label: "近 90 日", days: 90 },
+  { labelKey: "timeFilter.last7Days", days: 7 },
+  { labelKey: "timeFilter.last30Days", days: 30 },
+  { labelKey: "timeFilter.last90Days", days: 90 },
 ];
 
-/**
- * 统计时间筛选组件
- *
- * 统一风格：左侧 "统计时间 + 快捷预设"，右侧 "开始时间 + 结束时间" 只读展示。
- *
- * Props:
- * - activeDays: number  当前选中的天数 (7 | 30 | 90)
- * - onPreset: (days: number) => void  预设按钮回调
- * - rangeStart / rangeEnd: string (ISO date or datetime-local)
- *     如果没传，则自动根据 activeDays 计算
- * - className?: string
- */
 export default function CostTimeRangeFilter({
   activeDays,
   onPreset,
@@ -63,7 +47,6 @@ export default function CostTimeRangeFilter({
   rangeEnd,
   className = "",
 }) {
-  // 如果调用者没传 rangeStart/rangeEnd 则根据 activeDays 自动计算
   const computed = useMemo(() => {
     const now = new Date();
     const end = now;
@@ -88,7 +71,7 @@ export default function CostTimeRangeFilter({
       ].join(" ")}
     >
       <div className="flex items-center gap-3">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">统计时间</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("timeFilter.statisticTime")}</span>
         <div className="flex gap-1.5">
           {TIME_PRESETS.map((p) => (
             <button
@@ -102,7 +85,7 @@ export default function CostTimeRangeFilter({
                   : "bg-white text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700",
               ].join(" ")}
             >
-              {p.label}
+              {intl.get(p.labelKey)}
             </button>
           ))}
         </div>
@@ -110,7 +93,7 @@ export default function CostTimeRangeFilter({
 
       <div className="flex flex-1 items-center justify-end gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">开始时间</span>
+          <span className="text-xs text-gray-500">{intl.get("timeFilter.startTime")}</span>
           <div className="relative">
             <input
               type="text"
@@ -124,7 +107,7 @@ export default function CostTimeRangeFilter({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">结束时间</span>
+          <span className="text-xs text-gray-500">{intl.get("timeFilter.endTime")}</span>
           <div className="relative">
             <input
               type="text"
@@ -142,7 +125,6 @@ export default function CostTimeRangeFilter({
   );
 }
 
-/** 判断统计归属日（YYYY-MM-DD）是否与 [startMs, endMs] 有交集 */
 export function rowInTimeRange(statDateStr, startMs, endMs) {
   const parts = statDateStr.split("-").map(Number);
   if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return false;

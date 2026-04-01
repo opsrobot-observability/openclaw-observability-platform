@@ -24,6 +24,7 @@ import {
   trendBuckets30d,
   parseTsMs,
 } from "../lib/configAudit.js";
+import intl from "react-intl-universal";
 
 function formatUtc(ts) {
   try {
@@ -132,7 +133,7 @@ export default function ConfigChange() {
         if (cancelled) return;
         setAllEvents([]);
         setTotalCount(0);
-        setLoadError(`无法加载配置变更数据: ${err.message}`);
+        setLoadError(intl.get("configChange.loadFailed", { error: err.message }));
         setLoading(false);
       });
 
@@ -191,33 +192,50 @@ export default function ConfigChange() {
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">配置变更事件</h3>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {intl.get("configChange.title")}
+            </h3>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {activeDays <= 1 && "近 24 小时按小时统计"}
-              {activeDays === 7 && "近 7 天按日统计"}
-              {activeDays >= 30 && "近 " + activeDays + " 天按日统计"}
-              {!loading && `（当前页 ${allEvents.length} 条，共 ${totalCount} 条）`}
+              {activeDays <= 1 && intl.get("configChange.last24h")}
+              {activeDays === 7 && intl.get("configChange.last7d")}
+              {activeDays >= 30 && intl.get("configChange.lastNd", { days: activeDays })}
+              {!loading &&
+                `（${intl.get("configChange.currentPage", {
+                  current: allEvents.length,
+                  total: totalCount,
+                })}）`}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 h-32 w-full min-w-0">
+        <div className="mt-4 h-32 w-full min-w-0 min-h-0">
           {loading ? (
-            <LoadingSpinner message="正在加载趋势…" className="!py-4" />
+            <LoadingSpinner message={intl.get("configChange.loadingTrend")} className="!py-4" />
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={128} minWidth={0}>
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={36} />
                 <Tooltip
                   contentStyle={{ fontSize: 12 }}
-                  formatter={(value) => [`${value} 次`, "变更事件"]}
+                  formatter={(value) => [
+                    `${value} ${intl.get("configChange.changeCount")}`,
+                    intl.get("configChange.changeEventName"),
+                  ]}
                   labelFormatter={(label) =>
-                    activeDays <= 1 ? `时间 ${label}` : `日期 ${label}`
+                    activeDays <= 1
+                      ? intl.get("configChange.timeLabel", { label })
+                      : intl.get("configChange.dateLabel", { label })
                   }
                 />
-                <Bar dataKey="count" name="变更事件数" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                <Bar
+                  dataKey="count"
+                  name={intl.get("configChange.changeEventCount")}
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={48}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -232,28 +250,35 @@ export default function ConfigChange() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/80 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-800/80 dark:text-gray-400">
                     <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("ts")}>
-                      事件时间 {sortKey === "ts" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.eventTime")}{" "}
+                      {sortKey === "ts" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
                     <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("source")}>
-                      来源 {sortKey === "source" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.source")}{" "}
+                      {sortKey === "source" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
                     <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("event")}>
-                      事件类型 {sortKey === "event" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.eventType")}{" "}
+                      {sortKey === "event" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
-                    <th className="px-3 py-3">配置文件路径</th>
+                    <th className="px-3 py-3">{intl.get("configChange.configPath")}</th>
                     <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("pid")}>
-                      进程 ID {sortKey === "pid" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.pid")}{" "}
+                      {sortKey === "pid" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
                     <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("cwd")}>
-                      工作目录 {sortKey === "cwd" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.cwd")}{" "}
+                      {sortKey === "cwd" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
                     <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("argv")}>
-                      命令行参数 {sortKey === "argv" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.argv")}{" "}
+                      {sortKey === "argv" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
-                    <th className="px-3 py-3">网关模式</th>
-                    <th className="px-3 py-3">是否可疑</th>
+                    <th className="px-3 py-3">{intl.get("configChange.gatewayMode")}</th>
+                    <th className="px-3 py-3">{intl.get("configChange.isSuspicious")}</th>
                     <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("result")}>
-                      写入结果 {sortKey === "result" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                      {intl.get("configChange.writeResult")}{" "}
+                      {sortKey === "result" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                     </th>
                   </tr>
                 </thead>
@@ -261,13 +286,13 @@ export default function ConfigChange() {
                   {loading ? (
                     <tr>
                       <td colSpan={10} className="p-0 align-middle">
-                        <LoadingSpinner message="正在加载配置变更…" className="!py-16" />
+                        <LoadingSpinner message={intl.get("configChange.loadingConfig")} className="!py-16" />
                       </td>
                     </tr>
                   ) : pageSlice.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">
-                        无匹配记录
+                        {intl.get("common.noMatch")}
                       </td>
                     </tr>
                   ) : (
@@ -313,7 +338,7 @@ export default function ConfigChange() {
                                   copyText(e.configPath);
                                 }}
                               >
-                                复制
+                                {intl.get("common.copy")}
                               </button>
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{e.pid ?? "—"}</td>
@@ -341,7 +366,9 @@ export default function ConfigChange() {
                                   suspiciousBadgeClasses(!!e.suspicious?.length),
                                 ].join(" ")}
                               >
-                                {e.suspicious?.length ? `可疑 (${e.suspicious.length})` : "正常"}
+                                {e.suspicious?.length
+                                  ? intl.get("configChange.suspiciousCount", { count: e.suspicious.length })
+                                  : intl.get("common.normal")}
                               </span>
                             </td>
                             <td className="px-3 py-2">
@@ -355,12 +382,16 @@ export default function ConfigChange() {
                               <td colSpan={10} className="border-t border-gray-200 p-0 align-top dark:border-gray-700">
                                 <div className="p-4" onClick={(ev) => ev.stopPropagation()}>
                                   <div className="flex flex-wrap items-end justify-between gap-2 border-b border-gray-200 dark:border-gray-700">
-                                    <div className="flex flex-wrap gap-1" role="tablist" aria-label="事件详情分区">
+                                    <div
+                                      className="flex flex-wrap gap-1"
+                                      role="tablist"
+                                      aria-label={intl.get("configChange.eventDetailSection")}
+                                    >
                                       {[
-                                        { id: "overview", label: "事件详情" },
-                                        { id: "compare", label: "变更对比" },
-                                        { id: "proc", label: "进程与工作目录" },
-                                        { id: "raw", label: "原始日志：完整 JSON" },
+                                        { id: "overview", label: intl.get("configChange.eventDetail") },
+                                        { id: "compare", label: intl.get("configChange.changeCompare") },
+                                        { id: "proc", label: intl.get("configChange.processAndCwd") },
+                                        { id: "raw", label: intl.get("configChange.rawLog") },
                                       ].map((tab) => (
                                         <button
                                           key={tab.id}
@@ -384,7 +415,7 @@ export default function ConfigChange() {
                                       onClick={() => setExpandedEvent(null)}
                                       className="app-btn-outline shrink-0 px-3 py-1.5 text-xs"
                                     >
-                                      收起
+                                      {intl.get("common.collapse")}
                                     </button>
                                   </div>
                                   <div className="min-h-[12rem] rounded-b-lg border border-t-0 border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-950">
@@ -392,13 +423,13 @@ export default function ConfigChange() {
                                       <div className="space-y-2.5 text-xs" role="tabpanel">
                                         <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
                                           {[
-                                            ["事件时间", formatUtc(e.ts)],
-                                            ["来源", e.source ?? "—"],
-                                            ["事件类型", e.event ?? "—"],
-                                            ["配置文件路径", e.configPath ?? "—"],
-                                            ["进程 ID", String(e.pid ?? "—")],
-                                            ["父进程 ID", String(e.ppid ?? "—")],
-                                            ["写入结果", e.result ?? "—"],
+                                            [intl.get("configChange.eventTime"), formatUtc(e.ts)],
+                                            [intl.get("configChange.source"), e.source ?? "—"],
+                                            [intl.get("configChange.eventType"), e.event ?? "—"],
+                                            [intl.get("configChange.configPath"), e.configPath ?? "—"],
+                                            [intl.get("configChange.pid"), String(e.pid ?? "—")],
+                                            [intl.get("configChange.parentPid"), String(e.ppid ?? "—")],
+                                            [intl.get("configChange.writeResult"), e.result ?? "—"],
                                           ].map(([k, v]) => (
                                             <div key={k} className="flex min-w-0 items-start gap-2">
                                               <span className="w-[7.5rem] shrink-0 pt-px text-[11px] font-medium leading-tight text-gray-500 dark:text-gray-400">
@@ -412,7 +443,7 @@ export default function ConfigChange() {
                                         </div>
                                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-100 bg-gray-50/90 px-2 py-1.5 dark:border-gray-800 dark:bg-gray-900/50">
                                           <span className="shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                                            是否可疑
+                                            {intl.get("configChange.isSuspicious")}
                                           </span>
                                           <span
                                             className={[
@@ -420,24 +451,36 @@ export default function ConfigChange() {
                                               suspiciousBadgeClasses(!!e.suspicious?.length),
                                             ].join(" ")}
                                           >
-                                            {e.suspicious?.length ? `可疑（${e.suspicious.length}）` : "正常"}
+                                            {e.suspicious?.length
+                                              ? intl.get("configChange.suspiciousCount", {
+                                                  count: e.suspicious.length,
+                                                })
+                                              : intl.get("common.normal")}
                                           </span>
                                           {e.suspicious?.length ? (
                                             <span className="min-w-0 flex-1 basis-full sm:basis-auto break-all font-mono text-[11px] leading-snug text-gray-800 dark:text-gray-200 sm:pl-0">
                                               {e.suspicious.join("；")}
                                             </span>
                                           ) : (
-                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">无可疑项</span>
+                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                              {intl.get("configChange.noSuspicious")}
+                                            </span>
                                           )}
                                         </div>
                                         <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
                                           {[
-                                            ["写入前网关模式", e.gatewayModeBefore == null ? "null" : String(e.gatewayModeBefore)],
-                                            ["写入后网关模式", e.gatewayModeAfter == null ? "null" : String(e.gatewayModeAfter)],
-                                            ["写入前文件存在", String(e.existsBefore ?? "—")],
-                                            ["写入前含 meta", String(e.hasMetaBefore ?? "—")],
-                                            ["写入后含 meta", String(e.hasMetaAfter ?? "—")],
-                                            ["监视模式", String(e.watchMode ?? "—")],
+                                            [
+                                              intl.get("configChange.gatewayModeBefore"),
+                                              e.gatewayModeBefore == null ? "null" : String(e.gatewayModeBefore),
+                                            ],
+                                            [
+                                              intl.get("configChange.gatewayModeAfter"),
+                                              e.gatewayModeAfter == null ? "null" : String(e.gatewayModeAfter),
+                                            ],
+                                            [intl.get("configChange.existsBefore"), String(e.existsBefore ?? "—")],
+                                            [intl.get("configChange.hasMetaBefore"), String(e.hasMetaBefore ?? "—")],
+                                            [intl.get("configChange.hasMetaAfter"), String(e.hasMetaAfter ?? "—")],
+                                            [intl.get("configChange.watchMode"), String(e.watchMode ?? "—")],
                                           ].map(([k, v]) => (
                                             <div key={k} className="flex min-w-0 items-start gap-2">
                                               <span className="w-[7.5rem] shrink-0 pt-px text-[11px] font-medium leading-tight text-gray-500 dark:text-gray-400">
@@ -456,28 +499,37 @@ export default function ConfigChange() {
                                         <table className="w-full border-collapse text-left text-xs">
                                           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                             <tr>
-                                              <th className="w-28 py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">哈希</th>
+                                              <th className="w-28 py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">
+                                                {intl.get("configChange.hash")}
+                                              </th>
                                               <td className="break-all font-mono text-gray-800 dark:text-gray-200">
                                                 {shortHash(e.previousHash)} → {shortHash(e.nextHash)}
                                                 <span className="ml-2 text-gray-600 dark:text-gray-400">
-                                                  {hashChanged(e) ? "（内容已变化）" : "（哈希相同）"}
+                                                  {hashChanged(e)
+                                                    ? intl.get("configChange.hashChanged")
+                                                    : intl.get("configChange.hashSame")}
                                                 </span>
                                               </td>
                                             </tr>
                                             <tr>
-                                              <th className="py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">字节</th>
+                                              <th className="py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">
+                                                {intl.get("configChange.bytes")}
+                                              </th>
                                               <td className="tabular-nums text-gray-800 dark:text-gray-200">
                                                 {e.previousBytes ?? "—"} → {e.nextBytes ?? "—"}
                                                 {byteDelta(e) != null && (
                                                   <span className="ml-2">
-                                                    增减 {byteDelta(e) >= 0 ? "+" : ""}
+                                                    {intl.get("configChange.byteDelta")}{" "}
+                                                    {byteDelta(e) >= 0 ? "+" : ""}
                                                     {byteDelta(e)}
                                                   </span>
                                                 )}
                                               </td>
                                             </tr>
                                             <tr>
-                                              <th className="py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">网关模式</th>
+                                              <th className="py-2 pr-3 font-medium text-gray-600 dark:text-gray-400">
+                                                {intl.get("configChange.gatewayMode")}
+                                              </th>
                                               <td
                                                 className={
                                                   isGatewayModeChanged(e)
@@ -505,7 +557,9 @@ export default function ConfigChange() {
                                           </p>
                                         </div>
                                         <div>
-                                          <p className="font-medium text-gray-600 dark:text-gray-400">execArgv（Node）</p>
+                                          <p className="font-medium text-gray-600 dark:text-gray-400">
+                                            {intl.get("configChange.execArgv")}
+                                          </p>
                                           <p className="mt-1 break-all font-mono text-gray-900 dark:text-gray-100">
                                             {Array.isArray(e.execArgv)
                                               ? e.execArgv.length
@@ -544,7 +598,7 @@ export default function ConfigChange() {
             loading={loading}
             trailingControls={
               <>
-                <span className="text-sm text-gray-600 dark:text-gray-400">每页</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{intl.get("common.perPage")}</span>
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
@@ -556,7 +610,7 @@ export default function ConfigChange() {
                     </option>
                   ))}
                 </select>
-                <span className="text-sm text-gray-600 dark:text-gray-400">条</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{intl.get("common.items")}</span>
               </>
             }
           />

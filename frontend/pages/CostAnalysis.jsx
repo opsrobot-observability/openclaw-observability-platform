@@ -18,6 +18,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import intl from "react-intl-universal";
+import { useLocale } from "../context/LocaleContext.jsx";
 
 /** Token 折算费用：仅作代理指标（元/百万 Token） */
 const COST_YUAN_PER_M_TOKEN = 3;
@@ -65,7 +67,7 @@ function MomBadge({ pct }) {
           : "bg-rose-50 text-rose-700 ring-rose-600/15 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-500/20",
       ].join(" ")}
     >
-      环比 {pos ? "+" : ""}
+      {intl.get("costAnalysis.mom")} {pos ? "+" : ""}
       {pct.toFixed(1)}%
     </span>
   );
@@ -74,6 +76,7 @@ function MomBadge({ pct }) {
 
 
 export default function CostAnalysis() {
+  const { locale } = useLocale();
   const [trendDays, setTrendDays] = useState(14);
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -136,35 +139,35 @@ export default function CostAnalysis() {
     return [
       {
         kind: "total",
-        title: "今日总 Token",
+        title: intl.get("costAnalysis.todayToken"),
         value: cards.today.totalTokens,
         mom: cards.today.momPct,
-        compareLabel: "较昨日",
+        compareLabel: intl.get("costAnalysis.vsYesterday"),
         accent: CARD_ACCENTS[0],
         border: CARD_BORDER[0],
       },
       {
         kind: "total",
-        title: "本周总 Token",
+        title: intl.get("costAnalysis.weekToken"),
         value: cards.week.totalTokens,
         mom: cards.week.momPct,
-        compareLabel: "较上周同期",
+        compareLabel: intl.get("costAnalysis.vsLastWeek"),
         accent: CARD_ACCENTS[1],
         border: CARD_BORDER[1],
       },
       {
         kind: "total",
-        title: "本月总 Token",
+        title: intl.get("costAnalysis.monthToken"),
         value: cards.month.totalTokens,
         mom: cards.month.momPct,
-        compareLabel: "较上月同期",
+        compareLabel: intl.get("costAnalysis.vsLastMonth"),
         accent: CARD_ACCENTS[2],
         border: CARD_BORDER[2],
       },
       {
         kind: "avg",
-        title: "近 7 日均 Token",
-        subtitle: "按自然日汇总后取均值",
+        title: intl.get("costAnalysis.dailyAvg7d"),
+        subtitle: intl.get("costAnalysis.dailyAvg7dSubtitle"),
         avgValue: cards.dailyAvg7d.avgTokens,
         peakDay: cards.dailyAvg7d.peakDay,
         peakValue: cards.dailyAvg7d.peakTokens,
@@ -172,7 +175,7 @@ export default function CostAnalysis() {
         border: "border-gray-100",
       },
     ];
-  }, [cards]);
+  }, [cards, locale]);
 
   const dailySingleSeries =
     dailyAgentFilter == null ? null : barSeries.find((x) => x.dataKey === dailyAgentFilter) ?? null;
@@ -205,7 +208,7 @@ export default function CostAnalysis() {
             <div key={i} className="app-card h-[5.25rem] animate-pulse bg-gray-100/80 dark:bg-gray-800/80" />
           ))}
         </div>
-        <LoadingSpinner message="正在加载成本概览…" />
+        <LoadingSpinner message={intl.get("costAnalysis.loadingOverview")} />
       </div>
     );
   }
@@ -213,7 +216,7 @@ export default function CostAnalysis() {
   if (err) {
     return (
       <div className="rounded-lg border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
-        成本概览加载失败：{err}
+        {intl.get("costAnalysis.loadFailed", { error: err })}
       </div>
     );
   }
@@ -246,7 +249,7 @@ export default function CostAnalysis() {
                     {m.mom != null ? (
                       <MomBadge pct={m.mom} />
                     ) : (
-                      <span className="text-[11px] text-gray-400">无环比基线</span>
+                      <span className="text-[11px] text-gray-400">{intl.get("costAnalysis.noBaseline")}</span>
                     )}
                     <span className="text-[11px] text-gray-500 dark:text-gray-400">{m.compareLabel}</span>
                   </div>
@@ -261,7 +264,7 @@ export default function CostAnalysis() {
                     </span>
                   </div>
                   <div className="mt-1.5 rounded-md border border-amber-200/80 bg-white/80 px-2 py-1 text-[10px] text-gray-600 dark:border-amber-800/60 dark:bg-gray-900/60 dark:text-gray-300">
-                    <span className="font-medium text-gray-700 dark:text-gray-200">峰值日</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-200">{intl.get("costAnalysis.peakDay")}</span>
                     <span className="mx-1 text-gray-300 dark:text-gray-600">·</span>
                     <span className="font-mono text-gray-800 dark:text-gray-200">{m.peakDay}</span>
                     <span className="mx-1 text-gray-300 dark:text-gray-600">·</span>
@@ -278,11 +281,11 @@ export default function CostAnalysis() {
       <section className="app-card p-3 sm:p-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">每日 Token 消耗情况</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.dailyTokenTitle")}</h2>
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Agent 筛选</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("costAnalysis.agentFilter")}</span>
           <button
             type="button"
             onClick={() => setDailyAgentFilter(null)}
@@ -293,7 +296,7 @@ export default function CostAnalysis() {
                 : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600",
             ].join(" ")}
           >
-            全部
+            {intl.get("common.all")}
           </button>
           {barSeries.map((s) => {
             const active = dailyAgentFilter === s.dataKey;
@@ -317,7 +320,7 @@ export default function CostAnalysis() {
         </div>
         <div className="mt-2 h-[188px] w-full sm:h-[200px]">
           {barRows.length === 0 ? (
-            <p className="flex h-full items-center justify-center text-sm text-gray-400">暂无数据</p>
+            <p className="flex h-full items-center justify-center text-sm text-gray-400">{intl.get("common.noData")}</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={barRows} margin={{ top: 8, right: 8, left: 0, bottom: 4 }} barCategoryGap="18%">
@@ -327,7 +330,7 @@ export default function CostAnalysis() {
                 <Tooltip
                   contentStyle={{ borderRadius: 8, fontSize: 12 }}
                   formatter={(v, name) => [`${v}M`, name]}
-                  labelFormatter={(l) => `日期 ${l}`}
+                  labelFormatter={(l) => intl.get("costAnalysis.dateLabel", { label: l })}
                 />
                 {dailyAgentFilter == null ? (
                   barSeries.map((s, idx) => (
@@ -360,7 +363,7 @@ export default function CostAnalysis() {
       <section className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
         {/* 大模型消耗占比 */}
         <div className="app-card flex flex-col p-3 sm:p-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">大模型消耗占比</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.modelShareTitle")}</h2>
           <div className="mt-2 w-full min-w-0 flex-1">
             {modelShare.length > 0 ? (
               <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
@@ -404,27 +407,27 @@ export default function CostAnalysis() {
                 </div>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-gray-400">暂无模型数据</p>
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noModelData")}</p>
             )}
           </div>
         </div>
 
         {/* Token 消耗占比：输入 / 输出 */}
         <div className="app-card flex flex-col p-3 sm:p-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">Token 消耗占比：输入 / 输出</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.tokenShareTitle")}</h2>
           <div className="mt-2 w-full min-w-0 flex-1">
             {hasInOutData ? (
               <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
                 <div className="h-[188px] w-full max-w-[250px] shrink-0">
                   {inOutPieFiltered.length === 0 ? (
                     <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-gray-400">
-                      <p>图例已全部隐藏</p>
+                      <p>{intl.get("costAnalysis.legendHidden")}</p>
                       <button
                         type="button"
                         onClick={() => setInOutHidden(new Set())}
                         className="text-xs font-medium text-primary hover:underline"
                       >
-                        恢复显示
+                        {intl.get("costAnalysis.restoreDisplay")}
                       </button>
                     </div>
                   ) : (
@@ -445,7 +448,7 @@ export default function CostAnalysis() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v) => [`${v}%`, "占比"]}
+                          formatter={(v) => [`${v}%`, intl.get("costAnalysis.share")]}
                           contentStyle={{ borderRadius: 8, fontSize: 12 }}
                         />
                       </PieChart>
@@ -495,11 +498,11 @@ export default function CostAnalysis() {
                   <div className="border-t border-gray-100 pt-2 dark:border-gray-800">
                     <div className="flex flex-col gap-1.5 text-gray-600 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-1">
                       <span>
-                        输入：
+                        {intl.get("costAnalysis.input")}
                         <span className="font-semibold text-primary">{snapshot?.inOut?.inputPct ?? 0}%</span>
                       </span>
                       <span>
-                        输出：
+                        {intl.get("costAnalysis.output")}
                         <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                           {snapshot?.inOut?.outputPct ?? 0}%
                         </span>
@@ -509,7 +512,7 @@ export default function CostAnalysis() {
                 </div>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-gray-400">暂无本月输入/输出 Token 数据</p>
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noInOutData")}</p>
             )}
           </div>
         </div>
@@ -518,12 +521,12 @@ export default function CostAnalysis() {
       {/* Agent 占比 + Top10 会话：宽屏两列并排 */}
       <section className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
         <div className="app-card flex flex-col p-3 sm:p-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">Agent Token 消耗占比</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.agentShareTitle")}</h2>
           <div className="mx-auto mt-2 w-full min-w-0 max-w-3xl">
             {agentShare.length > 0 ? (
               <AgentTokenRoseChart data={agentShare} height={195} />
             ) : (
-              <p className="py-8 text-center text-sm text-gray-400">暂无本月 Agent 数据</p>
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noAgentData")}</p>
             )}
             {agentShare.length > 0 ? (
               <div className="mt-2 grid gap-1 text-[11px] text-gray-600 dark:text-gray-400 sm:grid-cols-2">
@@ -539,7 +542,7 @@ export default function CostAnalysis() {
         </div>
 
         <div className="app-card flex min-h-0 flex-col p-3 sm:p-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">Top10 会话 Token 消耗</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.top10SessionTitle")}</h2>
           <div className="mt-2 min-h-0 flex-1">
             {topSessions.length > 0 ? (
               <ResponsiveContainer width="100%" height={260} minWidth={0}>
@@ -564,7 +567,7 @@ export default function CostAnalysis() {
                     }
                   />
                   <Tooltip
-                    formatter={(v) => [`${v}M Tokens`, "总消耗"]}
+                    formatter={(v) => [`${v}M Tokens`, intl.get("costAnalysis.totalConsumption")]}
                     contentStyle={{ borderRadius: 8, fontSize: 12 }}
                     labelFormatter={(label) => {
                       const s = topSessions.find((x) => x.session_id === label);
@@ -574,13 +577,13 @@ export default function CostAnalysis() {
                           <div className="font-mono text-[11px]">{s.session_id}</div>
                           <div className="text-[10px] text-gray-500">{s.agentName}</div>
                           {s.userName && (
-                            <div className="text-[10px] text-gray-500">用户：{s.userName}</div>
+                            <div className="text-[10px] text-gray-500">{intl.get("costAnalysis.user", { name: s.userName })}</div>
                           )}
                         </div>
                       );
                     }}
                   />
-                  <Bar dataKey="tokens" name="总消耗" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                  <Bar dataKey="tokens" name={intl.get("costAnalysis.totalConsumption")} fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={22}>
                     {topSessions.map((s, i) => (
                       <Cell key={`cell-${i}`} fill={i === 0 ? "#4f46e5" : i < 3 ? "#6366f1" : "#a5b4fc"} />
                     ))}
@@ -588,7 +591,7 @@ export default function CostAnalysis() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="py-8 text-center text-sm text-gray-400">暂无会话数据</p>
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noSessionData")}</p>
             )}
           </div>
         </div>

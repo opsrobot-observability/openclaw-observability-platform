@@ -3,6 +3,7 @@ import SortableTableTh from "../components/SortableTableTh.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TablePagination, { DEFAULT_TABLE_PAGE_SIZE } from "../components/TablePagination.jsx";
 import CostTimeRangeFilter from "../components/CostTimeRangeFilter.jsx";
+import intl from "react-intl-universal";
 
 function pad2(n) { return String(n).padStart(2, "0"); }
 
@@ -43,9 +44,9 @@ function MultiSelectFilter({ label, options, value, onChange, placeholder }) {
   );
 
   const displayLabel = () => {
-    if (!value || value.length === 0) return placeholder || `选择${label}`;
+    if (!value || value.length === 0) return placeholder || intl.get("costOverview2.selectLabel", { label });
     if (value.length === 1) return options.find((o) => o.value === value[0])?.label || value[0];
-    return `${value.length} 个${label}`;
+    return intl.get("costOverview2.selectedCount", { count: value.length, label });
   };
 
   const toggle = (v) => {
@@ -75,7 +76,7 @@ function MultiSelectFilter({ label, options, value, onChange, placeholder }) {
           <div className="p-2">
             <input
               type="text"
-              placeholder={`搜索${label}…`}
+              placeholder={intl.get("costOverview2.searchLabel", { label })}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="app-input w-full px-2 py-1 text-xs"
@@ -87,7 +88,7 @@ function MultiSelectFilter({ label, options, value, onChange, placeholder }) {
               onClick={() => onChange([])}
               className="w-full rounded-md px-3 py-1.5 text-left text-xs text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
             >
-              全部
+              {intl.get("common.all")}
             </button>
             {filtered.map((o) => (
               <button
@@ -118,7 +119,7 @@ function MultiSelectFilter({ label, options, value, onChange, placeholder }) {
               </button>
             ))}
             {filtered.length === 0 && (
-              <p className="py-3 text-center text-xs text-gray-400">无匹配项</p>
+              <p className="py-3 text-center text-xs text-gray-400">{intl.get("costOverview2.noMatchItem")}</p>
             )}
           </div>
         </div>
@@ -265,7 +266,7 @@ export default function CostOverview2() {
         {/* 表头：标题 + 筛选同一行 */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800 sm:px-6">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">会话成本明细</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("costOverview2.title")}</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFilter
@@ -273,63 +274,63 @@ export default function CostOverview2() {
               options={agentOptions}
               value={filters.agents}
               onChange={handleMultiChange("agents")}
-              placeholder="全部 Agent"
+              placeholder={intl.get("costOverview2.allAgent")}
             />
             <MultiSelectFilter
-              label="用户"
+              label={intl.get("costOverview2.user")}
               options={userOptions}
               value={filters.users}
               onChange={handleMultiChange("users")}
-              placeholder="全部用户"
+              placeholder={intl.get("costOverview2.allUser")}
             />
             <MultiSelectFilter
               label="Gateway"
               options={gatewayOptions}
               value={filters.gateways}
               onChange={handleMultiChange("gateways")}
-              placeholder="全部 Gateway"
+              placeholder={intl.get("costOverview2.allGateway")}
             />
             <MultiSelectFilter
-              label="大模型"
+              label={intl.get("costOverview2.model")}
               options={modelOptions}
               value={filters.models}
               onChange={handleMultiChange("models")}
-              placeholder="全部模型"
+              placeholder={intl.get("costOverview2.allModel")}
             />
           </div>
         </div>
 
         {loading && rows.length === 0 ? (
-          <LoadingSpinner message="正在加载会话成本…" />
+          <LoadingSpinner message={intl.get("costOverview2.loadingSession")} />
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/90 dark:border-gray-800 dark:bg-gray-900/50">
-                    <SortableTableTh label="会话 ID" columnKey="session_id" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[160px]" />
-                    <SortableTableTh label="实例" columnKey="agentName" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[120px]" />
-                    <SortableTableTh label="用户" columnKey="userName" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[100px]" />
-                    <SortableTableTh label="网关" columnKey="gateway" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[100px]" />
-                    <SortableTableTh label="大模型" columnKey="model" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[120px]" />
-                    <SortableTableTh label="总 Token" columnKey="totalTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
-                    <SortableTableTh label="输入 Token" columnKey="inputTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
-                    <SortableTableTh label="输出 Token" columnKey="outputTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
-                    <SortableTableTh label="费用 (元)" columnKey="costYuan" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
-                    <SortableTableTh label="发起时间" columnKey="createTime" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[150px]" />
+                    <SortableTableTh label={intl.get("costOverview2.sessionId")} columnKey="session_id" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[160px]" />
+                    <SortableTableTh label={intl.get("costOverview2.agent")} columnKey="agentName" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[120px]" />
+                    <SortableTableTh label={intl.get("costOverview2.user")} columnKey="userName" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[100px]" />
+                    <SortableTableTh label={intl.get("costOverview2.gateway")} columnKey="gateway" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[100px]" />
+                    <SortableTableTh label={intl.get("costOverview2.model")} columnKey="model" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[120px]" />
+                    <SortableTableTh label={intl.get("costOverview2.totalToken")} columnKey="totalTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
+                    <SortableTableTh label={intl.get("costOverview2.inputToken")} columnKey="inputTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
+                    <SortableTableTh label={intl.get("costOverview2.outputToken")} columnKey="outputTokens" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
+                    <SortableTableTh label={intl.get("costOverview2.cost")} columnKey="costYuan" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[90px] text-right" numeric />
+                    <SortableTableTh label={intl.get("costOverview2.createTime")} columnKey="createTime" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} className="w-[150px]" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {!effectiveTimeBounds ? (
                     <tr>
                       <td colSpan={10} className="px-4 py-12 text-center text-sm text-gray-500">
-                        请先选择有效的时间范围
+                        {intl.get("common.selectTimeRange")}
                       </td>
                     </tr>
                   ) : rows.length === 0 && !loading ? (
                     <tr>
                       <td colSpan={10} className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                        该条件下暂无会话数据
+                        {intl.get("costOverview2.noSessionData")}
                       </td>
                     </tr>
                   ) : (

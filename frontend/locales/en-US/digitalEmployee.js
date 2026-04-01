@@ -1,0 +1,28 @@
+export default {
+  "digitalEmployee.overviewTitle": "Overview",
+  "digitalEmployee.overviewDesc": "Summary of OpenClaw digital employee scale, session & performance metrics. Demo data, can be connected to real statistics.",
+  "digitalEmployee.onDuty": "Active Employees",
+  "digitalEmployee.onDutyHint": "Including trial",
+  "digitalEmployee.todayDialogue": "Today Dialogues",
+  "digitalEmployee.todayDialogueHint": "+6% vs yesterday",
+  "digitalEmployee.avgResponse": "Avg Response (P95)",
+  "digitalEmployee.avgResponseHint": "Target < 2s",
+
+  "digitalEmployee.employeeList": "Employee List",
+  "digitalEmployee.sessionCount": "Sessions / Tasks",
+  "digitalEmployee.satisfaction": "Satisfaction",
+  "digitalEmployee.typicalLatency": "Typical Latency (P95)",
+  "digitalEmployee.productivityTags": "1. Productivity Tags",
+  "digitalEmployee.domainAnalysis": "2. Domain Skill Analysis",
+  "digitalEmployee.domainAnalysisDesc": "By domain relative score (demo: Ops / Office / Data / Security)",
+  "digitalEmployee.executionPrefs": "3. Execution Preferences & Efficiency",
+  "digitalEmployee.weaknesses": "4. Weakness Identification",
+  "digitalEmployee.scenarios": "5. Recommended Scenarios",
+  "digitalEmployee.fluctuation": "6. Productivity Fluctuation Analysis",
+  "digitalEmployee.relatedService": "Related Service",
+  "digitalEmployee.recentActivity": "Recent Activity",
+
+  "digitalEmployee.statusRunning": "Running",
+  "digitalEmployee.statusTrial": "Trial",
+  "digitalEmployee.statusPaused": "Paused",
+};

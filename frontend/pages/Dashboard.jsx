@@ -1,7 +1,9 @@
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import intl from "react-intl-universal";
 import Icon from "../components/Icon.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import LanguageSwitch from "../components/LanguageSwitch.jsx";
 import DigitalEmployeeOverview from "./DigitalEmployeeOverview.jsx";
 import DigitalEmployeePortrait from "./DigitalEmployeePortrait.jsx";
 import CostAnalysis from "./CostAnalysis.jsx";
@@ -13,91 +15,86 @@ import ConfigChange from "./ConfigChange.jsx";
 import SessionAudit from "./SessionAudit.jsx";
 import AuditOverview from "./AuditOverview.jsx";
 
-const PAGE_META = {
-  panorama: { title: "数据总览", subtitle: "关键指标与订单一览 · 实时更新" },
-  "digital-employee-overview": { title: "员工概览", subtitle: "数字员工规模与运行指标" },
-  "digital-employee-list": { title: "数字员工画像", subtitle: "能力、指标与运行动态" },
-  monitoring: { title: "基础监控", subtitle: "系统与资源监控" },
-  alerts: { title: "告警事件", subtitle: "告警与事件处理" },
-  audit: { title: "行为审计", subtitle: "用户与系统行为审计与合规记录" },
-  "config-change": { title: "实例配置变更", subtitle: "关键配置项变更历史与合规留痕" },
-  "audit-overview": {
-    title: "行为审计概览",
-    subtitle: "核心指标、风险统计、实时态势、趋势与排行",
-  },
-  "session-audit": { title: "会话链路溯源", subtitle: "OpenClaw 会话索引、模型与 Token 用量合规留痕" },
-  traceability: { title: "全链路溯源", subtitle: "按会话 ID 查看链路时间轴与步骤详情" },
-  inspection: { title: "定期巡检", subtitle: "巡检任务与报告" },
-  "cost-overview": { title: "算力成本概览", subtitle: "总成本、日均与维度占比、趋势" },
-  "cost-overview-2": { title: "会话成本明细", subtitle: "Agent、用户、Gateway、大模型多维过滤" },
-  "agent-cost-detail": { title: "实例成本明细", subtitle: "总消耗、单任务均值、调用量与成功率" },
-  "llm-cost": { title: "模型成本明细", subtitle: "按模型维度的 Token 与费用" },
+const PAGE_META_KEYS = {
+  panorama: { title: "page.panorama.title", subtitle: "page.panorama.subtitle" },
+  "digital-employee-overview": { title: "page.digitalEmployeeOverview.title", subtitle: "page.digitalEmployeeOverview.subtitle" },
+  "digital-employee-list": { title: "page.digitalEmployeeList.title", subtitle: "page.digitalEmployeeList.subtitle" },
+  monitoring: { title: "page.monitoring.title", subtitle: "page.monitoring.subtitle" },
+  alerts: { title: "page.alerts.title", subtitle: "page.alerts.subtitle" },
+  audit: { title: "page.audit.title", subtitle: "page.audit.subtitle" },
+  "config-change": { title: "page.configChange.title", subtitle: "page.configChange.subtitle" },
+  "audit-overview": { title: "page.auditOverview.title", subtitle: "page.auditOverview.subtitle" },
+  "session-audit": { title: "page.sessionAudit.title", subtitle: "page.sessionAudit.subtitle" },
+  traceability: { title: "page.traceability.title", subtitle: "page.traceability.subtitle" },
+  inspection: { title: "page.inspection.title", subtitle: "page.inspection.subtitle" },
+  "cost-overview": { title: "page.costOverview.title", subtitle: "page.costOverview.subtitle" },
+  "cost-overview-2": { title: "page.costOverview2.title", subtitle: "page.costOverview2.subtitle" },
+  "agent-cost-detail": { title: "page.agentCostDetail.title", subtitle: "page.agentCostDetail.subtitle" },
+  "llm-cost": { title: "page.llmCost.title", subtitle: "page.llmCost.subtitle" },
 };
 
-const NAV = [
+const NAV_KEYS = [
   {
     id: "full-time-monitoring",
-    label: "全天候观测",
+    labelKey: "nav.fullTimeMonitoring",
     icon: "clock",
     children: [
-      { id: "config-change", label: "实例配置变更" },
+      { id: "config-change", labelKey: "nav.configChange" },
     ],
   },
   {
     id: "security-audit",
-    label: "风险感知",
+    labelKey: "nav.riskPerception",
     icon: "audit",
     children: [
-      { id: "audit-overview", label: "行为审计概览" },
-      // { id: "audit", label: "行为审计" },
-      { id: "session-audit", label: "会话链路溯源" },
+      { id: "audit-overview", labelKey: "nav.auditOverview" },
+      { id: "session-audit", labelKey: "nav.sessionAudit" },
     ],
   },
-  // { id: "inspection", label: "定期巡检", icon: "inspection" },
   {
     id: "cost-analysis",
-    label: "生产力评估",
+    labelKey: "nav.costAnalysis",
     icon: "costAnalysis",
     children: [
-      { id: "cost-overview", label: "算力成本概览" },
-      { id: "cost-overview-2", label: "会话成本明细" },
-      { id: "agent-cost-detail", label: "实例成本明细" },
-      { id: "llm-cost", label: "模型成本明细" },
+      { id: "cost-overview", labelKey: "nav.costOverview" },
+      { id: "cost-overview-2", labelKey: "nav.costOverview2" },
+      { id: "agent-cost-detail", labelKey: "nav.agentCostDetail" },
+      { id: "llm-cost", labelKey: "nav.llmCost" },
     ],
   },
 ];
 
-const STATS = [
+const STATS_KEYS = [
   {
-    title: "总营收",
+    titleKey: "dashboard.totalRevenue",
     value: "¥1,284,590",
     delta: "+12.4%",
     positive: true,
-    hint: "较上月",
+    hintKey: "dashboard.vsLastMonth",
     accent: "from-primary/10 to-blue-50 dark:from-primary/20 dark:to-gray-900",
   },
   {
-    title: "订单量",
+    titleKey: "dashboard.orderCount",
     value: "8,432",
     delta: "+5.2%",
     positive: true,
-    hint: "较上月",
+    hintKey: "dashboard.vsLastMonth",
     accent: "from-emerald-50 to-emerald-50/50 dark:from-emerald-950/50 dark:to-gray-900",
   },
   {
-    title: "活跃用户",
+    titleKey: "dashboard.activeUsers",
     value: "24,891",
     delta: "-2.1%",
     positive: false,
-    hint: "较上月",
+    hintKey: "dashboard.vsLastMonth",
     accent: "from-amber-50 to-amber-50/30 dark:from-amber-950/40 dark:to-gray-900",
   },
   {
-    title: "转化率",
+    titleKey: "dashboard.conversionRate",
     value: "3.28%",
     delta: "+0.4%",
     positive: true,
-    hint: "较上月",
+    hintKey: "dashboard.vsLastMonth",
     accent: "from-violet-50 to-violet-50/40 dark:from-violet-950/40 dark:to-gray-900",
   },
 ];
@@ -105,33 +102,41 @@ const STATS = [
 const ROWS = [
   {
     id: "ORD-9821",
-    name: "企业协作套件 · 年度",
-    region: "华东",
-    status: "已完成",
+    nameKey: "enterprise_collab_annual",
+    name_zh: "企业协作套件 · 年度",
+    name_en: "Enterprise Collab Suite · Annual",
+    regionKey: "dashboard.regionEast",
+    statusKey: "dashboard.statusDone",
     amount: "¥48,000",
     date: "2025-03-18",
   },
   {
     id: "ORD-9820",
-    name: "数据报表模块",
-    region: "华北",
-    status: "处理中",
+    nameKey: "data_report_module",
+    name_zh: "数据报表模块",
+    name_en: "Data Report Module",
+    regionKey: "dashboard.regionNorth",
+    statusKey: "dashboard.statusProcessing",
     amount: "¥12,600",
     date: "2025-03-17",
   },
   {
     id: "ORD-9819",
-    name: "API 网关扩容",
-    region: "华南",
-    status: "待审核",
+    nameKey: "api_gateway_expand",
+    name_zh: "API 网关扩容",
+    name_en: "API Gateway Expansion",
+    regionKey: "dashboard.regionSouth",
+    statusKey: "dashboard.statusPending",
     amount: "¥8,200",
     date: "2025-03-16",
   },
   {
     id: "ORD-9818",
-    name: "安全审计服务",
-    region: "西南",
-    status: "已完成",
+    nameKey: "security_audit_service",
+    name_zh: "安全审计服务",
+    name_en: "Security Audit Service",
+    regionKey: "dashboard.regionSouthwest",
+    statusKey: "dashboard.statusDone",
     amount: "¥22,400",
     date: "2025-03-15",
   },
@@ -190,7 +195,7 @@ function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, s
                 name={item.icon}
                 className={`h-4 w-4 ${childActive ? "text-primary" : "text-gray-400"}`}
               />
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{item.label}</span>
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{intl.get(item.labelKey)}</span>
             </div>
             <div className="p-1">
               {item.children.map((child) => {
@@ -210,7 +215,7 @@ function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, s
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100",
                     ].join(" ")}
                   >
-                    {child.label}
+                    {intl.get(child.labelKey)}
                   </button>
                 );
               })}
@@ -223,15 +228,15 @@ function CollapsedNavGroupFlyout({ item, childActive, activeNav, setActiveNav, s
   );
 }
 
-function statusBadgeClass(status) {
-  switch (status) {
-    case "已完成":
+function statusBadgeClass(statusKey) {
+  switch (statusKey) {
+    case "dashboard.statusDone":
       return "bg-emerald-50 text-emerald-700 ring-emerald-600/10 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-500/20";
-    case "处理中":
+    case "dashboard.statusProcessing":
       return "bg-primary-soft text-primary ring-primary/15 dark:bg-primary/20 dark:text-primary dark:ring-primary/30";
-    case "待审核":
+    case "dashboard.statusPending":
       return "bg-amber-50 text-amber-800 ring-amber-600/15 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-500/25";
-    case "已取消":
+    case "dashboard.statusCancelled":
       return "bg-gray-100 text-gray-600 ring-gray-500/10 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-500/20";
     default:
       return "bg-gray-100 text-gray-600 ring-gray-500/10 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-500/20";
@@ -262,8 +267,8 @@ export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [headerExtra, setHeaderExtra] = useState(null);
   const [query, setQuery] = useState("");
-  const [region, setRegion] = useState("全部");
-  const [status, setStatus] = useState("全部");
+  const [region, setRegion] = useState("dashboard.regionAll");
+  const [status, setStatus] = useState("dashboard.statusAll");
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersPageSize, setOrdersPageSize] = useState(10);
 
@@ -284,18 +289,19 @@ export default function Dashboard() {
     });
   };
 
-  const regions = ["全部", "华东", "华北", "华南", "西南"];
-  const statuses = ["全部", "已完成", "处理中", "待审核", "已取消"];
+  const regionKeys = ["dashboard.regionAll", "dashboard.regionEast", "dashboard.regionNorth", "dashboard.regionSouth", "dashboard.regionSouthwest"];
+  const statusKeys = ["dashboard.statusAll", "dashboard.statusDone", "dashboard.statusProcessing", "dashboard.statusPending", "dashboard.statusCancelled"];
 
   const filtered = useMemo(() => {
     return ROWS.filter((row) => {
       const q = query.trim().toLowerCase();
       const matchQ =
         !q ||
-        row.name.toLowerCase().includes(q) ||
+        row.name_zh.toLowerCase().includes(q) ||
+        row.name_en.toLowerCase().includes(q) ||
         row.id.toLowerCase().includes(q);
-      const matchR = region === "全部" || row.region === region;
-      const matchS = status === "全部" || row.status === status;
+      const matchR = region === "dashboard.regionAll" || row.regionKey === region;
+      const matchS = status === "dashboard.statusAll" || row.statusKey === status;
       return matchQ && matchR && matchS;
     });
   }, [query, region, status]);
@@ -315,33 +321,30 @@ export default function Dashboard() {
     if (ordersPage > ordersTotalPages) setOrdersPage(ordersTotalPages);
   }, [ordersPage, ordersTotalPages]);
 
-  const page = PAGE_META[activeNav] ?? PAGE_META.panorama;
+  const pageKeys = PAGE_META_KEYS[activeNav] ?? PAGE_META_KEYS.panorama;
 
-  // Build breadcrumb from NAV structure
   const crumbs = useMemo(() => {
-    for (const item of NAV) {
-      if (item.id === activeNav) return [{ id: item.id, label: item.label }];
+    for (const item of NAV_KEYS) {
+      if (item.id === activeNav) return [{ id: item.id, labelKey: item.labelKey }];
       if (item.children) {
         const child = item.children.find((c) => c.id === activeNav);
-        if (child) return [{ id: child.id, label: child.label }];
+        if (child) return [{ id: child.id, labelKey: child.labelKey }];
       }
     }
-    return [{ id: activeNav, label: page.title }];
-  }, [activeNav, page.title]);
+    return [{ id: activeNav, labelKey: pageKeys.title }];
+  }, [activeNav, pageKeys.title]);
 
   return (
     <div className="fixed inset-0 flex overflow-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <button
           type="button"
-          aria-label="关闭菜单"
+          aria-label={intl.get("common.closeMenu")}
           className="fixed inset-0 z-40 bg-gray-900/40 transition-opacity duration-200 dark:bg-black/60 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={[
           "fixed inset-y-0 left-0 z-50 flex min-w-0 w-64 flex-col overflow-x-hidden border-r border-gray-200/80 bg-white shadow-card transition-transform duration-200 dark:border-gray-800 dark:bg-gray-950 dark:shadow-none lg:relative lg:shrink-0 lg:translate-x-0",
@@ -358,13 +361,13 @@ export default function Dashboard() {
           {!sidebarCollapsed && (
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">opsRobot</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Openclaw可观测性平台</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("common.platformName")}</p>
             </div>
           )}
         </div>
 
         <nav className="min-h-0 flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto p-2">
-          {NAV.map((item) => {
+          {NAV_KEYS.map((item) => {
             if (item.children) {
               const childActive = item.children.some((c) => c.id === activeNav);
               return (
@@ -398,7 +401,7 @@ export default function Dashboard() {
                           name={item.icon}
                           className={childActive ? "h-5 w-5 text-primary" : "h-5 w-5 text-gray-400 dark:text-gray-500"}
                         />
-                        <span className="flex-1 text-left">{item.label}</span>
+                        <span className="flex-1 text-left">{intl.get(item.labelKey)}</span>
                         <Icon
                           name="chevron"
                           className={[
@@ -426,7 +429,7 @@ export default function Dashboard() {
                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100",
                                 ].join(" ")}
                               >
-                                {child.label}
+                                {intl.get(child.labelKey)}
                               </button>
                             );
                           })}
@@ -444,7 +447,7 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   type="button"
-                  title={item.label}
+                  title={intl.get(item.labelKey)}
                   onClick={() => {
                     setActiveNav(item.id);
                     setSidebarOpen(false);
@@ -480,17 +483,16 @@ export default function Dashboard() {
                 ].join(" ")}
               >
                 <Icon name={item.icon} className={active ? "h-5 w-5 text-primary" : "h-5 w-5 text-gray-400 dark:text-gray-500"} />
-                {item.label}
+                {intl.get(item.labelKey)}
               </button>
             );
           })}
         </nav>
 
-        {/* Sidebar collapse toggle */}
         <div className="absolute bottom-4 right-3 hidden lg:flex lg:items-end lg:justify-end">
           <button
             type="button"
-            title={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
+            title={sidebarCollapsed ? intl.get("common.expandSidebar") : intl.get("common.collapseSidebar")}
             onClick={() => setSidebarCollapsed((v) => !v)}
             className="group relative flex h-8 items-center gap-1.5 rounded-full border border-gray-200/70 bg-white/80 px-2 py-1 text-xs font-medium text-gray-500 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-white hover:text-primary hover:shadow-md dark:border-gray-700/50 dark:bg-gray-900/80 dark:text-gray-400 dark:hover:border-primary/40 dark:hover:bg-gray-900 dark:hover:text-primary dark:hover:shadow-primary/10"
           >
@@ -505,23 +507,22 @@ export default function Dashboard() {
             {!sidebarCollapsed && <span
               className={`overflow-hidden transition-all duration-300 w-12 opacity-100 mt-0.5`}
             >
-              <span className="whitespace-nowrap">收起侧栏</span>
+              <span className="whitespace-nowrap">{intl.get("common.collapseSidebar")}</span>
             </span>}
           </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className={[
         "relative flex min-h-0 w-0 flex-1 flex-col transition-[padding-left] duration-200"
       ].join(" ")}>
-        <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-gray-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/90 sm:px-6 lg:px-8">
+        <header className="relative z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-gray-200/80 bg-white/90 px-4 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/90 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
               onClick={() => setSidebarOpen(true)}
-              aria-label="打开菜单"
+              aria-label={intl.get("common.openMenu")}
             >
               <Icon name="menu" />
             </button>
@@ -529,7 +530,7 @@ export default function Dashboard() {
               {headerExtra ? (
                 headerExtra
               ) : (
-                <nav aria-label="面包屑导航">
+                <nav aria-label={intl.get("common.breadcrumb")}>
                   <ol className="flex items-center gap-1.5 text-sm">
                     {crumbs.map((crumb, i) => (
                       <li key={crumb.id} className="flex items-center gap-1.5">
@@ -540,11 +541,11 @@ export default function Dashboard() {
                             onClick={() => setActiveNav(crumb.id)}
                             className="rounded-md px-1.5 py-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                           >
-                            {crumb.label}
+                            {intl.get(crumb.labelKey)}
                           </button>
                         ) : (
                           <span className="font-semibold text-gray-800 dark:text-gray-100">
-                            {crumb.label}
+                            {intl.get(crumb.labelKey)}
                           </span>
                         )}
                       </li>
@@ -555,6 +556,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitch />
             <ThemeToggle />
           </div>
         </header>
@@ -583,14 +585,14 @@ export default function Dashboard() {
           ) : (
             <>
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {STATS.map((s) => (
+                {STATS_KEYS.map((s) => (
                   <article
-                    key={s.title}
+                    key={s.titleKey}
                     className="group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-6 shadow-card transition duration-200 hover:shadow-card-hover dark:border-gray-800 dark:bg-gray-900 dark:shadow-none dark:hover:shadow-none"
                   >
                     <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${s.accent} opacity-80`} />
                     <div className="relative">
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{s.title}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{intl.get(s.titleKey)}</p>
                       <p className="mt-3 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 sm:text-3xl">{s.value}</p>
                       <div className="mt-4 flex items-center gap-2 text-sm">
                         <span
@@ -603,7 +605,7 @@ export default function Dashboard() {
                         >
                           {s.delta}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{s.hint}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{intl.get(s.hintKey)}</span>
                       </div>
                     </div>
                   </article>
@@ -613,8 +615,8 @@ export default function Dashboard() {
               <section className="app-card p-4 mt-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">订单明细</h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">支持按名称、单号搜索，并按区域与状态筛选</p>
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{intl.get("dashboard.orderDetail")}</h2>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{intl.get("dashboard.orderDetailDesc")}</p>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                     <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
@@ -623,7 +625,7 @@ export default function Dashboard() {
                       </span>
                       <input
                         type="search"
-                        placeholder="搜索订单号或产品名称…"
+                        placeholder={intl.get("dashboard.searchPlaceholder")}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="app-input w-full py-2.5 pl-10 pr-3 placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -631,29 +633,29 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-wrap items-center gap-4">
                       <label className="flex items-center gap-2">
-                        <span className="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400">区域</span>
+                        <span className="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400">{intl.get("dashboard.region")}</span>
                         <select
                           value={region}
                           onChange={(e) => setRegion(e.target.value)}
                           className="app-input min-w-[140px] px-3 py-2.5"
                         >
-                          {regions.map((r) => (
+                          {regionKeys.map((r) => (
                             <option key={r} value={r}>
-                              {r}
+                              {intl.get(r)}
                             </option>
                           ))}
                         </select>
                       </label>
                       <label className="flex items-center gap-2">
-                        <span className="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400">状态</span>
+                        <span className="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400">{intl.get("dashboard.status")}</span>
                         <select
                           value={status}
                           onChange={(e) => setStatus(e.target.value)}
                           className="app-input min-w-[140px] px-3 py-2.5"
                         >
-                          {statuses.map((s) => (
+                          {statusKeys.map((s) => (
                             <option key={s} value={s}>
-                              {s}
+                              {intl.get(s)}
                             </option>
                           ))}
                         </select>
@@ -667,19 +669,19 @@ export default function Dashboard() {
                     <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50/90 dark:border-gray-800 dark:bg-gray-800/80">
-                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">订单号</th>
-                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">产品 / 项目</th>
-                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">区域</th>
-                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">状态</th>
-                          <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">金额</th>
-                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">日期</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.orderId")}</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.product")}</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.region")}</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.status")}</th>
+                          <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.amount")}</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">{intl.get("dashboard.date")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/50">
                         {filtered.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                              没有匹配的订单，请调整搜索或筛选条件。
+                              {intl.get("dashboard.noMatchOrders")}
                             </td>
                           </tr>
                         ) : (
@@ -695,17 +697,17 @@ export default function Dashboard() {
                                 {row.id}
                               </td>
                               <td className="max-w-[220px] px-4 py-3 text-gray-800 dark:text-gray-200">
-                                <span className="line-clamp-2">{row.name}</span>
+                                <span className="line-clamp-2">{intl.options.currentLocale === "zh-CN" ? row.name_zh : row.name_en}</span>
                               </td>
-                              <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-400">{row.region}</td>
+                              <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-400">{intl.get(row.regionKey)}</td>
                               <td className="whitespace-nowrap px-4 py-3">
                                 <span
                                   className={[
                                     "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                                    statusBadgeClass(row.status),
+                                    statusBadgeClass(row.statusKey),
                                   ].join(" ")}
                                 >
-                                  {row.status}
+                                  {intl.get(row.statusKey)}
                                 </span>
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100">
@@ -721,16 +723,16 @@ export default function Dashboard() {
                   <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/80 px-4 py-3 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-3">
                       <span>
-                        共 {filtered.length} 条
+                        {intl.get("common.total", { count: filtered.length })}
                         {filtered.length > 0 && (
                           <span className="text-gray-400 dark:text-gray-500">
                             {" "}
-                            · 第 {ordersPage} / {ordersTotalPages} 页
+                            · {intl.get("common.page", { current: ordersPage, total: ordersTotalPages })}
                           </span>
                         )}
                       </span>
                       <label className="flex items-center gap-2">
-                        <span className="text-gray-600 dark:text-gray-400">每页</span>
+                        <span className="text-gray-600 dark:text-gray-400">{intl.get("common.perPage")}</span>
                         <select
                           value={ordersPageSize}
                           onChange={(e) => {
@@ -741,7 +743,7 @@ export default function Dashboard() {
                         >
                           {[5, 10, 20].map((n) => (
                             <option key={n} value={n}>
-                              {n} 条
+                              {n} {intl.get("common.items")}
                             </option>
                           ))}
                         </select>
@@ -756,7 +758,7 @@ export default function Dashboard() {
                             onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
                             className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                           >
-                            上一页
+                            {intl.get("common.prevPage")}
                           </button>
                           <button
                             type="button"
@@ -764,11 +766,11 @@ export default function Dashboard() {
                             onClick={() => setOrdersPage((p) => Math.min(ordersTotalPages, p + 1))}
                             className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                           >
-                            下一页
+                            {intl.get("common.nextPage")}
                           </button>
                         </>
                       )}
-                      <span className="text-gray-400 dark:text-gray-500 sm:ml-1">数据为演示数据，可对接真实 API</span>
+                      <span className="text-gray-400 dark:text-gray-500 sm:ml-1">{intl.get("common.demoDataHint")}</span>
                     </div>
                   </div>
                 </div>
