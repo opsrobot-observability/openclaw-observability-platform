@@ -131,4 +131,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ~/var/doris_data
+      device: ~/var/doris_data  # 将宿主机目录绑定到容器卷，确保数据持久化并且可以在宿主机上访问

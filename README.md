@@ -136,6 +136,14 @@ docker compose -f docker-compose-build.yml up -d
 
 #### Doris Data Persistence
 
+To ensure data persistence, Doris data is stored in `~/var/doris_data` by default. If this directory doesn't exist, create it:
+
+```bash
+mkdir -p ~/var/doris_data
+```
+
+To change the data directory path, modify the `volumes > doris_data` configuration in `docker-compose-build.yml`.
+
 By default, Doris will be reinitialized on each deployment (historical data will be cleared). To preserve data:
 
 ```bash
@@ -169,6 +177,8 @@ npm run dev
 ```
 
 ### Vector Configuration
+
+Vector acts as the log collector for OpenClaw. It needs to be installed and configured on each machine running OpenClaw. The OpenClaw Observability Platform supports multiple Vector collectors to aggregate log data from multiple OpenClaw instances.
 
 Modify the data source paths in `vector.yaml` to point to your actual OpenClaw log directory:
 
@@ -235,9 +245,10 @@ This project closely follows the development of the OpenClaw community. It has b
 
 ## Community
 
-### WeChat Community
+We welcome and encourage contributions in any form! Whether submitting bug reports, improving documentation, or submitting PRs for core code, all contributions are greatly appreciated.
 
-Scan the QR code below to join the WeChat community for discussions:
+- **Contributing Guide**: Please read our [CONTRIBUTING.md](./CONTRIBUTING.md) to learn how to get started.
+- **WeChat Community**: Scan the QR code below to join the WeChat community for discussions:
 
 ![WeChat QR Code](./wechat-qr.png)
 

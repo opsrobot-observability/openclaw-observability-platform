@@ -136,11 +136,17 @@ docker compose -f docker-compose-build.yml up -d
 
 #### Doris 数据持久化
 
+为保证doris 数据的持久话，会将doris 相关数据保存在 ～/var/doris_data, 如果没有该目录需要使用下面命令创建文件夹。
+如果像修改到其他文件夹路径，在docker-compose-build.yml   的volumes》doris_data配置上修改 
+```bash
+# 创建doris 持久化数据文件夹
+ mkdir -p  ～/var/doris_data
+```
 默认情况下，每次重新部署时 Doris 会重新初始化（历史数据会被清除）。如需保留数据：
 
 ```bash
 # 使用本地历史数据
-DORIS_USE_LOCAL_DATA=true docker compose -f docker-compose-build.yml up -d --build
+ docker compose -f docker-compose-build.yml up -d --build
 ```
 
 | `DORIS_USE_LOCAL_DATA` | 行为 |
@@ -155,7 +161,7 @@ DORIS_USE_LOCAL_DATA=true docker compose -f docker-compose-build.yml up -d --bui
 | 前端界面 | http://localhost:3000 |
 | Doris FE | http://localhost:8030 |
 
-### 方式二：本地开发
+### 方式三：本地开发
 
 ```bash
 # 安装依赖
@@ -170,6 +176,7 @@ npm run dev
 
 ### 配置 Vector 数据采集
 
+说明：vector 作为openclaw的日志采集器，需要每个openclaw实际机器上安装配置vector，OpenClaw 可观测性平台 支持多个vector 采集器实现对多个openclaw 日志数据的采集
 
 
 修改 `vector.yaml` 中的数据源路径，指向实际的 OpenClaw 日志目录：
