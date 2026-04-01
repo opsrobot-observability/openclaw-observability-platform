@@ -7,7 +7,10 @@ timezone: "Asia/Shanghai"
 sources:
   sessions:
     type: exec
-    command: [ "sh", "-c", "tr -d '\n' < /Users/lxg/.openclaw/agents/main/sessions/sessions.json" ]
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in /Users/lxg/.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
     mode: scheduled
     scheduled:
       exec_interval_secs: 60
