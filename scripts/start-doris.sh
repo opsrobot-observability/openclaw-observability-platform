@@ -4,6 +4,15 @@
 set -e
 
 INIT_SQL="/opt/apache-doris/init-doris-schema.sql"
+DORIS_DATA_DIR="/opt/apache-doris"
+
+# 检查是否使用本地历史数据
+if [ "${DORIS_USE_LOCAL_DATA:-false}" = "false" ]; then
+    echo "DORIS_USE_LOCAL_DATA=false, 清除历史数据后重新初始化..."
+    rm -rf "${DORIS_DATA_DIR}"/*
+else
+    echo "DORIS_USE_LOCAL_DATA=true, 使用本地历史数据..."
+fi
 
 # 先启动 Doris 服务（在后台运行）
 echo "启动 Doris 服务..."

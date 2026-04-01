@@ -144,6 +144,10 @@ cursor/
 datamodel/
 AGENTS.md
 
+# Doris data (persist across redeployments, do not commit actual data)
+doris-data/*
+!doris-data/.gitkeep
+
 
 dist/
 .DS_Store
