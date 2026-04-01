@@ -80,7 +80,6 @@ services:
     environment:
       - SKIP_CHECK_ULIMIT=true
       - "TZ=${TIMEZONE:-Asia/Shanghai}"
-      - "DORIS_USE_LOCAL_DATA=${DORIS_USE_LOCAL_DATA:-false}"
     volumes:
       - doris_data:/opt/apache-doris
       - ./scripts/init-doris-schema.sql:/opt/apache-doris/init-doris-schema.sql:ro
