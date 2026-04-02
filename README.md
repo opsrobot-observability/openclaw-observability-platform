@@ -213,16 +213,6 @@ This project closely follows the development of the OpenClaw community. It has b
 
 ---
 
-## Community
-
-### WeChat Community
-
-Scan the QR code below to join the WeChat community for discussions:
-
-![WeChat QR Code](./wechat-qr.png)
-
----
-
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
