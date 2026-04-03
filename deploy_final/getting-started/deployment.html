@@ -1,0 +1,460 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <title>部署与数据拓扑 · OpenClaw Observability Platform</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="HonKit 6.1.7">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/@honkit/honkit-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/@honkit/honkit-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="../features/audit-dashboard.html" />
+    
+    
+    <link rel="prev" href="quick-start.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book honkit-cloak">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    项目简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🚀 快速入门</li>
+        
+        
+    
+        <li class="chapter " data-level="2.1" data-path="quick-start.html">
+            
+                <a href="quick-start.html">
+            
+                    
+                    快速起步
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="2.2" data-path="deployment.html">
+            
+                <a href="deployment.html">
+            
+                    
+                    部署与数据拓扑
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🧩 核心功能</li>
+        
+        
+    
+        <li class="chapter " data-level="3.1" data-path="../features/audit-dashboard.html">
+            
+                <a href="../features/audit-dashboard.html">
+            
+                    
+                    审计首页概览
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.2" data-path="../features/session-tracing.html">
+            
+                <a href="../features/session-tracing.html">
+            
+                    
+                    会话深度追踪
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.3" data-path="../features/config-audit.html">
+            
+                <a href="../features/config-audit.html">
+            
+                    
+                    配置合规审计
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.4" data-path="../features/cost-analysis.html">
+            
+                <a href="../features/cost-analysis.html">
+            
+                    
+                    算力成本分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🏗️ 架构解析</li>
+        
+        
+    
+        <li class="chapter " data-level="4.1" data-path="../architecture/data-pipeline.html">
+            
+                <a href="../architecture/data-pipeline.html">
+            
+                    
+                    OTel 与 eBPF 数据链路
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">💻 开发者中心</li>
+        
+        
+    
+        <li class="chapter " data-level="5.1" data-path="../development/local-setup.html">
+            
+                <a href="../development/local-setup.html">
+            
+                    
+                    本地环境构建
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >部署与数据拓扑</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="部署架构与上报机制-deployment--architecture">部署架构与上报机制 (Deployment &amp; Architecture)</h1>
+<p>在企业级的 AI Agent（数字化员工）实战中，监控日志的产生不仅多变，而且体量庞大。为了实现对 Agent 输出延迟的“零影响”外加系统极速响应的大模型洞察，OpenClaw Observability Platform 不使用可能污染业务代码本身的方法，而是构建了一条基于<strong>无侵入异步打桩采集</strong>的健壮组合。</p>
+<p>通过整合 <code>Vector</code> 和 <code>Apache Doris</code>，我们可以完成一套工业级高吞吐量的日志接入水管。</p>
+<hr></hr>
+<h2 id="📐-逻辑基础拓扑图">📐 逻辑基础拓扑图</h2>
+<p>了解各个系统之间的组合方式和通信方向是正确部署平台的第一步。</p>
+<pre><code class="lang-text">[ AI Agent 环境 / 线上服务器 ]
+       |
+       | -- 生成 .jsonl 日志文件 (包含 Token/Tools/Message 等 payload 载体)
+       v
+[ Vector 日志拉取层 (Daemon 守护进程) ]
+       |
+       | -- 实时监控并在内存解析 JSON 后格式化发出
+       | -- 分发给远端的数据仓库
+       v
+[ Apache Doris (OLAP 平台计算集群) ]
+       |
+       | -- 高速并行入库、清洗
+       | -- 依靠预构建的表结构，对超大规模日志在几秒内实现多维聚合分析
+       v
+[ OpenClaw 后端服务 (Node.js API) ]
+       |
+       | -- 负责执行通过标准 MySQL 协议发起的查询，构建 HTTP 路由封装聚合缓存
+       v
+[ OpenClaw 可视化前端 (Vite + React) ]
+       | -- 向 API 发出请求进行控制面板及业务页面的 ECharts 数据渲染图表
+</code></pre>
+<hr></hr>
+<h2 id="🚀-接入日志流工作指引-vector-配置">🚀 接入日志流工作指引 (Vector 配置)</h2>
+<p>如果你正在考虑开始将你们公司内部署的数字化员工真实地接入该观测平台，你首先必须熟练掌握利用开源的高性能遥测路由引擎 <a href="https://vector.dev/" target="_blank">Vector</a>。</p>
+<h3 id="1-配置-vector-pipeline-监控源">1. 配置 Vector Pipeline 监控源</h3>
+<p>对于 Agent 所处的每台机器或宿主机节点，你需要安装 Vector 客户端并调整其监听的 <code>vector.yaml</code> 监控目标路径，以便于能够捕捉最新的日志事件。</p>
+<p>以下给出了一段示例的 <code>Vector Source</code> 结构：</p>
+<pre><code class="lang-yaml"><span class="hljs-attr">sources:</span>
+  <span class="hljs-attr">my_agent_logs:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">"file"</span>
+    <span class="hljs-comment"># 读取你本地存放的由于数字员工对话所不断生成的真实 JSONL 日志文件的路径夹</span>
+    <span class="hljs-attr">include:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">"/var/log/my-ai-agents/**/*.jsonl"</span> <span class="hljs-comment"># 例如：Agent 会话文件</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">"/var/log/my-audit-records/*.log"</span>  <span class="hljs-comment"># 例如：特权与审计日志</span>
+    <span class="hljs-attr">read_from:</span> <span class="hljs-string">"beginning"</span>                   <span class="hljs-comment"># 对于初次启动，从头开始抓取文件游标</span>
+</code></pre>
+<blockquote>
+<p><strong>[!TIP] 文件隔离</strong></p>
+<blockquote>
+<p>如果你使用特定的存储命名规范，通过设定类似 <code>/sessions/*.jsonl</code> 限定，你可以规避无效大体积旧日志的收集。</p>
+</blockquote>
+</blockquote>
+<h3 id="2-对接-sink-流目标指向-doris-入口">2. 对接 Sink (流目标指向 Doris 入口)</h3>
+<p>在本地完成了各种 <code>Transform</code> 数据变换，并提炼好比如 <code>timestamp</code>, <code>session_id</code>, <code>tool_call</code> 等结构后，需要在 Vector 将标准化的流送回我们在远端或者集群部署好的 Doris 数仓中存储对应表（比如 <code>agent_sessions_logs</code>）里。Apache Doris 所提供的 <code>HTTP Stream Load</code> 接口是支持这种高并发流直接分批入库（Batch Ingestion）的绝佳选择。</p>
+<pre><code class="lang-yaml"><span class="hljs-attr">sinks:</span>
+  <span class="hljs-attr">doris_sink:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">"http"</span>
+    <span class="hljs-attr">inputs:</span> [<span class="hljs-string">"my_agent_transforms"</span>]
+    <span class="hljs-attr">uri:</span> <span class="hljs-string">"http://&lt;DORIS_HOST&gt;:8040/api/opsRobot/agent_sessions_logs/_stream_load"</span>
+
+    <span class="hljs-comment"># [!IMPORTANT]</span>
+    <span class="hljs-comment"># Doris 对 _stream_load 的请求头有严格格式限制</span>
+    <span class="hljs-comment"># 参数设置中必须开启 json 或对应分隔符以确保按列名自动映射与入库：</span>
+    <span class="hljs-attr">request:</span>
+      <span class="hljs-attr">headers:</span>
+        <span class="hljs-attr">Expect:</span> <span class="hljs-string">"100-continue"</span>
+        <span class="hljs-attr">format:</span> <span class="hljs-string">"json"</span>
+        <span class="hljs-attr">strip_outer_array:</span> <span class="hljs-string">"true"</span>
+        <span class="hljs-attr">read_json_by_line:</span> <span class="hljs-string">"true"</span>
+</code></pre>
+<p>（你可以根据<a href="../architecture/data-pipeline.html">数据管线设计文档</a> 了解更深层的数据重映射和解析细节）</p>
+<h3 id="3-数据隔离机制与标签使用">3. 数据隔离机制与标签使用</h3>
+<p>当业务横跨多个子公司或者部门业务线时（即多租户情况），平台允许在前端基于诸如 <code>agent_name</code>, <code>group_id</code>, <code>origin_account_id</code> 等自定义扩展标签进行精细切片审计。只要源头（即你真正的 Agent 业务代码）在打印输出 JSONL 时携带并赋予了对应的元信息 <code>context</code>，Doris 将会原封不动地存储它们。</p>
+<p>在进行系统部署并连通日志探针之后，业务主管无需修改一行业务代码，即可依靠 <code>OpenClaw</code> 内部针对这些标签发起的查询分析引擎，在成本和审计面板完美拆解特定维度的账单和日志详情！</p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="quick-start.html" class="navigation navigation-prev " aria-label="Previous page: 快速起步">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="../features/audit-dashboard.html" class="navigation navigation-next " aria-label="Next page: 审计首页概览">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"部署与数据拓扑","level":"2.2","depth":1,"next":{"title":"审计首页概览","level":"3.1","depth":1,"path":"features/audit-dashboard.md","ref":"features/audit-dashboard.md","articles":[]},"previous":{"title":"快速起步","level":"2.1","depth":1,"path":"getting-started/quick-start.md","ref":"getting-started/quick-start.md","articles":[]},"dir":"ltr"},"config":{"plugins":[],"styles":{"website":"website.css"},"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56},"embedFonts":false},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"OpenClaw Observability Platform","gitbook":"*"},"file":{"path":"getting-started/deployment.md","mtime":"2026-04-01T03:23:23.013Z","type":"markdown"},"gitbook":{"version":"6.1.7","time":"2026-04-03T05:51:57.069Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <noscript>
+        <style>
+            .honkit-cloak {
+                display: block !important;
+            }
+        </style>
+    </noscript>
+    <script>
+        // Restore sidebar state as critical path for prevent layout shift
+        function __init__getSidebarState(defaultValue){
+            var baseKey = "";
+            var key = baseKey + ":sidebar";
+            try {
+                var value = localStorage[key];
+                if (value === undefined) {
+                    return defaultValue;
+                }
+                var parsed = JSON.parse(value);
+                return parsed == null ? defaultValue : parsed;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+        function __init__restoreLastSidebarState() {
+            var isMobile = window.matchMedia("(max-width: 600px)").matches;
+            if (isMobile) {
+                // Init last state if not mobile
+                return;
+            }
+            var sidebarState = __init__getSidebarState(true);
+            var book = document.querySelector(".book");
+            // Show sidebar if it enabled
+            if (sidebarState && book) {
+                book.classList.add("without-animation", "with-summary");
+            }
+        }
+
+        try {
+            __init__restoreLastSidebarState();
+        } finally {
+            var book = document.querySelector(".book");
+            book.classList.remove("honkit-cloak");
+        }
+    </script>
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/@honkit/honkit-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
