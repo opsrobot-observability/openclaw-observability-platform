@@ -9,13 +9,14 @@
 * [部署与数据拓扑](getting-started/deployment.md)
 
 ### 🧩 核心功能
+* [系统与实例监控](features/system-monitoring.md)
 * [审计首页概览](features/audit-dashboard.md)
 * [会话深度追踪](features/session-tracing.md)
 * [配置合规审计](features/config-audit.md)
 * [算力成本分析](features/cost-analysis.md)
 
 ### 🏗️ 架构解析
-* [OTel 与 eBPF 数据链路](architecture/data-pipeline.md)
+* [OTel 数据链路](architecture/data-pipeline.md)
 
 ### 💻 开发者中心
 * [本地环境构建](development/local-setup.md)
