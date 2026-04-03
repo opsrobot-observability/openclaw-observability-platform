@@ -246,7 +246,7 @@ vector --config vector.yaml
 
 扫描下方二维码加入微信交流群：
 
-<img src="./wechat-qr.jpeg" width = 300 height = 442>
+<img src="./wechat-qr.png" width = 300 height = 442>
 
 ---
 
