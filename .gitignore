@@ -138,6 +138,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.js.timestamp-*
 
+# HonKit/GitBook build output
+docs/_book/
+
 # Custom
 .cursor/
 cursor/
