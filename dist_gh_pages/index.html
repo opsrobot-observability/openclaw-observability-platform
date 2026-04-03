@@ -3,7 +3,7 @@
 <html lang="" >
     <head>
         <meta charset="UTF-8">
-        <title>Introduction · HonKit</title>
+        <title>项目简介 · OpenClaw Observability Platform</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="HonKit 6.1.7">
@@ -33,15 +33,7 @@
 
     
         
-    
-        
-    
-        
-    
-        
-    
-        
-    
+        <link rel="stylesheet" href="website.css">
         
     
 
@@ -91,7 +83,7 @@
                 <a href="./">
             
                     
-                    Introduction
+                    项目简介
             
                 </a>
             
@@ -102,7 +94,7 @@
 
     
         
-        <li class="header">🚀 Getting Started</li>
+        <li class="header">🚀 快速入门</li>
         
         
     
@@ -111,7 +103,7 @@
                 <a href="getting-started/quick-start.html">
             
                     
-                    Quick Start
+                    快速起步
             
                 </a>
             
@@ -124,7 +116,7 @@
                 <a href="getting-started/deployment.html">
             
                     
-                    Deployment & Data Pipeline
+                    部署与数据拓扑
             
                 </a>
             
@@ -135,7 +127,7 @@
 
     
         
-        <li class="header">🧩 Core Features</li>
+        <li class="header">🧩 核心功能</li>
         
         
     
@@ -144,7 +136,7 @@
                 <a href="features/audit-dashboard.html">
             
                     
-                    Audit Overview
+                    审计首页概览
             
                 </a>
             
@@ -157,7 +149,7 @@
                 <a href="features/session-tracing.html">
             
                     
-                    Session Tracing
+                    会话深度追踪
             
                 </a>
             
@@ -170,7 +162,7 @@
                 <a href="features/config-audit.html">
             
                     
-                    Config Audit
+                    配置合规审计
             
                 </a>
             
@@ -183,7 +175,7 @@
                 <a href="features/cost-analysis.html">
             
                     
-                    Cost Analysis
+                    算力成本分析
             
                 </a>
             
@@ -194,7 +186,7 @@
 
     
         
-        <li class="header">🏗️ Advanced Architecture</li>
+        <li class="header">🏗️ 架构解析</li>
         
         
     
@@ -203,7 +195,7 @@
                 <a href="architecture/data-pipeline.html">
             
                     
-                    OTel & eBPF Pipeline
+                    OTel 与 eBPF 数据链路
             
                 </a>
             
@@ -214,7 +206,7 @@
 
     
         
-        <li class="header">💻 Development</li>
+        <li class="header">💻 开发者中心</li>
         
         
     
@@ -223,7 +215,7 @@
                 <a href="development/local-setup.html">
             
                     
-                    Local Setup
+                    本地环境构建
             
                 </a>
             
@@ -237,8 +229,6 @@
     <li class="divider"></li>
 
     <li>
-        <a href="https://github.com/honkit/honkit" target="blank" class="gitbook-link">
-            Published with HonKit
         </a>
     </li>
 </ul>
@@ -261,7 +251,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="." >Introduction</a>
+        <a href="." >项目简介</a>
     </h1>
 </div>
 
@@ -277,34 +267,32 @@
                                 <section class="normal markdown-section">
                                 
                                 <h1 id="openclaw-observability-platform-文档指南">OpenClaw Observability Platform 文档指南</h1>
-<p>🎉 欢迎阅读 <strong>OpenClaw Observability Platform (OpenClaw 可观测性平台)</strong> 的官方官方文档！</p>
-<p>OpenClaw 是一款专门针对 AI Agent（智能体）与数字化员工工作流设计的开源可观测性平台。基于现代化的技术栈（React + Vite + ECharts + Apache Doris + Vector），它为错综复杂的 LLM (大语言模型) 调用与真实执行流提供<strong>一站式立体追踪、监控与审计</strong>能力。</p>
+<p>🎉 欢迎阅读 <strong>OpenClaw Observability Platform (OpenClaw 可观测性平台)</strong> 的官方文档！</p>
+<p><strong>OpenClaw 可观测性平台</strong>，基于 KWeaver Core 框架开发，使用 OTel 协议、eBPF 技术对智能体进行全链路追踪与监管，提供故障快速排查、安全合规管控及算力精益运营的管理能力，护航 AI 赋能业务的高质量增长。</p>
 <hr></hr>
 <h2 id="🎯-我们的使命与核心价值">🎯 我们的使命与核心价值</h2>
-<p>在真正的企业落地实践中，大语言模型带来的不确定性和“黑盒”问题严重阻碍了自动化流程。OpenClaw 的愿景是帮助开发与 IT 安全团队看清数字员工运行的每一处细节，兼顾效率与安全。</p>
-<p>本平台提供以下三大核心支柱能力：</p>
+<p>在真正的企业落地实践中，大语言模型带来的不确定性和“黑盒”问题严重阻碍了自动化流程。OpenClaw 可观测平台的愿景是帮助开发与 IT 安全团队看清数字员工运行的每一处细节，兼顾效率与安全。</p>
 <ol>
-<li><p><strong>🔍 全链路无死角会话追踪 (Trace)</strong></p>
+<li><p><strong>🔭 全天候观测：让 OpenClaw 的执行过程“白盒化”</strong></p>
 <ul>
-<li><strong>白盒化执行流</strong>：精准记录每次 prompt 的下发、模型推理和回复过程。</li>
-<li><strong>工具连线追踪</strong>：完整绘制 <code>用户输入 -&gt; 意图识别 -&gt; 工具调用 -&gt; 环境读写</code> 拓扑图，避免迷失在堆栈里。</li>
-<li><strong>Token 消耗穿透</strong>：洞悉单次交互中 Input、Output 以及 Cache 的热度分配，为性能调优提供事实依据。</li>
+<li><strong>核心能力</strong>：构建贯穿全局的观测体系，提供事前（预前自动巡检）、事中（实时监控告警）、事后（精准故障排查）的全生命周期保障。</li>
+<li><strong>业务价值 (赋能 IT 运维)</strong>：全流程透明，彻底告别黑盒排障，确保系统运行状态 100% 可视可控。</li>
 </ul>
 </li>
-<li><p><strong>🛡️ 智能合规审计体系 (Risk Perception)</strong></p>
+<li><p><strong>🛡️ 风险感知：为 OpenClaw 挂载企业级“刹车系统”</strong></p>
 <ul>
-<li><strong>越限阻断感知</strong>：实时高亮并拦截执行了高危工具（例如敏感 Bash 或网络操作）の行为记录。</li>
-<li><strong>动态风险评估</strong>：将海量机器对话自动打标并划定“高、中、低”的潜在风险与错误级别，便于日常审阅。</li>
-<li><strong>配置防污染审计</strong>：记录主机及业务级别配置被 Agent 覆盖篡改的前后对比与动作来源。</li>
+<li><strong>核心能力</strong>：建立坚固的安全防线，涵盖实时控制（越权管控、合规校验、风暴拦截）与闭环审计（审计溯源）两大核心机制。</li>
+<li><strong>业务价值 (赋能 CIO)</strong>：坚守系统底线，消除越权调用与数据安全隐患，实现业务执行与安全合规的完美闭环。</li>
 </ul>
 </li>
-<li><p><strong>💰 颗粒度极高的成本归集 (Cost Analysis)</strong></p>
+<li><p><strong>📊 生产力评估：让每一分算力投资都清清楚楚</strong></p>
 <ul>
-<li><strong>多维度账单分流</strong>：随时查看近期的平台开销状况，并按通道（Channel）、项目或特定调用者分解 USD 开支。</li>
-<li><strong>价值模型分析</strong>：抓出“循环无效调用”的黑户及浪费点，优化模型的实际投资回报（ROI）。</li>
+<li><strong>核心能力</strong>：依托多维业务核算模型，精准拆解并追踪基础算力、员工个体及业务部门维度的费用消耗情况。</li>
+<li><strong>业务价值 (赋能 CEO / CFO)</strong>：驱动精细化运营，拒绝算力“糊涂账”，将抽象的大模型 Token 直观转化为清晰的业务 ROI。</li>
 </ul>
 </li>
 </ol>
+<p><img src="overview_zh.png" alt="alt text"></img></p>
 <hr></hr>
 <h2 id="📖-文档导航">📖 文档导航</h2>
 <p>我们为您准备了从入门到精通的各阶段材料。请根据您的角色与需求选择阅读内容：</p>
@@ -364,7 +352,7 @@
             
                 
                 
-                <a href="getting-started/quick-start.html" class="navigation navigation-next navigation-unique" aria-label="Next page: Quick Start">
+                <a href="getting-started/quick-start.html" class="navigation navigation-next navigation-unique" aria-label="Next page: 快速起步">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -375,7 +363,7 @@
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Introduction","level":"1.1","depth":1,"next":{"title":"Quick Start","level":"2.1","depth":1,"path":"getting-started/quick-start.md","ref":"getting-started/quick-start.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":[],"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56},"embedFonts":false},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"README.md","mtime":"2026-04-01T03:23:23.011Z","type":"markdown"},"gitbook":{"version":"6.1.7","time":"2026-04-03T02:08:23.733Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"项目简介","level":"1.1","depth":1,"next":{"title":"快速起步","level":"2.1","depth":1,"path":"getting-started/quick-start.md","ref":"getting-started/quick-start.md","articles":[]},"dir":"ltr"},"config":{"plugins":[],"styles":{"website":"website.css"},"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56},"embedFonts":false},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"OpenClaw Observability Platform","gitbook":"*"},"file":{"path":"README.md","mtime":"2026-04-03T02:27:37.106Z","type":"markdown"},"gitbook":{"version":"6.1.7","time":"2026-04-03T05:21:13.033Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
