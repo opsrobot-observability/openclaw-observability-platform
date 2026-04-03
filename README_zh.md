@@ -206,6 +206,13 @@ macos vector 安装：
 brew tap vectordotdev/brew && brew install vector
 ```
 
+Linux 安装：
+
+```bash
+bash -c "$(curl -L https://setup.vector.dev)"
+sudo yum install vector
+```
+
 启动 Vector：
 
 ```bash
