@@ -80,8 +80,6 @@
 
 ### 2 成本分析 (Cost Analysis)
 
-
-=======
 | 功能模块 | 说明 |
 |----------|------|
 | **成本概览** | 总成本、日均消耗、多维度占比分析、趋势图表 |
@@ -248,12 +246,9 @@ vector --config vector.yaml
 
 扫描下方二维码加入微信交流群：
 
-![WeChat QR Code](./wechat-qr.png)
+<img src="./wechat-qr.jpeg" width = 300 height = 442>
 
 ---
-
-
-
 
 
 ## License
