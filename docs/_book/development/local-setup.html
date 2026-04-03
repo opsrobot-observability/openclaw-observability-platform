@@ -1,0 +1,439 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <title>本地环境构建 · OpenClaw Observability Platform</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="HonKit 6.1.7">
+        
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/@honkit/honkit-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/@honkit/honkit-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+        <link rel="stylesheet" href="../website.css">
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    
+    <link rel="prev" href="../architecture/data-pipeline.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book honkit-cloak">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    项目简介
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🚀 快速入门</li>
+        
+        
+    
+        <li class="chapter " data-level="2.1" data-path="../getting-started/quick-start.html">
+            
+                <a href="../getting-started/quick-start.html">
+            
+                    
+                    快速起步
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="2.2" data-path="../getting-started/deployment.html">
+            
+                <a href="../getting-started/deployment.html">
+            
+                    
+                    部署与数据拓扑
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🧩 核心功能</li>
+        
+        
+    
+        <li class="chapter " data-level="3.1" data-path="../features/audit-dashboard.html">
+            
+                <a href="../features/audit-dashboard.html">
+            
+                    
+                    审计首页概览
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.2" data-path="../features/session-tracing.html">
+            
+                <a href="../features/session-tracing.html">
+            
+                    
+                    会话深度追踪
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.3" data-path="../features/config-audit.html">
+            
+                <a href="../features/config-audit.html">
+            
+                    
+                    配置合规审计
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.4" data-path="../features/cost-analysis.html">
+            
+                <a href="../features/cost-analysis.html">
+            
+                    
+                    算力成本分析
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">🏗️ 架构解析</li>
+        
+        
+    
+        <li class="chapter " data-level="4.1" data-path="../architecture/data-pipeline.html">
+            
+                <a href="../architecture/data-pipeline.html">
+            
+                    
+                    OTel 与 eBPF 数据链路
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">💻 开发者中心</li>
+        
+        
+    
+        <li class="chapter active" data-level="5.1" data-path="local-setup.html">
+            
+                <a href="local-setup.html">
+            
+                    
+                    本地环境构建
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://github.com/honkit/honkit" target="blank" class="gitbook-link">
+            Published with HonKit
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >本地环境构建</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="开发指南与环境构建-local-setup">开发指南与环境构建 (Local Setup)</h1>
+<p>欢迎各位开发者参与到 <strong>OpenClaw Observability Platform</strong> 的开源共建中。在这里我们将提供您为本系统贡献代码与提交 Pull Request (PR) 前所需准备的必需环境与调试规范。</p>
+<hr></hr>
+<h2 id="🛠️-前提构建要求">🛠️ 前提构建要求</h2>
+<p>如果您想要对 UI 面板或者后端监控聚合接口进行修改，请确保您的系统：</p>
+<ol>
+<li><strong>已安装 Git</strong> 用于代码同步控制；</li>
+<li><strong>已安装 Node.js v18 以上</strong>，包管理器推荐使用原生 <code>npm</code>；</li>
+<li><strong>有可用的 Apache Doris 测试实例</strong>：无论是通过预置的 Docker Compose 在本地拉起集群，还是连入了你们组织的测试 Doris 网段。</li>
+</ol>
+<hr></hr>
+<h2 id="🔍-后端服务测试开发">🔍 后端服务测试开发</h2>
+<p><strong>模块职责</strong>：<code>Node.js</code> 中间层，位于 <code>backend/</code> 目录下。主要负责承担前端的 HTTPS 请求，校验并拼接执行到后台 Doris 高维分析引擎所需的查询 SQL 并返回。</p>
+<ul>
+<li>默认运行端口: <code>8787</code></li>
+</ul>
+<p><strong>构建依赖与调试</strong>：
+在项目根目录下通过以下配置开启监控并刷新后端：</p>
+<pre><code class="lang-bash"><span class="hljs-comment"># 进入并安装</span>
+npm install
+
+<span class="hljs-comment"># 确保带有本地数据库的映射配置，或直接设置 Doris 的 Hostname</span>
+<span class="hljs-built_in">export</span> DORIS_HOST=127.0.0.1
+<span class="hljs-built_in">export</span> DORIS_PORT=9030   <span class="hljs-comment"># 注意，如果是连接 MySQL 协议查询为 9030</span>
+<span class="hljs-built_in">export</span> DORIS_USER=root
+<span class="hljs-built_in">export</span> DORIS_PASSWORD=
+
+<span class="hljs-comment"># 拉起服务</span>
+npm run api
+</code></pre>
+<p>如果启动顺利，你可以尝试进行简单的 <code>curl http://localhost:8787/api/xxx</code> 测试返回体是否有效。</p>
+<hr></hr>
+<h2 id="🎨-前端面板视图的开发">🎨 前端面板视图的开发</h2>
+<p><strong>模块职责</strong>：可视化层，前端采用 React 18, 路由, 结合 Vite 工具链，样式采用 Tailwind CSS。图表强耦合了 ECharts。所有前端渲染业务位于 <code>frontend/</code> 下。</p>
+<ul>
+<li>默认运行端口: <code>3000</code> 或是 Vite 随机分配的 <code>5173</code>。</li>
+</ul>
+<p><strong>启动 Vite 热更新调试</strong>：
+无需进入额外的目录，只要保持在上一步的同一层级执行：</p>
+<pre><code class="lang-bash">npm run dev
+</code></pre>
+<blockquote>
+<p><strong>注意 (Attention): CORS 与跨域</strong>
+前端项目在进行开发时，我们默认配置了 <code>vite.config.js</code> 的 proxy，使得所有尝试拉取数据的 <code>/api/</code> 都会<strong>透明转发代理</strong>给您本地运行在 <code>8787</code> 端口的 Node 服务。这免去了手搓后端跨域策略的麻烦！</p>
+</blockquote>
+<hr></hr>
+<h2 id="🐞-贡献代码的建议流程">🐞 贡献代码的建议流程</h2>
+<ol>
+<li><strong>理解数据流</strong>：在提交任何有关 <code>Model Token / Tool Count</code> 的计算统计前，请优先阅读 <a href="../architecture/data-pipeline.html">数据管道设计</a>。</li>
+<li><strong>建立分支</strong>：从 <code>main</code> 分支拉出您的个人特性开发节点，例如 <code>git checkout -b feature/awesome-new-chart</code>。</li>
+<li><strong>书写文档</strong>：如果您对某一个功能如“审计大盘”增加了新的组件，请同步提交更新至本 <code>docs/features</code> 目录下对应的说明书中。</li>
+<li><strong>提交并 Push</strong> 您的提交 PR 应当具有明晰的语义化标签，例如：<code>feat(ui): add new token consumption graph</code>。</li>
+</ol>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="../architecture/data-pipeline.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: OTel 与 eBPF 数据链路">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"本地环境构建","level":"5.1","depth":1,"previous":{"title":"OTel 与 eBPF 数据链路","level":"4.1","depth":1,"path":"architecture/data-pipeline.md","ref":"architecture/data-pipeline.md","articles":[]},"dir":"ltr"},"config":{"plugins":[],"styles":{"website":"website.css"},"pluginsConfig":{"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56},"embedFonts":false},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"OpenClaw Observability Platform","gitbook":"*"},"file":{"path":"development/local-setup.md","mtime":"2026-04-01T03:23:23.011Z","type":"markdown"},"gitbook":{"version":"6.1.7","time":"2026-04-03T05:51:57.069Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <noscript>
+        <style>
+            .honkit-cloak {
+                display: block !important;
+            }
+        </style>
+    </noscript>
+    <script>
+        // Restore sidebar state as critical path for prevent layout shift
+        function __init__getSidebarState(defaultValue){
+            var baseKey = "";
+            var key = baseKey + ":sidebar";
+            try {
+                var value = localStorage[key];
+                if (value === undefined) {
+                    return defaultValue;
+                }
+                var parsed = JSON.parse(value);
+                return parsed == null ? defaultValue : parsed;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+        function __init__restoreLastSidebarState() {
+            var isMobile = window.matchMedia("(max-width: 600px)").matches;
+            if (isMobile) {
+                // Init last state if not mobile
+                return;
+            }
+            var sidebarState = __init__getSidebarState(true);
+            var book = document.querySelector(".book");
+            // Show sidebar if it enabled
+            if (sidebarState && book) {
+                book.classList.add("without-animation", "with-summary");
+            }
+        }
+
+        try {
+            __init__restoreLastSidebarState();
+        } finally {
+            var book = document.querySelector(".book");
+            book.classList.remove("honkit-cloak");
+        }
+    </script>
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/@honkit/honkit-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
