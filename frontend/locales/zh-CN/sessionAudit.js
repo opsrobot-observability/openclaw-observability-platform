@@ -1,4 +1,10 @@
 export default {
+  "sessionAudit.overview.coreMetrics": "核心指标",
+  "sessionAudit.overview.totalSessions": "会话总数",
+  "sessionAudit.overview.totalTokens": "总 Token",
+  "sessionAudit.overview.totalToolCalls": "工具调用总数",
+  "sessionAudit.overview.highRiskSessions": "高风险会话数",
+  "sessionAudit.overview.successRate": "会话成功率",
   "sessionAudit.sessionList": "会话列表",
   "sessionAudit.searchPlaceholder": "搜索会话键、会话 ID、Agent、通道、来源、模型…",
   "sessionAudit.sessionId": "会话 ID",

@@ -15,6 +15,8 @@ import { mockConfigAuditStats } from "./data/config-audit-stats.mjs";
 import { mockSessionCostDetail } from "./data/session-cost-detail.mjs";
 import { mockSessionCostOptions } from "./data/session-cost-options.mjs";
 import { mockOtelOverview } from "./data/otel-overview.mjs";
+import { mockDigitalEmployeeOverview } from "./data/digital-employee-overview.mjs";
+import { mockDigitalEmployeeProfile } from "./data/digital-employee-profile.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -77,6 +79,35 @@ export function handleMockRequest(url, res) {
     const u = new URL(url, "http://mock.local");
     const days = parseInt(u.searchParams.get("days") || "7", 10);
     sendJson(res, 200, mockAuditOverview(days));
+    return true;
+  }
+
+  // --- 数字员工概览 ---
+  if (url.startsWith("/api/digital-employees/overview")) {
+    const u = new URL(url, "http://mock.local");
+    const days = Number(u.searchParams.get("days") || "7");
+    const hours = u.searchParams.get("hours");
+    sendJson(res, 200, mockDigitalEmployeeOverview(days, hours));
+    return true;
+  }
+
+  // --- 数字员工画像 ---
+  if (url.startsWith("/api/digital-employees/profile")) {
+    const u = new URL(url, "http://mock.local");
+    const agentName = u.searchParams.get("agentName");
+    if (!agentName || !String(agentName).trim()) {
+      sendJson(res, 400, { error: "缺少 agentName" });
+      return true;
+    }
+    const days = Number(u.searchParams.get("days") || "7");
+    const hours = u.searchParams.get("hours");
+    const sessionKey = u.searchParams.get("sessionKey") || u.searchParams.get("session_key");
+    const data = mockDigitalEmployeeProfile(agentName, days, hours, sessionKey);
+    if (data?.error === "not_found") {
+      sendJson(res, 404, { error: data.message || "未找到", source: "mock" });
+      return true;
+    }
+    sendJson(res, 200, data);
     return true;
   }
 

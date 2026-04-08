@@ -131,7 +131,12 @@ export function mapAgentSessionRow(raw) {
       : raw.origin_label != null && String(raw.origin_label) !== ""
         ? String(raw.origin_label)
         : pickStr(n, ["label"]) ?? null;
-
+  const originLabel =
+  raw.origin_label != null && String(raw.origin_label) !== ""
+    ? String(raw.origin_label)
+    : (typeof n.origin === "object" && n.origin != null
+        ? pickStr(/** @type {Record<string, unknown>} */ (n.origin), ["label", "name"])
+        : null);
   const abortedLastRun =
     raw.aborted_last_run != null
       ? Number(raw.aborted_last_run) !== 0
@@ -179,6 +184,7 @@ export function mapAgentSessionRow(raw) {
     channel: raw.channel != null ? String(raw.channel) : pickStr(n, ["channel"]) ?? null,
     label,
     model,
+    originLabel,
     modelProvider,
     originProvider,
     totalTokens,
@@ -191,6 +197,8 @@ export function mapAgentSessionRow(raw) {
         : pickStr(n, ["agentName", "agent_name"]) ?? null,
     toolUseCount: pickNum(raw, ["tool_use_count", "toolUseCount"]) ?? 0,
     riskHigh: pickNum(raw, ["risk_high", "riskHigh"]) ?? 0,
+    toolErrorCount: pickNum(raw, ["tool_error_count", "toolErrorCount"]) ?? 0,
+    execCommandErrorCount: pickNum(raw, ["exec_command_error_count", "execCommandErrorCount"]) ?? 0,
     riskMedium: pickNum(raw, ["risk_medium", "riskMedium"]) ?? 0,
     riskLow: pickNum(raw, ["risk_low", "riskLow"]) ?? 0,
     networkAccessCount: pickNum(raw, ["network_access_count", "networkAccessCount"]) ?? 0,
@@ -1078,6 +1086,8 @@ export function traceRiskLevelLabel(level) {
  *   total_tokens_from_logs: number | null;
  *   tool_use_count: number;
  *   risk_high: number;
+ *   tool_error_count: number;
+ *   exec_command_error_count: number;
  *   risk_medium: number;
  *   risk_low: number;
  *   network_access_count: number;
@@ -1092,6 +1102,8 @@ export function computeSessionAggregatesFromLogRows(rawRows) {
       tool_use_count: 0,
       risk_high: 0,
       risk_medium: 0,
+      tool_error_count: 0,
+      exec_command_error_count: 0,
       risk_low: 0,
       network_access_count: 0,
       file_op_count: 0,
@@ -1116,6 +1128,23 @@ export function computeSessionAggregatesFromLogRows(rawRows) {
   const tools = extractToolInvocations(lines);
   const net = extractNetworkAndFileOps(lines);
   const risks = extractSessionRisks(lines);
+  let tool_error_count = 0;
+  let exec_command_error_count = 0;
+  for (const line of lines) {
+    if (line?.type !== "message" || !line.message || line.message.role !== "toolResult") continue;
+    const msg = line.message;
+    const details = msg.details && typeof msg.details === "object" ? msg.details : {};
+    const isError = msg.isError === true;
+    const exitNonZero = details.exitCode != null && Number(details.exitCode) !== 0;
+    const status = details.status != null ? String(details.status).toLowerCase() : "";
+    const badStatus = status === "failed" || status === "killed";
+    const hasError = isError || exitNonZero || badStatus;
+    if (!hasError) continue;
+    tool_error_count += 1;
+    if (String(msg.toolName ?? "").toLowerCase() === "exec") {
+      exec_command_error_count += 1;
+    }
+  }
   let risk_high = 0;
   let risk_medium = 0;
   let risk_low = 0;
@@ -1127,6 +1156,8 @@ export function computeSessionAggregatesFromLogRows(rawRows) {
   return {
     total_tokens_from_logs: hasToken ? tokenSum : null,
     tool_use_count: tools.calls.length,
+    tool_error_count,
+    exec_command_error_count,
     risk_high,
     risk_medium,
     risk_low,

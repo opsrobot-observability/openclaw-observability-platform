@@ -46,6 +46,11 @@ function num(n) {
   return Number(n).toLocaleString("zh-CN");
 }
 
+function pct(v) {
+  if (v == null || Number.isNaN(Number(v))) return "—";
+  return `${(Number(v) * 100).toFixed(1)}%`;
+}
+
 /** 溯源时间线节点：与「风险感知」同源（高/中/低/健康） */
 function traceTimelineDotClass(level) {
   switch (level) {
@@ -1419,6 +1424,18 @@ export default function SessionAudit({ setHeaderExtra }) {
   const [query, setQuery] = useState("");
   const [detailRow, setDetailRow] = useState(null);
 
+  // 数字员工画像下钻：预填搜索（读取一次即清除），版本 1.0.1
+  useEffect(() => {
+    try {
+      const v = sessionStorage.getItem("openclaw-session-audit-query");
+      if (v && String(v).trim()) {
+        setQuery(String(v).trim());
+        sessionStorage.removeItem("openclaw-session-audit-query");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
   useEffect(() => {
     if (detailRow) {
       setHeaderExtra(
@@ -1525,6 +1542,22 @@ export default function SessionAudit({ setHeaderExtra }) {
     return sorted.slice(p0 * pageSize, p0 * pageSize + pageSize);
   }, [sorted, pageSafe, pageSize]);
 
+  const overviewMetrics = useMemo(() => {
+    const totalSessions = rows.length;
+    const totalTokens = rows.reduce((s, r) => s + (Number.isFinite(Number(r.totalTokens)) ? Number(r.totalTokens) : 0), 0);
+    const totalToolCalls = rows.reduce((s, r) => s + (Number.isFinite(Number(r.toolUseCount)) ? Number(r.toolUseCount) : 0), 0);
+    const highRiskSessions = rows.filter((r) => (Number(r.riskHigh) || 0) > 0).length;
+    const abortedSessions = rows.filter((r) => Boolean(r.abortedLastRun)).length;
+    const successRate = totalSessions > 0 ? (totalSessions - abortedSessions) / totalSessions : null;
+    return {
+      totalSessions,
+      totalTokens,
+      totalToolCalls,
+      highRiskSessions,
+      successRate,
+    };
+  }, [rows]);
+
   useEffect(() => {
     setPage(1);
   }, [query, sortKey, sortDir, pageSize]);
@@ -1566,6 +1599,32 @@ export default function SessionAudit({ setHeaderExtra }) {
       {loadError && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">{loadError}</p>
       )}
+
+      <section className="app-card p-4 sm:p-6">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{intl.get("sessionAudit.overview.coreMetrics")}</h2>
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.overview.totalSessions")}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{num(overviewMetrics.totalSessions)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.overview.totalTokens")}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{num(overviewMetrics.totalTokens)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.overview.totalToolCalls")}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{num(overviewMetrics.totalToolCalls)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.overview.highRiskSessions")}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-rose-600 dark:text-rose-300">{num(overviewMetrics.highRiskSessions)}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.overview.successRate")}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-300">{pct(overviewMetrics.successRate)}</p>
+          </div>
+        </div>
+      </section>
 
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

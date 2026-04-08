@@ -199,6 +199,12 @@ sources:
   audit_logs:
     include:
       - "/path/to/openclaw/logs/config-audit.jsonl"
+
+  openclaw_config_file:
+    command: '/path/to/openclaw/openclaw.json'
+
+  agent_models_file:
+    command: '/path/to/openclaw/agents/*/agent/models.json'
 ```
 
 #### Vector Installation (macOS)

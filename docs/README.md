@@ -45,6 +45,7 @@
 ![alt text](./pictures/变更列表.png)
 - **[👉 生产力核算：成本分析账单](./features/cost-analysis.md)**：提供 Token 消耗的整体监控和分析仪表盘，直观呈现 Token 消耗全局态势，为成本管控提供数据支撑。
 ![alt text](./pictures/Token%20消耗.png)
+- **[👉 数字员工：概览与画像](./features/digital-employee.md)**：从员工视角联动健康度、成本、质量与安全五维指标，支持全局盘点与单体诊断。
 
 ### 🏗️ 架构参考
 解析底层数据收集和清洗机制。

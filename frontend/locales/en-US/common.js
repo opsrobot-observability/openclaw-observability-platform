@@ -47,6 +47,8 @@ export default {
   "nav.gatewayMonitoring": "Gateway monitoring",
   "nav.otelOverview": "Overview",
   "nav.instanceMonitoring": "Instance monitoring",
+  "nav.digitalEmployeeOverview": "Digital Employee Overview",
+  "nav.digitalEmployeeList": "Digital Employee Portrait",
 
   "page.panorama.title": "Overview",
   "page.panorama.subtitle": "Key metrics & orders at a glance · Real-time",

@@ -5,6 +5,23 @@ set -e
 
 INIT_SQL="/opt/apache-doris/init-doris-schema.sql"
 
+# 按容器可用内存动态下调 FE JVM，避免低内存机器 OOM
+FE_CONF="/opt/apache-doris/fe/conf/fe.conf"
+if [ -f "$FE_CONF" ]; then
+    MEM_TOTAL_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+    if [ "${MEM_TOTAL_MB:-0}" -gt 0 ]; then
+        # 预留系统内存后取 40%，并限制在 [1024, 4096]MB
+        FE_HEAP_MB=$(( MEM_TOTAL_MB * 40 / 100 ))
+        if [ "$FE_HEAP_MB" -lt 1024 ]; then FE_HEAP_MB=1024; fi
+        if [ "$FE_HEAP_MB" -gt 4096 ]; then FE_HEAP_MB=4096; fi
+
+        sed -i "s/-Xmx[0-9]\+m/-Xmx${FE_HEAP_MB}m/g" "$FE_CONF" || true
+        sed -i "s/-Xms[0-9]\+m/-Xms${FE_HEAP_MB}m/g" "$FE_CONF" || true
+        echo "FE JVM heap 已自动设置为 ${FE_HEAP_MB}m（MemTotal=${MEM_TOTAL_MB}MB）"
+    fi
+fi
+
+
 # 先启动 Doris 服务（在后台运行）
 echo "启动 Doris 服务..."
 bash entry_point.sh &

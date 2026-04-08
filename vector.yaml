@@ -10,7 +10,7 @@ sources:
     command: 
       - "sh"
       - "-c"
-      - 'for f in /Users/lxg/.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+      - 'for f in home/linux/.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
     mode: scheduled
     scheduled:
       exec_interval_secs: 60
@@ -19,7 +19,7 @@ sources:
   session_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
+    - "home/linux/.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -28,8 +28,8 @@ sources:
   gateway_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/logs/gateway.log"
-    - "/Users/lxg/.openclaw/logs/gateway.err.log"
+    - "home/linux/.openclaw/logs/gateway.log"
+    - "home/linux/.openclaw/logs/gateway.err.log"
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -38,10 +38,32 @@ sources:
   audit_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/logs/config-audit.jsonl"
+    - "home/linux/.openclaw/logs/config-audit.jsonl"
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
+
+  # 采集 openclaw.json 配置文件
+  openclaw_config_file:
+    type: exec
+    command:
+    - "sh"
+    - "-c"
+    - 'f="/home/linux/.openclaw/openclaw.json"; if [ -f "$$f" ]; then j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"openclaw_root\":%s}\n" "$$f" "$$j"; fi'
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 60
+
+  # 采集各 agent 的 models.json
+  agent_models_file:
+    type: exec
+    command:
+    - "sh"
+    - "-c"
+    - 'for f in /home/linux/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 60
 
 transforms:
   #解析 JSON，遍历每个 key-value 拆成独立记录
@@ -235,6 +257,232 @@ transforms:
       del(.timestamp)
       del(.host)
 
+
+  # 解析 openclaw.json 为 openclaw_config 单行
+  openclaw_config_transform:
+    type: remap
+    inputs:
+    - openclaw_config_file
+    drop_on_error: false
+    drop_on_abort: true
+    source: |
+      envelope, err = parse_json(string(.message) ?? "{}")
+      if err != null || !is_object(envelope) {
+        abort
+      }
+      obj = get(envelope, ["openclaw_root"]) ?? {}
+      if !is_object(obj) {
+        abort
+      }
+
+      channel_group_policy = ""
+      channels = get(obj, ["channels"]) ?? {}
+      if is_object(channels) {
+        channel_values = values!(channels)
+        for_each(channel_values) -> |_i, ch| {
+          if channel_group_policy == "" && is_object(ch) {
+            gp = get(ch, ["groupPolicy"]) ?? null
+            if gp != null {
+              channel_group_policy = string(gp) ?? ""
+            }
+          }
+        }
+      }
+
+      elevated_allow_from_summary = ""
+      agents_list_raw = get(obj, ["agents", "list"]) ?? []
+      agents_list = if is_array(agents_list_raw) { agents_list_raw } else { [] }
+      if length!(agents_list) > 0 {
+        first = get!(agents_list, [0])
+        allow_from = get(first, ["tools", "elevated", "allowFrom"]) ?? {}
+        if is_object(allow_from) {
+          elevated_allow_from_summary = join(keys!(allow_from), ",") ?? ""
+        }
+      }
+
+      plugins_allow_csv = ""
+      plugins_allow_raw = get(obj, ["plugins", "allow"]) ?? []
+      plugins_allow, plugins_allow_err = array(plugins_allow_raw)
+      if plugins_allow_err != null {
+        plugins_allow = []
+      }
+      p = []
+      for_each(plugins_allow) -> |_idx, pv| {
+        p = push(p, string(pv) ?? "")
+      }
+      plugins_allow_csv = join(p, ",") ?? ""
+
+      deny_commands_count = 0
+      deny_commands_raw = get(obj, ["gateway", "nodes", "denyCommands"]) ?? []
+      deny_commands, deny_commands_err = array(deny_commands_raw)
+      if deny_commands_err != null {
+        deny_commands = []
+      }
+      deny_commands_count = length!(deny_commands)
+      deny_commands_list = []
+      for_each(deny_commands) -> |_dc_idx, dc| {
+        deny_commands_list = push(deny_commands_list, string(dc) ?? "")
+      }
+      deny_commands_csv = join(deny_commands_list, ",") ?? ""
+
+      fs_workspace_only = get(obj, ["tools", "fs", "workspaceOnly"]) ?? false
+      if !is_boolean(fs_workspace_only) {
+        fs_workspace_only = false
+      }
+
+      diagnostics_otel_enabled = get(obj, ["diagnostics", "otel", "enabled"]) ?? false
+      if !is_boolean(diagnostics_otel_enabled) {
+        diagnostics_otel_enabled = false
+      }
+
+      .config_key = "default"
+      .collected_at = to_unix_timestamp(now(), unit: "milliseconds")
+      .content_sha256 = ""
+      .source_path = string(get(envelope, ["source_path"]) ?? "") ?? ""
+      .sandbox_mode = string(get(obj, ["agents", "defaults", "sandbox", "mode"]) ?? "") ?? ""
+      .workspace_default = string(get(obj, ["agents", "defaults", "workspace"]) ?? "") ?? ""
+      .exec_security = string(get(obj, ["tools", "exec", "security"]) ?? "") ?? ""
+      .exec_ask = string(get(obj, ["tools", "exec", "ask"]) ?? "") ?? ""
+      .exec_host = string(get(obj, ["tools", "exec", "host"]) ?? "") ?? ""
+      .fs_workspace_only = fs_workspace_only
+      .channel_group_policy = channel_group_policy
+      .gateway_auth_mode = string(get(obj, ["gateway", "auth", "mode"]) ?? "") ?? ""
+      .gateway_mode = string(get(obj, ["gateway", "mode"]) ?? "") ?? ""
+      .gateway_deny_commands_count = deny_commands_count
+      .gateway_deny_commands_csv = deny_commands_csv
+      .elevated_allow_from_summary = elevated_allow_from_summary
+      .subagents_max_concurrent = to_int(get(obj, ["agents", "defaults", "subagents", "maxConcurrent"]) ?? 0) ?? 0
+      .default_timeout_seconds = to_int(get(obj, ["agents", "defaults", "timeoutSeconds"]) ?? 0) ?? 0
+      .default_model_primary = string(get(obj, ["agents", "defaults", "model", "primary"]) ?? "") ?? ""
+      .tools_profile = string(get(obj, ["tools", "profile"]) ?? "") ?? ""
+      .meta_last_touched_version = string(get(obj, ["meta", "lastTouchedVersion"]) ?? "") ?? ""
+      .meta_last_touched_at = string(get(obj, ["meta", "lastTouchedAt"]) ?? "") ?? ""
+      .diagnostics_otel_enabled = diagnostics_otel_enabled
+      .plugins_allow_csv = plugins_allow_csv
+
+      .log_attributes = {
+        "meta": get(obj, ["meta"]) ?? {},
+        "diagnostics_otel_enabled": diagnostics_otel_enabled,
+        "agents_defaults": {
+          "sandbox_mode": .sandbox_mode,
+          "workspace_default": .workspace_default,
+          "timeout_seconds": .default_timeout_seconds,
+          "subagents_max_concurrent": .subagents_max_concurrent,
+          "model_primary": .default_model_primary
+        },
+        "tools": {
+          "profile": .tools_profile,
+          "exec": {
+            "host": .exec_host,
+            "security": .exec_security,
+            "ask": .exec_ask
+          },
+          "fs": {
+            "workspace_only": .fs_workspace_only
+          }
+        },
+        "session": {
+          "channel_group_policy": .channel_group_policy
+        },
+        "gateway": {
+          "auth_mode": .gateway_auth_mode,
+          "mode": .gateway_mode,
+          "deny_commands_count": .gateway_deny_commands_count,
+          "deny_commands_csv": .gateway_deny_commands_csv
+        },
+        "plugins": {
+          "allow_csv": .plugins_allow_csv
+        }
+      }
+
+      del(.message)
+      del(.source_type)
+      del(.timestamp)
+      del(.host)
+
+  # 解析 models.json 为 agent_models 多行
+  agent_models_transform:
+    type: remap
+    inputs:
+    - agent_models_file
+    drop_on_error: false
+    drop_on_abort: true
+    source: |
+      raw = string(.message) ?? ""
+      lines = split(raw, "\n")
+      rows = []
+
+      for_each(lines) -> |_line_idx, line| {
+        if line != "" {
+          envelope, err = parse_json(line)
+          if err == null && is_object(envelope) {
+            filepath = string(get(envelope, ["source_path"]) ?? "") ?? ""
+            agent_name = string(get(envelope, ["agent_name"]) ?? "main") ?? "main"
+            if agent_name == "" {
+              agent_name = "main"
+            }
+
+            obj = get(envelope, ["models_root"]) ?? {}
+            providers = get(obj, ["providers"]) ?? {}
+            if is_object(providers) {
+              provider_keys = keys!(providers)
+              for_each(provider_keys) -> |_idx, provider| {
+                p = get(providers, [provider]) ?? {}
+                models_raw = get(p, ["models"]) ?? []
+                models, models_err = array(models_raw)
+                if models_err != null {
+                  models = []
+                }
+
+                for_each(models) -> |_midx, model_item| {
+                  if is_object(model_item) {
+                    input_csv = ""
+                    inputs_raw = get(model_item, ["input"]) ?? []
+                    inputs, inputs_err = array(inputs_raw)
+                    if inputs_err != null {
+                      inputs = []
+                    }
+                    in_list = []
+                    for_each(inputs) -> |_iidx, iv| {
+                      in_list = push(in_list, string(iv) ?? "")
+                    }
+                    input_csv = join(in_list, ",") ?? ""
+
+                    reasoning = get(model_item, ["reasoning"]) ?? false
+                    if !is_boolean(reasoning) {
+                      reasoning = false
+                    }
+
+                    cost = get(model_item, ["cost"]) ?? {}
+                    rows = push(rows, {
+                      "agent_name": agent_name,
+                      "provider": string(provider),
+                      "model_id": string(get(model_item, ["id"]) ?? "") ?? "",
+                      "display_name": string(get(model_item, ["name"]) ?? get(model_item, ["id"]) ?? "") ?? "",
+                      "reasoning": reasoning,
+                      "context_window": to_int(get(model_item, ["contextWindow"]) ?? 0) ?? 0,
+                      "max_tokens": to_int(get(model_item, ["maxTokens"]) ?? 0) ?? 0,
+                      "cost_input": to_float(get(cost, ["input"]) ?? 0.0) ?? 0.0,
+                      "cost_output": to_float(get(cost, ["output"]) ?? 0.0) ?? 0.0,
+                      "cost_cache_read": to_float(get(cost, ["cacheRead"]) ?? 0.0) ?? 0.0,
+                      "cost_cache_write": to_float(get(cost, ["cacheWrite"]) ?? 0.0) ?? 0.0,
+                      "input_capabilities_csv": input_csv,
+                      "collected_at": to_unix_timestamp(now(), unit: "milliseconds"),
+                      "content_sha256": "",
+                      "source_path": filepath,
+                      "log_attributes": model_item
+                    })
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      . = rows
+
+
 sinks:
   session_to_doris: &sink_template
     type: http
@@ -275,9 +523,6 @@ sinks:
     inputs:
     - gateway_logs_transform
     uri: "http://127.0.0.1:8040/api/opsRobot/gateway_logs/_stream_load"
-        
-
-
 
   # config-audit 日志输出到 Doris audit_logs 表
   audit_logs_to_doris:
@@ -285,6 +530,21 @@ sinks:
     inputs:
     - audit_logs_transform
     uri: "http://127.0.0.1:8040/api/opsRobot/audit_logs/_stream_load"
+
+
+  # openclaw.json 配置摘要入库
+  openclaw_config_to_doris:
+    <<: *sink_template
+    inputs:
+    - openclaw_config_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/openclaw_config/_stream_load"
+
+  # models.json 模型目录入库
+  agent_models_to_doris:
+    <<: *sink_template
+    inputs:
+    - agent_models_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_models/_stream_load"
 
 
   # session_to_console: &console_template
