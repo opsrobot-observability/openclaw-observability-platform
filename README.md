@@ -36,9 +36,9 @@
 │  │   React)     │    │  Port: 8787   │    │  Port: 9030       │ │
 │  │  Port: 3000  │    └───────────────┘    └───────────────────┘ │
 │  └──────────────┘                                               │
-│           ▲                                                     │
-│           │                                                     │
-│  ┌────────┴────────────────────────────────────────────────┐    │
+│                                                ▲                │
+│                                                │                │
+│  ┌─────────────────────────────────────────────┴───────────┐    │
 │  │                  OTel  Data Pipeline                    │    │
 │  │                                                         │    │
 │  │  ┌─────────────┐   ┌──────────────┐   ┌───────────────┐ │    │
@@ -69,43 +69,6 @@
 | **Data Source** | OpenClaw Agent | - | AI Agent runtime, source of log output |
 
 ---
-
-## Features
-
-### 1. Security Audit
-
-| Module | Description |
-|--------|-------------|
-| **Audit Overview** | Core security metrics, risk statistics, real-time situational awareness, trends and rankings |
-| **Configuration Changes** | History of critical configuration changes with multi-dimensional filtering by source, event type, and configuration path |
-| **Session Audit** | OpenClaw session indexing, model usage, and Token consumption compliance logging
-
-
-### 2. Cost Analysis
-
-| Module | Description |
-|--------|-------------|
-| **Cost Overview** | Total cost, daily average consumption, multi-dimensional proportion analysis, and trend charts |
-| **Agent Cost List** | Per-Agent total consumption, average cost per task, call volume, and success rate statistics |
-| **LLM Cost Details** | Token usage and cost details by model dimension |
-
----
-
-## How It Works
-
-```
-┌─────────┐    ┌───────────────────┐    ┌─────────────────┐    ┌──────────────┐
-│OpenClaw │───►│  Vector Pipeline  │───►│ Apache Doris    │◄───│   Frontend   │
-│ Agent   │    │   (Data Collection│    │ (Data Storage & │    │ (Visualization)
-│ Logs    │    │    & Transformation)│   │    Analysis)    │    │              │
-└─────────┘    └───────────────────┘    └─────────────────┘    └──────┬───────┘
-                                                                      │
-                                           ┌─────────────────┐        │
-                                           │   Backend API   │◄───────┘
-                                           │   (Node.js)     │
-                                           │   Port: 8787    │
-                                           └─────────────────┘
-```
 
 ## Online Live Demo
 
