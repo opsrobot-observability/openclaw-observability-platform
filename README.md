@@ -2,7 +2,7 @@
 
 > English | [中文](./README_zh.md)
 
-**OpenClaw Observability Platform**, developed based on the KWeaver Core framework, uses OTel protocol and eBPF technology for full-linkage tracing and monitoring of AI Agents. It provides rapid fault diagnosis, security compliance management, and lean computing operations capabilities to ensure high-quality growth of AI-powered businesses.
+**OpenClaw Observability Platform**, developed based on the KWeaver Core framework, uses OTel protocol and eBPF technology for full-link tracing and monitoring of AI Agents. It provides rapid fault diagnosis, security compliance management, and lean computing operations capabilities to ensure high-quality growth of AI-powered businesses.
 
 ## Core Features & Business Value
 
@@ -30,23 +30,23 @@
 │                    OpenClaw Observability Platform              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
-│  │   Frontend   │    │  Backend API │    │  Apache Doris    │   │
-│  │   (Vite+     │◄──►│  (Node.js)   │◄──►│  (OLAP Database) │   │
-│  │   React)     │    │  Port: 8787  │    │  Port: 9030      │   │
-│  │  Port: 3000  │    └──────────────┘    └──────────────────┘   │
+│  ┌──────────────┐    ┌───────────────┐    ┌───────────────────┐ │
+│  │   Frontend   │    │  Backend API  │    │  Apache Doris     │ │
+│  │   (Vite+     │◄──►│  (Node.js)    │◄──►│  (OLAP Database)  │ │
+│  │   React)     │    │  Port: 8787   │    │  Port: 9030       │ │
+│  │  Port: 3000  │    └───────────────┘    └───────────────────┘ │
 │  └──────────────┘                                               │
 │           ▲                                                     │
 │           │                                                     │
 │  ┌────────┴────────────────────────────────────────────────┐    │
 │  │                  OTel  Data Pipeline                    │    │
 │  │                                                         │    │
-│  │  ┌─────────────┐   ┌─────────────┐   ┌──────────────┐   │    │
-│  │  │   Sources   │──►│ Transform   │──►│    Sinks     │   │    │
-│  │  │  (File/Exec)│   │  (Remap/    │   │ (HTTP to     │   │    │
-│  │  │             │   │   Reduce)   │   │  Doris)      │   │    │
-│  │  └─────────────┘   └─────────────┘   └──────────────┘   │    │
-│  └────────────────────────────────────────────────────────-┘    │
+│  │  ┌─────────────┐   ┌──────────────┐   ┌───────────────┐ │    │
+│  │  │   Sources   │──►│   Transform  │──►│    Sinks      │ │    │
+│  │  │  (File/Exec)│   │(Remap/Reduce)│   │(HTTP to Doris)│ │    │
+│  │  │             │   │              │   │               │ │    │
+│  │  └─────────────┘   └──────────────┘   └───────────────┘ │    │
+│  └─────────────────────────────────────────────────────────┘    │
 │           ▲                                                     │
 │           │                                                     │
 │  ┌────────┴───────────────┐                                     │
@@ -78,7 +78,8 @@
 |--------|-------------|
 | **Audit Overview** | Core security metrics, risk statistics, real-time situational awareness, trends and rankings |
 | **Configuration Changes** | History of critical configuration changes with multi-dimensional filtering by source, event type, and configuration path |
-| **Session Audit** | OpenClaw session indexing, model usage, and Token consumption compliance logging |
+| **Session Audit** | OpenClaw session indexing, model usage, and Token consumption compliance logging
+
 
 ### 2. Cost Analysis
 
@@ -93,14 +94,14 @@
 ## How It Works
 
 ```
-┌─────────┐    ┌───────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│OpenClaw │───►│ Vector Pipeline   │───►│ Apache Doris    │◄───│    Frontend     │
-│ Agent   │    │ (Data Collection  │    │ (Storage &      │    │ (Visualization) │
-│ Logs    │    │  & Transformation)│    │  Analytics)     │    │                 │
-└─────────┘    └───────────────────┘    └─────────────────┘    └────────┬────────┘
-                                                                        │
-                                           ┌─────────────────┐          │
-                                           │   Backend API   │◄─────────┘
+┌─────────┐    ┌───────────────────┐    ┌─────────────────┐    ┌──────────────┐
+│OpenClaw │───►│  Vector Pipeline  │───►│ Apache Doris    │◄───│   Frontend   │
+│ Agent   │    │   (Data Collection│    │ (Data Storage & │    │ (Visualization)
+│ Logs    │    │    & Transformation)│   │    Analysis)    │    │              │
+└─────────┘    └───────────────────┘    └─────────────────┘    └──────┬───────┘
+                                                                      │
+                                           ┌─────────────────┐        │
+                                           │   Backend API   │◄───────┘
                                            │   (Node.js)     │
                                            │   Port: 8787    │
                                            └─────────────────┘
@@ -108,47 +109,136 @@
 
 ## Online Live Demo
 
-Try it out now! Access the live demo at:
+Try it out now!
 
 - **URL**: http://nw1pe2061132.vicp.fun/
 - **Password**: aishu.cn
 
-### Prerequisites
 
-- Docker Desktop
+## Quick Start
+
+### 1. Environment Requirements
+
+- Docker Desktop with Docker Compose plugin
 - Node.js 18+
 
-### Method 1: Docker Compose - Image Deployment (Recommended)
+### 2. Clone the Project
+
+```bash
+git clone https://github.com/opsrobot-observability/openclaw-observability-platform.git
+cd openclaw-observability-platform
+```
+
+### 3. Deploy Backend Services with Images
 
 ```bash
 docker compose -f docker-compose.yml up -d
 ```
 
-### Method 2: Docker Compose - Build & Deploy
+After services start, access: http://localhost:3000
+
+
+### 4. Configure OpenClaw Data Collection
+
+**Note: Install and configure the Vector collector on each machine running OpenClaw.**
+[Vector Official Site](https://vector.dev/docs/) | [Vector Installation Guide](https://vector.dev/docs/setup/installation/)
+
+#### Vector Installation for macOS:
 
 ```bash
-# Build and start all services from source
-docker compose up -d
+brew tap vectordotdev/brew && brew install vector
+```
 
-# Or use the build compose file
-docker compose -f docker-compose-build.yml up -d
+#### Vector Installation for Linux:
+
+For CentOS:
+```bash
+bash -c "$(curl -L https://setup.vector.dev)"
+sudo yum install vector
+```
+
+For Ubuntu:
+```bash
+bash -c "$(curl -L https://setup.vector.dev)"
+sudo apt-get install vector
+```
+
+#### Modify `vector.yaml` collector configuration:
+[Vector Configuration Documentation](https://vector.dev/docs/reference/configuration/)
+
+Point to the backend server IP address (if OpenClaw is on the same server, no modification needed):
+```yaml
+sinks:
+  session_to_doris: &sink_template
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_sessions/_stream_load"
+
+  session_logs_to_doris:
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_sessions_logs/_stream_load"
+
+  gateway_logs_to_doris:
+    uri: "http://127.0.0.1:8040/api/opsRobot/gateway_logs/_stream_load"
+
+  audit_logs_to_doris:
+    uri: "http://127.0.0.1:8040/api/opsRobot/audit_logs/_stream_load"
+```
+
+Point to the actual OpenClaw log directory for log collection monitoring:
+```yaml
+sources:
+  sessions:
+    command:
+      - "sh"
+      - "-c"
+      - 'for f in ~/.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+
+  session_logs:
+    include:
+      - "~/.openclaw/agents/*/sessions/*.jsonl"
+
+  gateway_logs:
+    include:
+      - "~/.openclaw/logs/gateway.log"
+      - "~/.openclaw/logs/gateway.err.log"
+
+  audit_logs:
+    include:
+      - "~/.openclaw/logs/config-audit.jsonl"
+```
+
+#### Start Vector Collector Service:
+
+```bash
+vector --config vector.yaml
+```
+
+### 5. View All OpenClaw Observability Data:
+
+- Interact with OpenClaw through its interface
+- View collected data in the opsRobot product interface: http://localhost:3000
+
+
+
+
+### Build & Deploy from Source
+
+```bash
+# Or use full path
+docker compose -f docker-compose-build.yml up -d --build
 ```
 
 #### Doris Data Persistence
 
-To ensure data persistence, Doris data is stored in `~/var/doris_data` by default. If this directory doesn't exist, create it:
-
+To ensure Doris data persistence, Doris data is stored in `~/var/doris_data`. If this directory doesn't exist, create it:
 ```bash
+# Create Doris persistent data directory
 mkdir -p ~/var/doris_data
 ```
 
-To change the data directory path, modify the `volumes > doris_data` configuration in `docker-compose-build.yml`.
-
-By default, Doris will be reinitialized on each deployment (historical data will be cleared). To preserve data:
+By default, Doris will be reinitialized on each redeployment (historical data will be cleared). To preserve data:
 
 ```bash
 # Use local historical data
-DORIS_USE_LOCAL_DATA=true docker compose -f docker-compose-build.yml up -d
+docker compose -f docker-compose-build.yml up -d --build
 ```
 
 | `DORIS_USE_LOCAL_DATA` | Behavior |
@@ -163,7 +253,7 @@ After services start, access:
 | Frontend UI | http://localhost:3000 |
 | Doris FE | http://localhost:8030 |
 
-### Method 3: Local Development
+### Local Development Deployment
 
 ```bash
 # Install dependencies
@@ -176,46 +266,14 @@ npm run api
 npm run dev
 ```
 
-### Vector Configuration
+### OpenClaw Data Collection Configuration
 
-Vector acts as the log collector for OpenClaw. It needs to be installed and configured on each machine running OpenClaw. The OpenClaw Observability Platform supports multiple Vector collectors to aggregate log data from multiple OpenClaw instances.
+Same as the Quick Start section above.
 
-Modify the data source paths in `vector.yaml` to point to your actual OpenClaw log directory:
-
-```yaml
-sources:
-  sessions:
-    command: ["cat", "/path/to/openclaw/sessions/sessions.json"]
-
-  session_logs:
-    include:
-      - "/path/to/openclaw/agents/*/sessions/*.jsonl"
-
-  gateway_logs:
-    include:
-      - "/path/to/openclaw/logs/gateway.log"
-      - "/path/to/openclaw/logs/gateway.err.log"
-
-  audit_logs:
-    include:
-      - "/path/to/openclaw/logs/config-audit.jsonl"
-```
-
-#### Vector Installation (macOS)
-
-```bash
-brew tap vectordotdev/brew && brew install vector
-```
-
-#### Start Vector
-
-```bash
-vector --config vector.yaml
-```
 
 ---
 
-## Environment Variables
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -241,20 +299,23 @@ This project closely follows the development of the OpenClaw community. It has b
 | Docker | 20.10.0+ | Recommended container runtime environment |
 | Docker Compose | v2.0.0+ | Recommended for local fast orchestration |
 
+
+## Contributing & Community
+
+We welcome and encourage contributions in any form! Whether submitting bug reports, improving documentation, or submitting PRs for core code, all contributions are greatly appreciated to support the opsRobot open source community.
+Contributing Guide: Please read our [CONTRIBUTING.md](./CONTRIBUTING.md) to learn how to get started.
+Community Exchange: WeChat group QR code
+
+
+## WeChat Community
+
+Scan the QR code below to join the WeChat community:
+
+<img src="./wechat-qr.png" width = 300 height = 442>
+
 ---
 
-## Community
-
-We welcome and encourage contributions in any form! Whether submitting bug reports, improving documentation, or submitting PRs for core code, all contributions are greatly appreciated.
-
-- **Contributing Guide**: Please read our [CONTRIBUTING.md](./CONTRIBUTING.md) to learn how to get started.
-- **WeChat Community**: Scan the QR code below to join the WeChat community for discussions:
-
-![WeChat QR Code](./wechat-qr.png)
-
-
----
 
 ## License
 
-This project is licensed under the [Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE)
