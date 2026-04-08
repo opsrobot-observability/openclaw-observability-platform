@@ -14,6 +14,7 @@ import {
   queryAgentSessionsLogsSearch,
 } from "../backend/log-search/log-search-query.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
+import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -269,8 +270,28 @@ export function agentSessionsDevApi() {
           return;
         }
 
+        if (url.startsWith("/api/otel-overview")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const granularityMinutes = Number(u.searchParams.get("granularityMinutes") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            console.log("[otel-overview] Querying with hours:", hours, "granularityMinutes:", granularityMinutes, "startTime:", startTime, "endTime:", endTime);
+            const data = await queryOtelOverviewData({ hours, granularityMinutes, startTime, endTime });
+            console.log("[otel-overview] Success, instances:", data.instances?.length || 0);
+            sendJson(res, 200, data);
+          } catch (e) {
+            console.error("[otel-overview] Error:", e);
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
         next();
       });
     },
   };
 }
+

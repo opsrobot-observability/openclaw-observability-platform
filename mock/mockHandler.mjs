@@ -14,6 +14,7 @@ import { mockConfigAuditLogs } from "./data/config-audit-logs.mjs";
 import { mockConfigAuditStats } from "./data/config-audit-stats.mjs";
 import { mockSessionCostDetail } from "./data/session-cost-detail.mjs";
 import { mockSessionCostOptions } from "./data/session-cost-options.mjs";
+import { mockOtelOverview } from "./data/otel-overview.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -124,6 +125,18 @@ export function handleMockRequest(url, res) {
   // --- 会话列表 ---
   if (url.startsWith("/api/agent-sessions")) {
     sendJson(res, 200, mockAgentSessions());
+    return true;
+  }
+
+  // --- Gateway 监控概览 ---
+  if (url.startsWith("/api/otel-overview")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockOtelOverview({
+      hours: u.searchParams.get("hours") || "24",
+      granularityMinutes: u.searchParams.get("granularityMinutes") || "30",
+      startTime: u.searchParams.get("startTime") || null,
+      endTime: u.searchParams.get("endTime") || null,
+    }));
     return true;
   }
 

@@ -45,6 +45,9 @@ export default {
   "nav.costOverview2": "Session Cost Detail",
   "nav.agentCostDetail": "Agent Cost Detail",
   "nav.llmCost": "Model Cost Detail",
+  "nav.gatewayMonitoring": "Gateway monitoring",
+  "nav.otelOverview": "Overview",
+  "nav.instanceMonitoring": "Instance monitoring",
 
   "page.panorama.title": "Overview",
   "page.panorama.subtitle": "Key metrics & orders at a glance · Real-time",
@@ -78,6 +81,11 @@ export default {
   "page.agentCostDetail.subtitle": "Total consumption, per-task average, call volume & success rate",
   "page.llmCost.title": "Model Cost Detail",
   "page.llmCost.subtitle": "Token & cost by model dimension",
+  "page.otelOverview.title": "Gateway Overview",
+  "page.otelOverview.subtitle": "OpenTelemetry metrics & runtime posture",
+  "page.instanceMonitoring.title": "Instance Monitoring",
+  "page.instanceMonitoring.subtitle": "Instance health & runtime status",
+  "page.instanceMonitoring.placeholder": "Connect instance list, metrics, and alerts here. Placeholder content for now.",
 
   "theme.light": "Light",
   "theme.dark": "Dark",
@@ -95,3 +103,6 @@ export default {
   "lang.en": "English",
   "lang.switch": "Language",
 };
+
+
+

@@ -138,10 +138,15 @@ dist
 vite.config.js.timestamp-*
 vite.config.js.timestamp-*
 
+# HonKit/GitBook build output
+docs/_book/
+
 # Custom
 cursor/
 datamodel/
 AGENTS.md
+.idea/
+.vscode/
 
 # Doris data (persist across redeployments, do not commit actual data)
 doris-data/*
