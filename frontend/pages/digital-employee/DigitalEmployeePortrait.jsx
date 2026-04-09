@@ -103,7 +103,7 @@ function SessionKeyListDisplay({ values }) {
             : intl.get("digitalEmployee.portrait.systemKey.expand", { count: list.length })}
         </span>
       </button>
-      <div className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-gray-100 bg-white/80 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-100">
+      <div className="space-y-1 rounded-lg border border-gray-100 bg-white/80 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-100">
         {visibleList.map((k) => (
           <p key={k} className="break-all">
             {k}
