@@ -1,11 +1,20 @@
 import ReactECharts from "echarts-for-react";
+import { useMemo } from "react";
 import { DIGITAL_EMPLOYEE_ROWS } from "../constants.js";
-import { getDailyTokenOption } from "../chartOptions.js";
+import { getDailyTokenOption, getDailyTokenOptionFromSeries } from "../chartOptions.js";
+import { useMonitorDashboard } from "../hooks/MonitorDashboardContext.jsx";
 import MonitorPanel from "./MonitorPanel.jsx";
 
 export default function MonitorLeftColumn() {
+  const { data } = useMonitorDashboard();
+  const rows = data?.digitalEmployees?.length ? data.digitalEmployees : DIGITAL_EMPLOYEE_ROWS;
+  const tokenOption = useMemo(() => {
+    if (data?.charts?.dailyToken?.length) return getDailyTokenOptionFromSeries(data.charts.dailyToken);
+    return getDailyTokenOption();
+  }, [data]);
+
   const renderRows = (suffix = "") =>
-    DIGITAL_EMPLOYEE_ROWS.map((agent, i) => (
+    rows.map((agent, i) => (
       <div
         key={`${suffix}-${i}-${agent.name}`}
         className={`flex items-center text-xs py-1 ${agent.active ? "bg-[#004488]/30 rounded" : ""}`}
@@ -34,7 +43,7 @@ export default function MonitorLeftColumn() {
   return (
     <div className="flex flex-col gap-3 w-full lg:w-1/4 h-[calc(100%+2.5rem)] lg:-mt-10">
       <MonitorPanel title="每日 Token 消耗" className="shrink-0">
-        <ReactECharts option={getDailyTokenOption()} style={{ height: "100%", width: "100%" }} />
+        <ReactECharts option={tokenOption} style={{ height: "100%", width: "100%" }} />
       </MonitorPanel>
 
       <MonitorPanel title="数字员工列表" className="flex-1 min-h-[250px]">

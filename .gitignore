@@ -157,3 +157,4 @@ dist/
 .DS_Store
 .claude
 .pnpm-store
+data-model/

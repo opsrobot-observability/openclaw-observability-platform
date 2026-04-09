@@ -2,27 +2,36 @@ import MonitorBottomRow from "./components/MonitorBottomRow.jsx";
 import MonitorCenterPanorama from "./components/MonitorCenterPanorama.jsx";
 import MonitorLeftColumn from "./components/MonitorLeftColumn.jsx";
 import MonitorRightColumn from "./components/MonitorRightColumn.jsx";
+import { MonitorDashboardProvider, useMonitorDashboard } from "./hooks/MonitorDashboardContext.jsx";
 import { useMonitorFullscreen } from "./hooks/useMonitorFullscreen.js";
-import bgImage from "./images/opsRobotbg3.png";
 import topBg from "./images/centertopbg2.png";
 import topLineBg from "./images/toplinebg.png";
 
 export default function MonitorDashboard() {
+  return (
+    <MonitorDashboardProvider>
+      <MonitorDashboardInner />
+    </MonitorDashboardProvider>
+  );
+}
+
+function MonitorDashboardInner() {
   const { containerRef, isFullscreen, toggleFullscreen } = useMonitorFullscreen();
+  const { error, loading } = useMonitorDashboard();
 
   return (
     <div
       ref={containerRef}
-      className={`w-full flex-1 text-white p-2 pt-0 font-sans selection:bg-[#00f0ff]/30 flex flex-col gap-0 relative overflow-y-auto lg:overflow-hidden ${
+      className={`w-full bg-[#010611] flex-1 text-white p-2 pt-0 font-sans selection:bg-[#00f0ff]/30 flex flex-col gap-0 relative overflow-y-auto lg:overflow-hidden ${
         isFullscreen ? "h-screen" : "min-h-[750px]"
       }`}
-      style={{
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundColor: "#010611"
-      }}
+      // style={{
+      //   backgroundImage: `url(${bgImage})`,
+      //   backgroundSize: "cover",
+      //   backgroundPosition: "center",
+      //   backgroundRepeat: "no-repeat",
+      //   backgroundColor: "#010611"
+      // }}
     >
       {/* 顶部贯穿背景线 */}
       <div 
@@ -33,6 +42,16 @@ export default function MonitorDashboard() {
           backgroundSize: "auto 100%"
         }}
       />
+
+      {(error || loading) && (
+        <div
+          className={`absolute top-10 left-1/2 z-50 -translate-x-1/2 px-3 py-1.5 rounded text-xs font-mono border ${
+            error ? "border-red-500/60 text-red-300 bg-red-950/80" : "border-[#16436e] text-[#8fb1c6] bg-[#020b1a]/90"
+          }`}
+        >
+          {error ? `数据加载失败：${error}` : "正在连接监控数据…"}
+        </div>
+      )}
 
       <button
         type="button"
@@ -88,3 +107,4 @@ export default function MonitorDashboard() {
     </div>
   );
 }
+

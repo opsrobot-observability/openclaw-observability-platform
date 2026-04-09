@@ -15,6 +15,7 @@ import {
 } from "../backend/log-search/log-search-query.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
+import { queryMonitorDashboardData } from "../backend/monitor-dashboard/monitor-dashboard-query.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -34,6 +35,7 @@ function sendJson(res, status, body) {
  * - GET /api/llm-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-options?startDay=&endDay=
+ * - GET /api/monitor-dashboard?otelHours=24&trendDays=14 — 监控大屏聚合
  */
 export function agentSessionsDevApi() {
   const useMock = process.env.VITE_MOCK === "true";
@@ -262,6 +264,20 @@ export function agentSessionsDevApi() {
               limit: Number(u.searchParams.get("limit") ?? "100"),
               offset: Number(u.searchParams.get("offset") ?? "0"),
             });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-dashboard")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const otelHours = Number(u.searchParams.get("otelHours") ?? "24");
+            const trendDays = Number(u.searchParams.get("trendDays") ?? "14");
+            const data = await queryMonitorDashboardData({ otelHours, trendDays });
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);

@@ -9,6 +9,8 @@
  * - GET /api/llm-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-options?startDay=&endDay=
+ * - GET /api/monitor-dashboard?otelHours=24&trendDays=14
+ * - GET /api/otel-overview?hours=24
  */
 import http from "node:http";
 import {
@@ -27,6 +29,8 @@ import {
   querySessionCostDetail,
   querySessionCostOptions,
 } from "./cost-analysis/cost-overview-2-query.mjs";
+import { queryOtelOverviewData } from "./otel-metrics/otel-overview-query.mjs";
+import { queryMonitorDashboardData } from "./monitor-dashboard/monitor-dashboard-query.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 
@@ -248,6 +252,36 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (url.startsWith("/api/monitor-dashboard")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const otelHours = Number(u.searchParams.get("otelHours") ?? "24");
+      const trendDays = Number(u.searchParams.get("trendDays") ?? "14");
+      const data = await queryMonitorDashboardData({ otelHours, trendDays });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/otel-overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const granularityMinutes = Number(u.searchParams.get("granularityMinutes") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryOtelOverviewData({ hours, granularityMinutes, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   // 配置变更审计统计
   if (url.startsWith("/api/config-audit-stats")) {
     try {
@@ -280,4 +314,6 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/config-audit-stats`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-detail?startDay=&endDay=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-options?startDay=&endDay=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/monitor-dashboard`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/otel-overview`);
 });

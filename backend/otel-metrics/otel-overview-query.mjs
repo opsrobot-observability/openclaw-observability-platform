@@ -24,6 +24,18 @@ function formatDateTimeShort(date) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+/**
+ * 仅拉取 Sum 表按分钟桶趋势（供大屏等二次聚合）
+ */
+export async function queryOtelSumTrendStandalone(startIso, endIso) {
+  const conn = await getConnection();
+  try {
+    return await querySumTrend(conn, startIso, endIso);
+  } finally {
+    await conn.end();
+  }
+}
+
 async function getConnection() {
   const cfg = getDorisConfig();
   try {

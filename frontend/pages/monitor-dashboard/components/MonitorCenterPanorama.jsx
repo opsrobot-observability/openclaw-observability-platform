@@ -1,13 +1,21 @@
 import centerBg from "../images/centerpic4.png";
 import centerTopBg from "../images/centertopbg1.png";
-import MonitorPanel from "./MonitorPanel.jsx";
+import { useMonitorDashboard } from "../hooks/MonitorDashboardContext.jsx";
+
+function fmtInt(n) {
+  const x = Number(n);
+  if (Number.isNaN(x)) return "—";
+  return x.toLocaleString();
+}
 
 export default function MonitorCenterPanorama() {
+  const { data } = useMonitorDashboard();
+  const k = data?.centerKpis;
   const cards = [
-    { name: "Agent总数", value: "128" },
-    { name: "用户总数", value: "4592" },
-    { name: "来源终端", value: "12" },
-    { name: "Token消耗", value: "1.4B" }
+    { name: "Agent总数", value: k ? fmtInt(k.agentTotal) : "—" },
+    { name: "用户总数", value: k ? fmtInt(k.userTotal) : "—" },
+    { name: "来源终端", value: k ? fmtInt(k.terminalCount) : "—" },
+    { name: "Token消耗", value: k?.tokenDisplay ?? "—" },
   ];
 
   return (

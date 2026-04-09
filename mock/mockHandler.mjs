@@ -15,6 +15,7 @@ import { mockConfigAuditStats } from "./data/config-audit-stats.mjs";
 import { mockSessionCostDetail } from "./data/session-cost-detail.mjs";
 import { mockSessionCostOptions } from "./data/session-cost-options.mjs";
 import { mockOtelOverview } from "./data/otel-overview.mjs";
+import { mockMonitorDashboard } from "./data/monitor-dashboard.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -125,6 +126,12 @@ export function handleMockRequest(url, res) {
   // --- 会话列表 ---
   if (url.startsWith("/api/agent-sessions")) {
     sendJson(res, 200, mockAgentSessions());
+    return true;
+  }
+
+  // --- 数字员工监控大屏 ---
+  if (url.startsWith("/api/monitor-dashboard")) {
+    sendJson(res, 200, mockMonitorDashboard());
     return true;
   }
 
