@@ -1,42 +1,44 @@
 import * as echarts from "echarts";
 
-export function getDailyTokenOption() {
+export function getDailyTokenOption(dailyTokenData = []) {
+  const list = Array.isArray(dailyTokenData) ? dailyTokenData : [];
+  const xData = list.map((d) => d?.day || "");
+  const yData = list.map((d) => Number(d?.total) || 0);
+  const labelInterval = xData.length > 24 ? 2 : xData.length > 14 ? 1 : 0;
+  const yMaxRaw = yData.length > 0 ? Math.max(...yData) : 0;
+  const yMax = yMaxRaw > 0 ? Math.ceil(yMaxRaw * 1.2) : 10;
+  const yInterval = Math.max(1, Math.ceil(yMax / 4));
+
   return {
     grid: { top: 20, right: 10, bottom: 20, left: 35 },
     tooltip: { trigger: "axis" },
     xAxis: {
       type: "category",
-      data: [
-        "03-15",
-        "03-16",
-        "03-17",
-        "03-18",
-        "03-19",
-        "03-20",
-        "03-21",
-        "03-22",
-        "03-23",
-        "03-24",
-        "03-25",
-        "03-26",
-        "03-27",
-        "03-28",
-      ],
+      data: xData,
       axisLine: { lineStyle: { color: "#16436e" } },
-      axisLabel: { color: "#6b93a7", fontSize: 10, interval: 1 },
+      axisLabel: {
+        color: "#6b93a7",
+        fontSize: 10,
+        interval: labelInterval,
+        hideOverlap: true,
+      },
       axisTick: { show: false },
     },
     yAxis: {
       type: "value",
       splitLine: { lineStyle: { color: "#16436e", type: "dashed" } },
-      axisLabel: { color: "#6b93a7", fontSize: 10, formatter: "{value}M" },
+      axisLabel: {
+        color: "#6b93a7",
+        fontSize: 10,
+        formatter: (v) => (v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : String(v)),
+      },
       min: 0,
-      max: 280,
-      interval: 70,
+      max: yMax,
+      interval: yInterval,
     },
     series: [
       {
-        data: [180, 140, 160, 130, 200, 190, 210, 205, 170, 220, 215, 230, 200, 190],
+        data: yData,
         type: "bar",
         barWidth: "40%",
         itemStyle: {

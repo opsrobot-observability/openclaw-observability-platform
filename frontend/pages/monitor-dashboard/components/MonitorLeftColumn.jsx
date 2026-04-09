@@ -3,7 +3,7 @@ import { DIGITAL_EMPLOYEE_ROWS } from "../constants.js";
 import { getDailyTokenOption } from "../chartOptions.js";
 import MonitorPanel from "./MonitorPanel.jsx";
 
-export default function MonitorLeftColumn() {
+export default function MonitorLeftColumn({ dailyTokens }) {
   const renderRows = (suffix = "") =>
     DIGITAL_EMPLOYEE_ROWS.map((agent, i) => (
       <div
@@ -34,7 +34,7 @@ export default function MonitorLeftColumn() {
   return (
     <div className="flex flex-col gap-3 w-full lg:w-1/4 h-[calc(100%+2.5rem)] lg:-mt-10">
       <MonitorPanel title="每日 Token 消耗" className="shrink-0">
-        <ReactECharts option={getDailyTokenOption()} style={{ height: "100%", width: "100%" }} />
+        <ReactECharts option={getDailyTokenOption(dailyTokens)} style={{ height: "100%", width: "100%" }} />
       </MonitorPanel>
 
       <MonitorPanel title="数字员工列表" className="flex-1 min-h-[250px]">

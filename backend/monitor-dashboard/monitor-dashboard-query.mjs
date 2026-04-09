@@ -143,24 +143,12 @@ async function queryTodayKPIs(conn, todayStartIso, nowIso) {
   };
 }
 
-async function queryDailyTokenTrend(conn, nDaysAgoIso, nowIso) {
-  const [rows] = await conn.query(
-    `SELECT
-       SUBSTR(CAST(timestamp AS VARCHAR), 1, 10) AS day,
-       COALESCE(SUM(value), 0) AS total
-     FROM \`opsRobot\`.\`otel_metrics_sum\`
-     WHERE metric_name = 'openclaw.tokens'
-       AND get_json_string(attributes, '$.openclaw.token') = 'total'
-       AND timestamp >= ? AND timestamp <= ?
-     GROUP BY SUBSTR(CAST(timestamp AS VARCHAR), 1, 10)
-     ORDER BY day ASC`,
-    [nDaysAgoIso, nowIso]
-  );
-  return rows.map((r) => {
-    const row = normalizeRow(r);
-    const d = String(row.day || "");
-    return { day: d.length >= 10 ? d.slice(5, 10) : d, total: Number(row.total) || 0 };
-  });
+function queryDailyTokenTrendFromCostOverview(snapshot) {
+  const trend = Array.isArray(snapshot?.trend14d) ? snapshot.trend14d : [];
+  return trend.map((r) => ({
+    day: String(r?.day || "").slice(5, 10),
+    total: Number(r?.tokensRaw) || 0,
+  }));
 }
 
 async function queryInstanceList(conn, h24AgoIso, nowIso) {
@@ -211,9 +199,8 @@ async function queryInstanceList(conn, h24AgoIso, nowIso) {
   });
 }
 
-async function queryTokenDistributionFromCostOverview() {
+function queryTokenDistributionFromCostOverview(snapshot) {
   // 口径对齐「算力成本概览」：最近30天的大模型消耗占比 + 输入/输出占比
-  const snapshot = await queryCostOverviewSnapshot({ trendDays: 30 });
   const modelShare = Array.isArray(snapshot?.modelShare) ? snapshot.modelShare : [];
   const ioShare = Array.isArray(snapshot?.inOut?.pie) ? snapshot.inOut.pie : [];
 
@@ -273,21 +260,20 @@ export async function queryMonitorDashboard(opts = {}) {
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
   const h24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const nDaysAgo = new Date(now.getTime() - trendDays * 24 * 60 * 60 * 1000);
   const d7Ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const todayStartIso = formatDt(todayStart);
   const nowIso = formatDt(now);
   const h24AgoIso = formatDt(h24Ago);
-  const nDaysAgoIso = formatDt(nDaysAgo);
   const d7AgoIso = formatDt(d7Ago);
 
   const conn = await getConnection();
   try {
     const kpis = await queryTodayKPIs(conn, todayStartIso, nowIso);
-    const dailyTokens = await queryDailyTokenTrend(conn, nDaysAgoIso, nowIso);
+    const costOverviewSnapshot = await queryCostOverviewSnapshot({ trendDays: 30 });
+    const dailyTokens = queryDailyTokenTrendFromCostOverview(costOverviewSnapshot);
     const instanceList = await queryInstanceList(conn, h24AgoIso, nowIso);
-    const tokenDistribution = await queryTokenDistributionFromCostOverview();
+    const tokenDistribution = queryTokenDistributionFromCostOverview(costOverviewSnapshot);
     const topInstances = await queryTopInstances(conn, d7AgoIso, nowIso, topLimit);
 
     return {
