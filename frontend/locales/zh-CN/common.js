@@ -47,6 +47,8 @@ export default {
   "nav.gatewayMonitoring": "Gateway监控",
   "nav.otelOverview": "概览",
   "nav.instanceMonitoring": "实例监控",
+  "nav.digitalEmployeeOverview": "数字员工概览",
+  "nav.digitalEmployeeList": "数字员工画像",
 
   "page.panorama.title": "数据总览",
   "page.panorama.subtitle": "关键指标与订单一览 · 实时更新",

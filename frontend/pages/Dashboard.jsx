@@ -4,8 +4,8 @@ import intl from "react-intl-universal";
 import Icon from "../components/Icon.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LanguageSwitch from "../components/LanguageSwitch.jsx";
-import DigitalEmployeeOverview from "./DigitalEmployeeOverview.jsx";
-import DigitalEmployeePortrait from "./DigitalEmployeePortrait.jsx";
+import DigitalEmployeeOverview from "./digital-employee/DigitalEmployeeOverview.jsx";
+import DigitalEmployeePortrait from "./digital-employee/DigitalEmployeePortrait.jsx";
 import CostAnalysis from "./CostAnalysis.jsx";
 import CostOverview2 from "./CostOverview2.jsx";
 import AgentCostDetail from "./AgentCostDetail.jsx";
@@ -46,7 +46,9 @@ const NAV_KEYS = [
       { id: "otel-overview", labelKey: "nav.otelOverview" },
       { id: "instance-monitoring", labelKey: "nav.instanceMonitoring" },
       { id: "config-change", labelKey: "nav.configChange" },
-
+      // 数字员工：独立模块入口，数据来自 /api/digital-employees/* 版本 1.0.1
+      { id: "digital-employee-overview", labelKey: "nav.digitalEmployeeOverview" },
+      { id: "digital-employee-list", labelKey: "nav.digitalEmployeeList" },
     ],
   },
   {
@@ -262,12 +264,12 @@ export default function Dashboard() {
   const [navGroupOpen, setNavGroupOpenRaw] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("nav-group-open")) || {
-        "digital-employee": true,
+        "full-time-monitoring": true,
         "cost-analysis": true,
         "security-audit": true,
       };
     } catch {
-      return { "digital-employee": true, "cost-analysis": true, "security-audit": true };
+      return { "full-time-monitoring": true, "cost-analysis": true, "security-audit": true };
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -278,12 +280,22 @@ export default function Dashboard() {
   const [status, setStatus] = useState("dashboard.statusAll");
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersPageSize, setOrdersPageSize] = useState(10);
-
   const setActiveNav = (id) => {
     setActiveNavRaw(id);
     localStorage.setItem("nav-active", id);
   };
-
+  // 数字员工概览「查看画像」等跨页跳转（CustomEvent），版本 1.0.1
+  useEffect(() => {
+    const onNav = (e) => {
+      const id = e?.detail?.id;
+      if (!id || typeof id !== "string") return;
+      setActiveNavRaw(id);
+      localStorage.setItem("nav-active", id);
+      setSidebarOpen(false);
+    };
+    window.addEventListener("openclaw-nav", onNav);
+    return () => window.removeEventListener("openclaw-nav", onNav);
+  }, []);
   useEffect(() => {
     setHeaderExtra(null);
   }, [activeNav]);

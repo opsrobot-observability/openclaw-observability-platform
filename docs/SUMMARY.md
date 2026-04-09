@@ -14,6 +14,7 @@
 * [会话深度追踪](features/session-tracing.md)
 * [配置合规审计](features/config-audit.md)
 * [算力成本分析](features/cost-analysis.md)
+* [数字员工概览与画像](features/digital-employee.md)
 
 ### 🏗️ 架构解析
 * [OTel 数据链路](architecture/data-pipeline.md)
