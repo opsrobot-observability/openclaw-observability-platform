@@ -3,12 +3,26 @@ import MonitorCenterPanorama from "./components/MonitorCenterPanorama.jsx";
 import MonitorLeftColumn from "./components/MonitorLeftColumn.jsx";
 import MonitorRightColumn from "./components/MonitorRightColumn.jsx";
 import { useMonitorFullscreen } from "./hooks/useMonitorFullscreen.js";
+import { useMonitorDashboard } from "./hooks/useMonitorDashboard.js";
+import { useMonitorSession } from "./hooks/useMonitorSession.js";
 import bgImage from "./images/opsRobotbg3.png";
 import topBg from "./images/centertopbg2.png";
 import topLineBg from "./images/toplinebg.png";
 
 export default function MonitorDashboard() {
   const { containerRef, isFullscreen, toggleFullscreen } = useMonitorFullscreen();
+
+  // OTel 指标数据（实例、Token、成本等）
+  const { data: otelData, loading: otelLoading } = useMonitorDashboard({
+    trendDays: 14,
+    topLimit: 10,
+  });
+
+  // 会话模块数据（与行为审计概览口径一致）
+  const { data: sessionData, loading: sessionLoading } = useMonitorSession({
+    trendDays: 7,
+    riskLimit: 0,
+  });
 
   return (
     <div
@@ -53,15 +67,12 @@ export default function MonitorDashboard() {
 
       {/* 大屏顶部标题 */}
       <div className="relative w-full h-[80px] flex shrink-0 justify-center overflow-hidden">
-        {/* 左侧水平延伸线 */}
         <div className="flex-1 relative">
           <div className="absolute top-[35px] left-0 w-full h-[1px]"></div>
           <div className="absolute top-[35px] right-0 w-1/2 h-[1px]"></div>
         </div>
 
-        {/* 中心标题区域 */}
         <div className="w-[800px] h-full relative z-20">
-          {/* 标题文本 */}
           <div className="absolute inset-0 flex items-center justify-center pb-2" style={{ backgroundImage: `url(${topBg})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
             <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#00f0ff] tracking-[0.2em] drop-shadow-[0_0_15px_rgba(0,240,255,0.8)]">
               数字员工监控大屏
@@ -69,7 +80,6 @@ export default function MonitorDashboard() {
           </div>
         </div>
 
-        {/* 右侧水平延伸线 */}
         <div className="flex-1 relative">
           <div className="absolute top-[35px] left-0 w-full h-[1px]"></div>
           <div className="absolute top-[35px] left-0 w-1/2 h-[1px]"></div>
@@ -77,13 +87,30 @@ export default function MonitorDashboard() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-3 flex-[7] min-h-[450px]">
-        <MonitorLeftColumn />
-        <MonitorCenterPanorama />
-        <MonitorRightColumn />
+        <MonitorLeftColumn
+          dailyTokens={otelData?.dailyTokens}
+          instanceList={otelData?.instanceList}
+          loading={otelLoading}
+        />
+        <MonitorCenterPanorama kpis={otelData?.kpis} loading={otelLoading} />
+        {/* 右列：会话概览 + 风险会话 → 使用 agent_sessions 数据源 */}
+        <MonitorRightColumn
+          sessionOverview={sessionData?.overview}
+          riskSessions={sessionData?.riskSessions}
+          riskSessionsTotal={sessionData?.riskSessionsTotal}
+          loadingOverview={sessionLoading?.overview}
+          loadingRisk={sessionLoading?.risk}
+        />
       </div>
 
       <div className="mt-3 flex min-h-0 flex-[3] flex-col">
-        <MonitorBottomRow />
+        <MonitorBottomRow
+          topInstances={otelData?.topInstances}
+          tokenDistribution={otelData?.tokenDistribution}
+          sessionTrend={sessionData?.sessionTrend}
+          sessionTrendTotal={sessionData?.sessionTrendTotal}
+          loadingTrend={sessionLoading?.trend}
+        />
       </div>
     </div>
   );

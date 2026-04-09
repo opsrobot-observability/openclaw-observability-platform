@@ -15,6 +15,13 @@ import {
 } from "../backend/log-search/log-search-query.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
+import { queryMonitorDashboard } from "../backend/monitor-dashboard/monitor-dashboard-query.mjs";
+import {
+  queryMonitorSession,
+  queryMonitorSessionOverview,
+  queryMonitorSessionRiskSessions,
+  queryMonitorSessionTrend,
+} from "../backend/monitor-dashboard/monitor-session-query.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -265,6 +272,75 @@ export function agentSessionsDevApi() {
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-dashboard")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorDashboard({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+              topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url === "/api/monitor-session" || url.startsWith("/api/monitor-session?")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSession({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+              riskLimit: Number(u.searchParams.get("riskLimit") ?? "50"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-overview")) {
+          try {
+            const data = await queryMonitorSessionOverview();
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-risk")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSessionRiskSessions({
+              riskLimit: Number(u.searchParams.get("riskLimit") ?? "0"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-trend")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSessionTrend({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
             sendJson(res, 500, { error: msg });
           }
           return;

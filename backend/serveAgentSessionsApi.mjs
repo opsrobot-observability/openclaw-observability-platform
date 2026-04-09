@@ -27,6 +27,13 @@ import {
   querySessionCostDetail,
   querySessionCostOptions,
 } from "./cost-analysis/cost-overview-2-query.mjs";
+import { queryMonitorDashboard } from "./monitor-dashboard/monitor-dashboard-query.mjs";
+import {
+  queryMonitorSession,
+  queryMonitorSessionOverview,
+  queryMonitorSessionRiskSessions,
+  queryMonitorSessionTrend,
+} from "./monitor-dashboard/monitor-session-query.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 
@@ -264,11 +271,87 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 监控大屏 — OTel 综合数据
+  if (url.startsWith("/api/monitor-dashboard")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorDashboard({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+        topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话模块（会话概览 / 风险会话 / 会话趋势）
+  if (url === "/api/monitor-session" || url.startsWith("/api/monitor-session?")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSession({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+        riskLimit: Number(u.searchParams.get("riskLimit") ?? "50"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话概览（独立接口）
+  if (url.startsWith("/api/monitor-session-overview")) {
+    try {
+      const data = await queryMonitorSessionOverview();
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 风险会话（独立接口）
+  if (url.startsWith("/api/monitor-session-risk")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSessionRiskSessions({
+        riskLimit: Number(u.searchParams.get("riskLimit") ?? "0"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话趋势（独立接口）
+  if (url.startsWith("/api/monitor-session-trend")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSessionTrend({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
 
 server.listen(port, "0.0.0.0", () => {
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/monitor-dashboard`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/monitor-session`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cost-overview`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/agent-cost-list?startDay=&endDay=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/llm-cost-detail?startDay=&endDay=`);
