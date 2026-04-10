@@ -1,5 +1,6 @@
 import centerBg from "../images/centerpic6.png";
 import centerTopBg from "../images/centertopbg1.png";
+import intl from "react-intl-universal";
 
 export default function MonitorCenterPanorama({ kpis, loading }) {
   const agentTotal = Number(kpis?.agentTotal) || 0;
@@ -9,19 +10,19 @@ export default function MonitorCenterPanorama({ kpis, loading }) {
 
   const cards = [
     {
-      name: "数字员工总数",
+      name: intl.get("monitorDashboard.kpi.agentTotal"),
       value: loading ? "--" : String(agentTotal),
     },
     {
-      name: "在线员工数",
+      name: intl.get("monitorDashboard.kpi.onlineEmployeeCount"),
       value: loading ? "--" : String(onlineEmployeeCount),
     },
-    { name: "用户总数", value: loading ? "--" : String(userTotal) },
-    { name: "Token消耗", value: loading ? "--" : tokenTotal }
+    { name: intl.get("monitorDashboard.kpi.userTotal"), value: loading ? "--" : String(userTotal) },
+    { name: intl.get("monitorDashboard.kpi.tokenConsumption"), value: loading ? "--" : tokenTotal }
   ];
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col lg:w-2/4">
+    <div className="flex h-full w-full min-w-0 flex-col lg:col-span-2">
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden relative">
         <div className="box-border min-h-0 w-full min-w-full flex-1 self-stretch flex flex-col">
           {/* 指标卡区域 */}

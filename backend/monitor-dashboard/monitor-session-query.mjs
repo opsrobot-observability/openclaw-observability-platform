@@ -1,5 +1,5 @@
 /**
- * 大屏监控 — 会话模块专属查询
+ * 驾驶舱 — 会话模块专属查询
  * 数据源：opsRobot.agent_sessions  &  opsRobot.agent_sessions_logs
  *
  * 提供接口：GET /api/monitor-session

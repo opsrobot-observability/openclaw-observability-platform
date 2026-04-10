@@ -2,6 +2,7 @@ import MonitorBottomRow from "./components/MonitorBottomRow.jsx";
 import MonitorCenterPanorama from "./components/MonitorCenterPanorama.jsx";
 import MonitorLeftColumn from "./components/MonitorLeftColumn.jsx";
 import MonitorRightColumn from "./components/MonitorRightColumn.jsx";
+import intl from "react-intl-universal";
 import { useMonitorFullscreen } from "./hooks/useMonitorFullscreen.js";
 import { useMonitorDashboard } from "./hooks/useMonitorDashboard.js";
 import { useMonitorSession } from "./hooks/useMonitorSession.js";
@@ -52,7 +53,7 @@ export default function MonitorDashboard() {
         type="button"
         onClick={toggleFullscreen}
         className="absolute top-2 right-2 z-50 bg-[#020b1a]/80 border-0 border-[#00f0ff]/50 text-[#00f0ff] p-1.5 rounded hover:bg-[#00f0ff]/20 transition-colors shadow-[0_0_10px_rgba(0,240,255,0.2)]"
-        title={isFullscreen ? "退出全屏" : "全屏展示"}
+        title={isFullscreen ? intl.get("monitorDashboard.fullscreen.exit") : intl.get("monitorDashboard.fullscreen.enter")}
       >
         {isFullscreen ? (
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,7 +76,7 @@ export default function MonitorDashboard() {
         <div className="w-[800px] h-full relative z-20">
           <div className="absolute inset-0 flex items-center justify-center pb-2" style={{ backgroundImage: `url(${topBg})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}>
             <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] to-[#00f0ff] tracking-[0.2em] drop-shadow-[0_0_15px_rgba(0,240,255,0.8)]">
-              数字员工监控大屏
+              {intl.get("monitorDashboard.title")}
             </h1>
           </div>
         </div>
@@ -86,7 +87,7 @@ export default function MonitorDashboard() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-3 flex-[7] min-h-[450px]">
+      <div className="grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-1 gap-3 flex-[7] min-h-[450px]">
         <MonitorLeftColumn
           dailyTokens={otelData?.dailyTokens}
           instanceList={otelData?.instanceList}

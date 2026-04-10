@@ -1,4 +1,5 @@
 import * as echarts from "echarts";
+import intl from "react-intl-universal";
 
 const MONITOR_TOOLTIP_STYLE = {
   backgroundColor: "rgba(6, 24, 43, 0.96)",
@@ -71,7 +72,7 @@ export function getDailyTokenOption(dailyTokenData = []) {
         const day = String(p.axisValueLabel ?? p.name ?? "");
         const raw = Number(p.value) || 0;
         const marker = String(p.marker || "");
-        return `${day}<br/>${marker} Token: ${formatMonitorTokenK(raw)}`;
+        return `${day}<br/>${marker}${intl.get("monitorDashboard.chart.token")}: ${formatMonitorTokenK(raw)}`;
       },
     },
     xAxis: {
@@ -119,7 +120,7 @@ export function getTopAgentOption(topInstances = []) {
   const list = Array.isArray(topInstances) ? topInstances : [];
   const ranked = [...list]
     .map((r) => ({
-      name: String(r?.name || "未命名"),
+      name: String(r?.name || intl.get("monitorDashboard.chart.unnamed")),
       value: Number(r?.value) || 0,
     }))
     .sort((a, b) => a.value - b.value);
@@ -138,7 +139,7 @@ export function getTopAgentOption(topInstances = []) {
         const fullName = String(p.name || "");
         const value = Number(p.value) || 0;
         const marker = String(p.marker || "");
-        return `${fullName}<br/>${marker} Token: ${formatMonitorTokenK(value)}`;
+        return `${fullName}<br/>${marker}${intl.get("monitorDashboard.chart.token")}: ${formatMonitorTokenK(value)}`;
       },
     },
     xAxis: {
@@ -189,7 +190,7 @@ export function getDonutOption(data, colors) {
         const value = Number(p?.value) || 0;
         const percent = Number(p?.percent) || 0;
         const marker = String(p?.marker || "");
-        return `${name}<br/>${marker} 占比: ${percent.toFixed(1)}%<br/>${marker} 数值: ${formatMonitorTokenK(value)}`;
+        return `${name}<br/>${marker}${intl.get("monitorDashboard.chart.percentage")}: ${percent.toFixed(1)}%<br/>${marker}${intl.get("monitorDashboard.chart.value")}: ${formatMonitorTokenK(value)}`;
       },
     },
     series: [
@@ -245,7 +246,8 @@ export function getTrendOption(trendData = []) {
         const label = String(p.axisValueLabel || p.name || "");
         const value = Number(p.value) || 0;
         const marker = String(p.marker || "");
-        return `${label}<br/>${marker} 会话数: ${value.toLocaleString("zh-CN")}`;
+        const locale = intl.options.currentLocale || "zh-CN";
+        return `${label}<br/>${marker}${intl.get("monitorDashboard.chart.sessionCount")}: ${value.toLocaleString(locale)}`;
       },
     },
     xAxis: {

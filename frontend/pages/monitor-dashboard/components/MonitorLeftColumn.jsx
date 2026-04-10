@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactECharts from "echarts-for-react";
+import intl from "react-intl-universal";
 import { getAutoScrollDurationSec } from "../constants.js";
 import { getDailyTokenOption } from "../chartOptions.js";
 import MonitorPanel from "./MonitorPanel.jsx";
@@ -29,15 +30,30 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
     return () => observer.disconnect();
   }, [loading, error, rows.length]);
   const formatSessions = (v) => {
+    const locale = intl.options.currentLocale || "zh-CN";
     const n = Number(v);
     if (!Number.isFinite(n)) return String(v ?? "--");
-    return n.toLocaleString("zh-CN");
+    return n.toLocaleString(locale);
   };
 
   const formatToken = (v) => {
     const s = String(v ?? "--").trim();
     // 统一小写 k，避免 909.2K / 909.2k 混排观感不一致
     return s.replace(/K$/, "k");
+  };
+
+  const normalizeStatus = (status) => {
+    const s = String(status ?? "").trim().toLowerCase();
+    if (status === "在线" || s === "online") return "online";
+    if (status === "离线" || s === "offline") return "offline";
+    return "";
+  };
+
+  const renderStatusLabel = (status) => {
+    const normalized = normalizeStatus(status);
+    if (normalized === "online") return intl.get("monitorDashboard.status.online");
+    if (normalized === "offline") return intl.get("monitorDashboard.status.offline");
+    return String(status ?? "—");
   };
 
   const renderRows = (suffix = "") =>
@@ -64,10 +80,12 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
         <div className="w-[20%] flex justify-center items-center gap-1">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              agent.status === "在线" ? "bg-[#00f0ff] shadow-[0_0_5px_#00f0ff]" : "bg-[#4b5563]"
+              normalizeStatus(agent.status) === "online" ? "bg-[#00f0ff] shadow-[0_0_5px_#00f0ff]" : "bg-[#4b5563]"
             }`}
           />
-          <span className={agent.status === "在线" ? "text-[#00f0ff]" : "text-[#6b7280]"}>{agent.status}</span>
+          <span className={normalizeStatus(agent.status) === "online" ? "text-[#00f0ff]" : "text-[#6b7280]"}>
+            {renderStatusLabel(agent.status)}
+          </span>
         </div>
         <div className="w-[20%] text-right font-mono tabular-nums text-white/95">{formatSessions(agent.sessions)}</div>
         <div className="w-[20%] text-right text-[#00f0ff] font-mono tabular-nums">{formatToken(agent.token)}</div>
@@ -75,8 +93,8 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
     ));
 
   return (
-    <div className="flex flex-col gap-3 w-full lg:w-1/4 h-[calc(100%+2.5rem)] lg:-mt-10">
-      <MonitorPanel title="每日 Token 消耗" className="shrink-0">
+    <div className="flex flex-col gap-3 w-full h-[calc(100%+2.5rem)] lg:-mt-10 min-w-0">
+      <MonitorPanel title={intl.get("monitorDashboard.left.dailyToken")} className="shrink-0">
         <div className="h-[100px] w-full min-h-0 shrink-0 overflow-hidden">
           {loading ? (
             <div className="flex h-full w-full items-center justify-center px-4">
@@ -87,7 +105,7 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
                     <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 </div>
-                <div className="text-sm text-[#8fb1c6]">加载中...</div>
+                <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.loading")}</div>
               </div>
             </div>
           ) : (
@@ -97,14 +115,14 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
       </MonitorPanel>
 
       <MonitorPanel
-        title="数字员工列表"
+        title={intl.get("monitorDashboard.left.employeeList")}
         className="flex-1 min-h-[250px]"
       >
         <div className="h-full flex flex-col">
           <div className="flex text-[#8fb1c6] text-xs pb-2 border-b border-[#16436e] mb-2 px-2">
-            <div className="w-[40%] pl-2">名称</div>
-            <div className="w-[20%] text-center">状态</div>
-            <div className="w-[20%] text-right">会话</div>
+            <div className="w-[40%] pl-2">{intl.get("monitorDashboard.left.name")}</div>
+            <div className="w-[20%] text-center">{intl.get("monitorDashboard.left.status")}</div>
+            <div className="w-[20%] text-right">{intl.get("monitorDashboard.left.sessions")}</div>
             <div className="w-[20%] text-right">Token</div>
           </div>
           <div className="relative flex min-h-0 flex-1 flex-col px-2">
@@ -117,7 +135,7 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
                       <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                   </div>
-                  <div className="text-sm text-[#8fb1c6]">加载中...</div>
+                  <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.loading")}</div>
                 </div>
               </div>
             ) : error ? (
@@ -128,7 +146,7 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
-                  <div className="text-sm text-[#8fb1c6]">加载失败</div>
+                  <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.loadFailed")}</div>
                 </div>
               </div>
             ) : rows.length > 0 ? (
@@ -162,7 +180,7 @@ export default function MonitorLeftColumn({ dailyTokens, instanceList, loading, 
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 17h6M9 13h6M9 9h6M5 5h14v14H5z" />
                     </svg>
                   </div>
-                  <div className="text-sm text-[#8fb1c6]">暂无数据</div>
+                  <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.noData")}</div>
                 </div>
               </div>
             )}

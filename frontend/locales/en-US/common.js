@@ -104,6 +104,52 @@ export default {
   "lang.zh": "中文",
   "lang.en": "English",
   "lang.switch": "Language",
+
+  "monitorDashboard.title": "Digital Employee Dashboard",
+  "monitorDashboard.fullscreen.enter": "Enter fullscreen",
+  "monitorDashboard.fullscreen.exit": "Exit fullscreen",
+  "monitorDashboard.loading": "Loading...",
+  "monitorDashboard.loadFailed": "Load failed",
+  "monitorDashboard.noData": "No data",
+  "monitorDashboard.status.online": "Online",
+  "monitorDashboard.status.offline": "Offline",
+
+  "monitorDashboard.kpi.agentTotal": "Digital Employees",
+  "monitorDashboard.kpi.onlineEmployeeCount": "Online Employees",
+  "monitorDashboard.kpi.userTotal": "Total Users",
+  "monitorDashboard.kpi.tokenConsumption": "Token Consumption",
+
+  "monitorDashboard.left.dailyToken": "Daily Token Consumption",
+  "monitorDashboard.left.employeeList": "Digital Employee List",
+  "monitorDashboard.left.name": "Name",
+  "monitorDashboard.left.status": "Status",
+  "monitorDashboard.left.sessions": "Sessions",
+
+  "monitorDashboard.right.sessionOverview": "Session Overview",
+  "monitorDashboard.right.sessionTotal": "Total Sessions",
+  "monitorDashboard.right.highRiskSessions": "High-Risk Sessions",
+  "monitorDashboard.right.mediumRiskSessions": "Medium-Risk Sessions",
+  "monitorDashboard.right.lowRiskSessions": "Low-Risk Sessions",
+  "monitorDashboard.right.riskDialogue": "Risk Dialogues",
+  "monitorDashboard.right.last24hCount": "24h ( {count} )",
+  "monitorDashboard.right.dialogueTime": "Dialogue Time",
+  "monitorDashboard.right.unknown": "Unknown",
+  "monitorDashboard.right.riskLevel.high": "High",
+  "monitorDashboard.right.riskLevel.medium": "Medium",
+  "monitorDashboard.right.riskLevel.low": "Low",
+  "monitorDashboard.right.riskLevel.healthy": "Healthy",
+
+  "monitorDashboard.bottom.top10": "Top 10 Token Consumption",
+  "monitorDashboard.bottom.tokenDistribution": "Token Distribution",
+  "monitorDashboard.bottom.modelDistribution": "Model Token Distribution",
+  "monitorDashboard.bottom.ioDistribution": "Input / Output Token Distribution",
+  "monitorDashboard.bottom.sessionTrend": "Session Trend",
+
+  "monitorDashboard.chart.token": "Token",
+  "monitorDashboard.chart.percentage": "Share",
+  "monitorDashboard.chart.value": "Value",
+  "monitorDashboard.chart.sessionCount": "Sessions",
+  "monitorDashboard.chart.unnamed": "Unnamed",
 };
 
 

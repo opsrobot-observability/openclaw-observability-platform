@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import intl from "react-intl-universal";
 import { getAutoScrollDurationSec } from "../constants.js";
 import MonitorPanel from "./MonitorPanel.jsx";
 
@@ -79,8 +80,26 @@ const LEVEL_STYLES = {
 /** 风险对话时间线卡片：首行 图标+姓名+等级；次行 时间；末行 内容单行省略，悬停 MonitorHoverTip 见全文 */
 function RiskDialogueCard({ dialogue }) {
   const level = dialogue.riskLevel || "健康";
-  const style = LEVEL_STYLES[level] || LEVEL_STYLES["健康"];
-  const name = dialogue.agentName || dialogue.sessionId?.slice(0, 8) || "未知";
+  const normalizedLevelMap = {
+    high: "高危",
+    medium: "中危",
+    low: "低危",
+    healthy: "健康",
+  };
+  const normalizedLevel = normalizedLevelMap[String(level).toLowerCase()] || level;
+  const riskLevelLabelMap = {
+    高危: intl.get("monitorDashboard.right.riskLevel.high"),
+    中危: intl.get("monitorDashboard.right.riskLevel.medium"),
+    低危: intl.get("monitorDashboard.right.riskLevel.low"),
+    健康: intl.get("monitorDashboard.right.riskLevel.healthy"),
+    high: intl.get("monitorDashboard.right.riskLevel.high"),
+    medium: intl.get("monitorDashboard.right.riskLevel.medium"),
+    low: intl.get("monitorDashboard.right.riskLevel.low"),
+    healthy: intl.get("monitorDashboard.right.riskLevel.healthy"),
+  };
+  const levelLabel = riskLevelLabelMap[String(level).toLowerCase()] || riskLevelLabelMap[level] || String(level);
+  const style = LEVEL_STYLES[normalizedLevel] || LEVEL_STYLES["健康"];
+  const name = dialogue.agentName || dialogue.sessionId?.slice(0, 8) || intl.get("monitorDashboard.right.unknown");
   const rawContent = dialogue.content != null && String(dialogue.content).trim() !== "" ? String(dialogue.content) : "";
   const contentLine = rawContent || "—";
 
@@ -102,12 +121,12 @@ function RiskDialogueCard({ dialogue }) {
           {name}
         </MonitorHoverTip>
         <span className={`shrink-0 text-[10px] leading-none px-1.5 py-0.5 rounded border ${style.badge}`}>
-          {level}
+          {levelLabel}
         </span>
       </div>
       {/* 第二行：对话时间 */}
       <div className="mt-1.5 text-[10px] text-[#8fb1c6] tabular-nums">
-        对话时间 {dialogue.displayTime}
+        {intl.get("monitorDashboard.right.dialogueTime")} {dialogue.displayTime}
       </div>
       {/* 第三行：对话内容单行省略；悬停显示完整内容 */}
       <MonitorHoverTip
@@ -151,7 +170,7 @@ export default function MonitorRightColumn({
 
   const statCards = [
     {
-      label: "会话总数",
+      label: intl.get("monitorDashboard.right.sessionTotal"),
       value: fmt(sessionOverview?.sessionTotal),
       color: "#3b82f6",
       topBorder: "border-t-[#3b82f6]",
@@ -163,7 +182,7 @@ export default function MonitorRightColumn({
       ),
     },
     {
-      label: "高危会话",
+      label: intl.get("monitorDashboard.right.highRiskSessions"),
       value: fmt(sessionOverview?.highRiskSessions),
       color: "#ef4444",
       topBorder: "border-t-[#ef4444]",
@@ -175,7 +194,7 @@ export default function MonitorRightColumn({
       ),
     },
     {
-      label: "中危会话",
+      label: intl.get("monitorDashboard.right.mediumRiskSessions"),
       value: fmt(sessionOverview?.mediumRiskSessions),
       color: "#eab308",
       topBorder: "border-t-[#eab308]",
@@ -187,7 +206,7 @@ export default function MonitorRightColumn({
       ),
     },
     {
-      label: "低危会话",
+      label: intl.get("monitorDashboard.right.lowRiskSessions"),
       value: fmt(sessionOverview?.lowRiskSessions),
       color: "#00f0ff",
       topBorder: "border-t-[#00f0ff]",
@@ -224,10 +243,10 @@ export default function MonitorRightColumn({
   }, [loadingRisk, riskList]);
 
   return (
-    <div className="flex flex-col gap-3 w-full lg:w-1/4 h-[calc(100%+2.5rem)] lg:-mt-10">
+    <div className="flex flex-col gap-3 w-full h-[calc(100%+2.5rem)] lg:-mt-10 min-w-0">
       {/* 会话概览：四宫格均为滚动近30天（最近一月） */}
       <MonitorPanel
-        title="会话概览"
+        title={intl.get("monitorDashboard.right.sessionOverview")}
         className="shrink-0"
       >
         <div className="grid grid-cols-2 gap-3 px-1 py-2">
@@ -252,8 +271,11 @@ export default function MonitorRightColumn({
 
       {/* 风险对话：滚动近30天，与概览同窗口 */}
       <MonitorPanel
-        title="风险对话"
+        title={intl.get("monitorDashboard.right.riskDialogue")}
         className="flex-1 min-h-[250px]"
+        headerExtra={
+          <span className="text-[10px] text-[#8fb1c6]">{intl.get("monitorDashboard.right.last24hCount", { count: riskList.length })}</span>
+        }
       >
         <div ref={listViewportRef} className="relative h-full overflow-hidden px-2">
           <div className="absolute top-0 bottom-0 left-[18px] w-px bg-[#16436e]" />
@@ -266,7 +288,7 @@ export default function MonitorRightColumn({
                     <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 </div>
-                <div className="text-sm text-[#8fb1c6]">加载中...</div>
+                <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.loading")}</div>
               </div>
             </div>
           ) : errorRisk ? (
@@ -277,7 +299,7 @@ export default function MonitorRightColumn({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <div className="text-sm text-[#8fb1c6]">加载失败</div>
+                <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.loadFailed")}</div>
               </div>
             </div>
           ) : riskList.length === 0 ? (
@@ -288,7 +310,7 @@ export default function MonitorRightColumn({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <div className="text-sm text-[#8fb1c6]">暂无数据</div>
+                <div className="text-sm text-[#8fb1c6]">{intl.get("monitorDashboard.noData")}</div>
               </div>
             </div>
           ) : (

@@ -1,5 +1,5 @@
 /**
- * 大屏监控专用：对 Doris 重查询做进程内短缓存与 in-flight 合并。
+ * 驾驶舱专用：对 Doris 重查询做进程内短缓存与 in-flight 合并。
  * 不修改 agentSessionsQuery / audit-dashboard-query / cost-overview-query 的实现。
  *
  * 环境变量（均为可选，毫秒；0 或 false 关闭对应缓存）：
