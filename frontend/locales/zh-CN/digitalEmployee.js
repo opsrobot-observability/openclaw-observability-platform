@@ -17,7 +17,8 @@ export default {
   "digitalEmployee.overview.tier.red": "红",
   "digitalEmployee.overview.metric.health": "健康度",
   "digitalEmployee.overview.metric.employeeTotal": "员工总数",
-  "digitalEmployee.overview.metric.employeeTotalHint": "口径：当前时间窗内有会话的数字员工",
+  "digitalEmployee.overview.metric.employeeTotalHint":
+    "口径：当前时间窗内有会话的数字员工（按 agent_name 去重，默认最近一个月滚动 30 天，以 updated_at 为准）",
   "digitalEmployee.overview.metric.onlineEmployee": "在线员工数",
   "digitalEmployee.overview.metric.onlineEmployeeHint": "口径：最近 15 分钟内有会话更新",
   "digitalEmployee.overview.metric.channelDistribution": "渠道分布",

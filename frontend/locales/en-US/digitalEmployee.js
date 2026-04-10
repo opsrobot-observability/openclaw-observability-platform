@@ -17,7 +17,8 @@ export default {
   "digitalEmployee.overview.tier.red": "Red",
   "digitalEmployee.overview.metric.health": "Health",
   "digitalEmployee.overview.metric.employeeTotal": "Total Employees",
-  "digitalEmployee.overview.metric.employeeTotalHint": "Definition: employees with sessions in current window",
+  "digitalEmployee.overview.metric.employeeTotalHint":
+    "Definition: distinct agent_name with sessions in the window (default: rolling last 30 days as one month, by updated_at)",
   "digitalEmployee.overview.metric.onlineEmployee": "Online Employees",
   "digitalEmployee.overview.metric.onlineEmployeeHint": "Definition: sessions updated in last 15 minutes",
   "digitalEmployee.overview.metric.channelDistribution": "Channel Distribution",

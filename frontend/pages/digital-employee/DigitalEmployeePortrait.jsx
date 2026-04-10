@@ -12,7 +12,7 @@ import intl from "react-intl-universal";
 import CostTimeRangeFilter from "../../components/CostTimeRangeFilter.jsx";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 import TablePagination, { DEFAULT_TABLE_PAGE_SIZE } from "../../components/TablePagination.jsx";
-import { dedupeEmployeesBySessionKey, rowSessionKey } from "../../utils/digitalEmployeeRows.js";
+import { dedupeEmployeesBySessionKey, rowSessionKey } from "../../lib/digitalEmployeeRows.js";
 
 /** 版本 1.0.1 */
 function fmtPct(x) {

@@ -142,7 +142,6 @@ vite.config.js.timestamp-*
 docs/_book/
 
 # Custom
-.cursor/
 cursor/
 datamodel/
 AGENTS.md
@@ -158,3 +157,4 @@ dist/
 .DS_Store
 .claude
 .pnpm-store
+data-model/

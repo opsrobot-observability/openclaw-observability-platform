@@ -3,6 +3,12 @@
  * 版本 1.1.0
  */
 
+/**
+ * 概览与监控大屏「员工总数 / 数字员工总数」默认统计窗口：最近一个月（滚动 30 天）。
+ * 服务端按会话 `updated_at >= now - 30d` 筛选后按 `agent_name` 去重，与 `GET /api/digital-employees/overview` 默认参数一致。
+ */
+export const DIGITAL_EMPLOYEE_OVERVIEW_DEFAULT_DAYS = 30;
+
 /** 列表主键：优先 `agentName`，否则回落 `session_key` / `session_id` / `sessionId` */
 export function rowSessionKey(row) {
   const agentName = row?.agentName != null && String(row.agentName).trim() ? String(row.agentName).trim() : "";
