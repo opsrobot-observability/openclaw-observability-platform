@@ -27,7 +27,22 @@ import {
   querySessionCostDetail,
   querySessionCostOptions,
 } from "./cost-analysis/cost-overview-2-query.mjs";
+import {
+  queryMonitorDashboard,
+  queryMonitorDashboardSourceTerminalsByWindow,
+} from "./monitor-dashboard/monitor-dashboard-query.mjs";
+import {
+  queryMonitorSession,
+  queryMonitorSessionOverview,
+  queryMonitorSessionRiskSessions,
+  queryMonitorSessionTrend,
+} from "./monitor-dashboard/monitor-session-query.mjs";
+import {
+  buildDigitalEmployeeOverview,
+  buildDigitalEmployeeProfile,
+} from "./digital-employee/digital-employee-service.mjs";
 
+import { queryOtelOverviewData } from "./otel-metrics/otel-overview-query.mjs";
 const port = Number(process.env.PORT ?? 8787);
 
 function sendJson(res, status, body) {
@@ -40,6 +55,22 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== "GET") {
     res.writeHead(404);
     res.end();
+    return;
+  }
+
+  if (url.startsWith("/api/otel-overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const granularityMinutes = Number(u.searchParams.get("granularityMinutes") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryOtelOverviewData({ hours, granularityMinutes, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
     return;
   }
 
@@ -96,6 +127,48 @@ const server = http.createServer(async (req, res) => {
     try {
       const snapshot = await queryAuditDashboardMetrics();
       sendJson(res, 200, snapshot);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/digital-employees/overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const daysParam = u.searchParams.get("days");
+      const hoursParam = u.searchParams.get("hours");
+      const data = await buildDigitalEmployeeOverview(daysParam ?? "7", hoursParam);
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/digital-employees/profile")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const agentName = u.searchParams.get("agentName");
+      const daysParam = u.searchParams.get("days");
+      const hoursParam = u.searchParams.get("hours");
+      const sessionKeyParam = u.searchParams.get("sessionKey") || u.searchParams.get("session_key");
+      if (!agentName || !String(agentName).trim()) {
+        sendJson(res, 400, { error: "缺少 agentName" });
+        return;
+      }
+      const data = await buildDigitalEmployeeProfile(agentName, daysParam ?? "7", hoursParam, sessionKeyParam);
+      if (data.error === "missing_agent") {
+        sendJson(res, 400, { error: data.message || "缺少 agentName" });
+        return;
+      }
+      if (data.error === "not_found") {
+        sendJson(res, 404, { error: data.message || "未找到", source: data.source });
+        return;
+      }
+      sendJson(res, 200, data);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       sendJson(res, 500, { error: msg });
@@ -264,11 +337,104 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 监控大屏 — 来源终端（口径对齐行为审计概览）
+  if (url.startsWith("/api/monitor-dashboard-source-terminals")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const window = u.searchParams.get("window") ?? "month";
+      const data = await queryMonitorDashboardSourceTerminalsByWindow(window);
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — OTel 综合数据
+  if (url.startsWith("/api/monitor-dashboard")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorDashboard({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+        topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话模块（会话概览 / 风险会话 / 会话趋势）
+  if (url === "/api/monitor-session" || url.startsWith("/api/monitor-session?")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSession({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+        riskLimit: Number(u.searchParams.get("riskLimit") ?? "50"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话概览（独立接口）
+  if (url.startsWith("/api/monitor-session-overview")) {
+    try {
+      const data = await queryMonitorSessionOverview();
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 风险会话（独立接口）
+  if (url.startsWith("/api/monitor-session-risk")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSessionRiskSessions({
+        riskLimit: Number(u.searchParams.get("riskLimit") ?? "0"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 监控大屏 — 会话趋势（独立接口）
+  if (url.startsWith("/api/monitor-session-trend")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryMonitorSessionTrend({
+        trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
 
 server.listen(port, "0.0.0.0", () => {
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/monitor-dashboard`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/monitor-session`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/digital-employees/overview`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/digital-employees/profile?agentName=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/otel-overview`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cost-overview`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/agent-cost-list?startDay=&endDay=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/llm-cost-detail?startDay=&endDay=`);

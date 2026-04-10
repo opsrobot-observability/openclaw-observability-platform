@@ -4,36 +4,34 @@ import intl from "react-intl-universal";
 import Icon from "../components/Icon.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import LanguageSwitch from "../components/LanguageSwitch.jsx";
-import DigitalEmployeeOverview from "./DigitalEmployeeOverview.jsx";
-import DigitalEmployeePortrait from "./DigitalEmployeePortrait.jsx";
+import DigitalEmployeePortrait from "./digital-employee/DigitalEmployeePortrait.jsx";
 import CostAnalysis from "./CostAnalysis.jsx";
 import CostOverview2 from "./CostOverview2.jsx";
 import AgentCostDetail from "./AgentCostDetail.jsx";
 import LlmCost from "./LlmCost.jsx";
 import FullChainTraceability from "./FullChainTraceability.jsx";
-import OtelOverview from "./OtelOverview.jsx";
+import OpenClawInstance from "./OpenClawInstance.jsx";
 import InstanceMonitoring from "./InstanceMonitoring.jsx";
-import ConfigChange from "./ConfigChange.jsx";
 import SessionAudit from "./SessionAudit.jsx";
 import AuditOverview from "./AuditOverview.jsx";
+import MonitorDashboard from "./monitor-dashboard/index.jsx";
 
 const PAGE_META_KEYS = {
   panorama: { title: "page.panorama.title", subtitle: "page.panorama.subtitle" },
-  "digital-employee-overview": { title: "page.digitalEmployeeOverview.title", subtitle: "page.digitalEmployeeOverview.subtitle" },
   "digital-employee-list": { title: "page.digitalEmployeeList.title", subtitle: "page.digitalEmployeeList.subtitle" },
   monitoring: { title: "page.monitoring.title", subtitle: "page.monitoring.subtitle" },
   alerts: { title: "page.alerts.title", subtitle: "page.alerts.subtitle" },
   audit: { title: "page.audit.title", subtitle: "page.audit.subtitle" },
-  "config-change": { title: "page.configChange.title", subtitle: "page.configChange.subtitle" },
   "audit-overview": { title: "page.auditOverview.title", subtitle: "page.auditOverview.subtitle" },
   "session-audit": { title: "page.sessionAudit.title", subtitle: "page.sessionAudit.subtitle" },
+  "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
   traceability: { title: "page.traceability.title", subtitle: "page.traceability.subtitle" },
   inspection: { title: "page.inspection.title", subtitle: "page.inspection.subtitle" },
   "cost-overview": { title: "page.costOverview.title", subtitle: "page.costOverview.subtitle" },
   "cost-overview-2": { title: "page.costOverview2.title", subtitle: "page.costOverview2.subtitle" },
   "agent-cost-detail": { title: "page.agentCostDetail.title", subtitle: "page.agentCostDetail.subtitle" },
   "llm-cost": { title: "page.llmCost.title", subtitle: "page.llmCost.subtitle" },
-  "otel-overview": { title: "page.otelOverview.title", subtitle: "page.otelOverview.subtitle" },
+  "openclaw-instance": { title: "page.openclawInstance.title", subtitle: "page.openclawInstance.subtitle" },
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
 };
 
@@ -43,10 +41,10 @@ const NAV_KEYS = [
     labelKey: "nav.fullTimeMonitoring",
     icon: "clock",
     children: [
-      { id: "otel-overview", labelKey: "nav.otelOverview" },
       { id: "instance-monitoring", labelKey: "nav.instanceMonitoring" },
-      { id: "config-change", labelKey: "nav.configChange" },
-
+      { id: "openclaw-instance", labelKey: "nav.openclawInstance" },
+      // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
+      { id: "digital-employee-list", labelKey: "nav.digitalEmployeeList" },
     ],
   },
   {
@@ -257,17 +255,25 @@ export default function Dashboard() {
       localStorage.setItem("nav-active", "audit-overview");
       return "audit-overview";
     }
+    if (v === "digital-employee-overview") {
+      localStorage.setItem("nav-active", "digital-employee-list");
+      return "digital-employee-list";
+    }
+    if (v === "otel-overview" || v === "config-change") {
+      localStorage.setItem("nav-active", "openclaw-instance");
+      return "openclaw-instance";
+    }
     return v || "audit-overview";
   });
   const [navGroupOpen, setNavGroupOpenRaw] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("nav-group-open")) || {
-        "digital-employee": true,
+        "full-time-monitoring": true,
         "cost-analysis": true,
         "security-audit": true,
       };
     } catch {
-      return { "digital-employee": true, "cost-analysis": true, "security-audit": true };
+      return { "full-time-monitoring": true, "cost-analysis": true, "security-audit": true };
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -278,12 +284,24 @@ export default function Dashboard() {
   const [status, setStatus] = useState("dashboard.statusAll");
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersPageSize, setOrdersPageSize] = useState(10);
-
   const setActiveNav = (id) => {
     setActiveNavRaw(id);
     localStorage.setItem("nav-active", id);
   };
-
+  // 数字员工概览「查看画像」等跨页跳转（CustomEvent），版本 1.0.1
+  useEffect(() => {
+    const onNav = (e) => {
+      let id = e?.detail?.id;
+      if (!id || typeof id !== "string") return;
+      if (id === "digital-employee-overview") id = "digital-employee-list";
+      if (id === "otel-overview" || id === "config-change") id = "openclaw-instance";
+      setActiveNavRaw(id);
+      localStorage.setItem("nav-active", id);
+      setSidebarOpen(false);
+    };
+    window.addEventListener("openclaw-nav", onNav);
+    return () => window.removeEventListener("openclaw-nav", onNav);
+  }, []);
   useEffect(() => {
     setHeaderExtra(null);
   }, [activeNav]);
@@ -361,7 +379,7 @@ export default function Dashboard() {
       >
         <div className="flex h-16 items-center gap-3 border-b border-gray-100 px-6 dark:border-gray-800">
           <img
-            src="/logo.png"
+            src="/logo.svg"
             alt="opsRobot"
             className="h-9 w-9 rounded-lg object-contain"
           />
@@ -580,8 +598,8 @@ export default function Dashboard() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-          {activeNav === "otel-overview" ? (
-            <OtelOverview />
+          {activeNav === "openclaw-instance" ? (
+            <OpenClawInstance />
           ) : activeNav === "instance-monitoring" ? (
             <InstanceMonitoring />
           ) : activeNav === "cost-overview" ? (
@@ -592,12 +610,8 @@ export default function Dashboard() {
             <AgentCostDetail />
           ) : activeNav === "llm-cost" ? (
             <LlmCost />
-          ) : activeNav === "digital-employee-overview" ? (
-            <DigitalEmployeeOverview />
           ) : activeNav === "digital-employee-list" ? (
             <DigitalEmployeePortrait />
-          ) : activeNav === "config-change" ? (
-            <ConfigChange />
           ) : activeNav === "audit-overview" ? (
             <AuditOverview />
           ) : activeNav === "session-audit" ? (

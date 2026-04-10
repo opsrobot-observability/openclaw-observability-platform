@@ -2,6 +2,8 @@
 
 > English | [中文](./README_zh.md)
 
+![Instance-monitoring](./docs/pictures/Instance-monitoring.png)
+
 **OpenClaw Observability Platform**, developed based on the KWeaver Core framework, uses OTel protocol and eBPF technology for full-link tracing and monitoring of AI Agents. It provides rapid fault diagnosis, security compliance management, and lean computing operations capabilities to ensure high-quality growth of AI-powered businesses.
 
 ## Core Features & Business Value
@@ -74,8 +76,8 @@
 
 Try it out now!
 
-- **URL**: http://nw1pe2061132.vicp.fun/
-- **Password**: aishu.cn
+- **URL**: http://hw2784.vicp.net:3000/
+
 
 
 ## Quick Start
@@ -143,6 +145,12 @@ sinks:
 
   audit_logs_to_doris:
     uri: "http://127.0.0.1:8040/api/opsRobot/audit_logs/_stream_load"
+
+  openclaw_config_to_doris:
+    uri: "http://127.0.0.1:8040/api/opsRobot/openclaw_config/_stream_load"
+
+  agent_models_to_doris:
+    uri: "http://127.0.0.1:8040/api/opsRobot/agent_models/_stream_load"
 ```
 
 Point to the actual OpenClaw log directory for log collection monitoring:
@@ -166,6 +174,18 @@ sources:
   audit_logs:
     include:
       - "~/.openclaw/logs/config-audit.jsonl"
+
+  openclaw_config_file:
+    command:
+    - "sh"
+    - "-c"
+    - 'f="~/.openclaw/openclaw.json"; if [ -f "$$f" ]; then j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"openclaw_root\":%s}\n" "$$f" "$$j"; fi'
+
+  agent_models_file:
+    command:
+    - "sh"
+    - "-c"
+    - 'for f in ~/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
 ```
 
 #### Start Vector Collector Service:
@@ -180,6 +200,15 @@ vector --config vector.yaml
 - View collected data in the opsRobot product interface: http://localhost:3000
 
 ---
+
+## More Screenshots
+
+![Digital-Employee-Overview](./docs/pictures/Digital-Emmployee-Overview.png)
+![Digital-Employee-Overview2](./docs/pictures/Digital-Employee-Overview2.png)
+![Digital-Employee-Portrait-Capability](./docs/pictures/Digital-Employee-Portrait-Capability.png)
+![Digital-Employee-Portrait-Security](./docs/pictures/Digital-Employee-Portrait-Security.png)
+![Digital-Employee-Portrait](./docs/pictures/Digital-Employee-Portrait.png)
+
 
 ## Version Compatibility
 

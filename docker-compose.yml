@@ -62,10 +62,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: 4
+          cpus: "4"
           memory: 16G
         reservations:
-          cpus: 1
+          cpus: "1"
           memory: 4G
     ports:
       - "${DORIS_FE_HTTP_PORT:-8030}:8030" # FE HTTP port (Web UI)

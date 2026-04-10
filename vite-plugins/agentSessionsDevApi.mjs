@@ -15,6 +15,21 @@ import {
 } from "../backend/log-search/log-search-query.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
+import {
+  queryMonitorDashboard,
+  queryMonitorDashboardSourceTerminalsByWindow,
+} from "../backend/monitor-dashboard/monitor-dashboard-query.mjs";
+import {
+  queryMonitorSession,
+  queryMonitorSessionOverview,
+  queryMonitorSessionRiskSessions,
+  queryMonitorSessionTrend,
+} from "../backend/monitor-dashboard/monitor-session-query.mjs";
+
+import {
+  buildDigitalEmployeeOverview,
+  buildDigitalEmployeeProfile,
+} from "../backend/digital-employee/digital-employee-service.mjs";
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -34,6 +49,8 @@ function sendJson(res, status, body) {
  * - GET /api/llm-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-options?startDay=&endDay=
+* - GET /api/digital-employees/overview?days=
+ * - GET /api/digital-employees/profile?agentName=&days=&sessionKey=
  */
 export function agentSessionsDevApi() {
   const useMock = process.env.VITE_MOCK === "true";
@@ -140,6 +157,49 @@ export function agentSessionsDevApi() {
               endDay: u.searchParams.get("endDay") || undefined,
               limit: Number(u.searchParams.get("limit") ?? "50"),
             });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+
+        if (url.startsWith("/api/digital-employees/profile")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const agentName = u.searchParams.get("agentName");
+            const daysParam = u.searchParams.get("days");
+            const hoursParam = u.searchParams.get("hours");
+            const sessionKeyParam = u.searchParams.get("sessionKey") || u.searchParams.get("session_key");
+            if (!agentName || !String(agentName).trim()) {
+              sendJson(res, 400, { error: "缺少 agentName" });
+              return;
+            }
+            const data = await buildDigitalEmployeeProfile(agentName, daysParam, hoursParam, sessionKeyParam);
+            if (data.error === "missing_agent") {
+              sendJson(res, 400, { error: data.message || "缺少 agentName" });
+              return;
+            }
+            if (data.error === "not_found") {
+              sendJson(res, 404, { error: data.message || "未找到", source: data.source });
+              return;
+            }
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/digital-employees/overview")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const daysParam = u.searchParams.get("days");
+            const hoursParam = u.searchParams.get("hours");
+            const data = await buildDigitalEmployeeOverview(daysParam, hoursParam);
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -265,6 +325,88 @@ export function agentSessionsDevApi() {
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-dashboard-source-terminals")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const window = u.searchParams.get("window") ?? "month";
+            const data = await queryMonitorDashboardSourceTerminalsByWindow(window);
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-dashboard")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorDashboard({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "14"),
+              topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url === "/api/monitor-session" || url.startsWith("/api/monitor-session?")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSession({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "30"),
+              riskLimit: Number(u.searchParams.get("riskLimit") ?? "50"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-overview")) {
+          try {
+            const data = await queryMonitorSessionOverview();
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-risk")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSessionRiskSessions({
+              riskLimit: Number(u.searchParams.get("riskLimit") ?? "0"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/monitor-session-trend")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryMonitorSessionTrend({
+              trendDays: Number(u.searchParams.get("trendDays") ?? "30"),
+            });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
             sendJson(res, 500, { error: msg });
           }
           return;

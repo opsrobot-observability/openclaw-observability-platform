@@ -48,7 +48,7 @@ export function mockAuditOverview(days = 7) {
     abnormalDisconnectSessions: 2,
   };
 
-  // 会话趋势
+  // 会话趋势（7 日，与 audit-dashboard-query trends 一致）
   const sessionsTrend = [];
   for (let i = days - 1; i >= 0; i--) {
     const day = dayStr(-i);
@@ -58,7 +58,6 @@ export function mockAuditOverview(days = 7) {
       sessions: 30 + Math.floor(Math.random() * 30),
     });
   }
-
   // 风险趋势
   const riskTrend = [];
   for (let i = days - 1; i >= 0; i--) {

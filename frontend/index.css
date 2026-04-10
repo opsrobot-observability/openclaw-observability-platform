@@ -45,4 +45,37 @@
   *:focus {
     outline: none;
   }
+
+  /* 监控大屏科技感滚动条 */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(2, 11, 26, 0.5);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 240, 255, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 240, 255, 0.6);
+  }
+
+  /* 大屏列表自动滚动：时长由 --auto-scroll-duration 控制（每 10 秒 3 条，见 getAutoScrollDurationSec） */
+  @keyframes autoScrollVertical {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+  .animate-auto-scroll {
+    animation-name: autoScrollVertical;
+    animation-duration: var(--auto-scroll-duration, 55s);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .animate-auto-scroll:hover {
+    animation-play-state: paused;
+  }
 }

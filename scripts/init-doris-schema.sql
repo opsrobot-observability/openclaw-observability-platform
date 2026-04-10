@@ -97,3 +97,66 @@ CREATE TABLE IF NOT EXISTS `gateway_logs` (
 DUPLICATE KEY(`id`)
 DISTRIBUTED BY HASH(`event_time`) BUCKETS 10
 PROPERTIES ('replication_num' = '1');
+
+-- openclaw_config：从 openclaw.json 采集的扁平字段 + 脱敏 JSON 快照，供数字员工概览/画像扩展
+CREATE TABLE IF NOT EXISTS `openclaw_config` (
+  `config_key` varchar(64) NOT NULL COMMENT "配置实例键，如 default",
+  `collected_at` bigint NOT NULL COMMENT "采集时间(ms)",
+  `content_sha256` varchar(64) NOT NULL DEFAULT "" COMMENT "原文 SHA256",
+  `source_path` varchar(1024) NOT NULL DEFAULT "" COMMENT "采集源绝对路径",
+  `sandbox_mode` varchar(64) NOT NULL DEFAULT "",
+  `workspace_default` varchar(512) NOT NULL DEFAULT "",
+  `exec_security` varchar(64) NOT NULL DEFAULT "",
+  `exec_ask` varchar(64) NOT NULL DEFAULT "",
+  `exec_host` varchar(64) NOT NULL DEFAULT "",
+  `fs_workspace_only` boolean NOT NULL,
+  `channel_group_policy` varchar(64) NOT NULL DEFAULT "",
+  `gateway_auth_mode` varchar(64) NOT NULL DEFAULT "",
+  `gateway_mode` varchar(32) NOT NULL DEFAULT "",
+  `gateway_deny_commands_count` int NOT NULL DEFAULT 0,
+  `gateway_deny_commands_csv` varchar(4096) NOT NULL DEFAULT "" COMMENT "gateway.nodes.denyCommands 列表（逗号分隔）",
+  `elevated_allow_from_summary` varchar(1024) NOT NULL DEFAULT "",
+  `subagents_max_concurrent` int NOT NULL DEFAULT 0,
+  `default_timeout_seconds` int NOT NULL DEFAULT 0,
+  `default_model_primary` varchar(512) NOT NULL DEFAULT "",
+  `tools_profile` varchar(64) NOT NULL DEFAULT "",
+  `meta_last_touched_version` varchar(64) NOT NULL DEFAULT "",
+  `meta_last_touched_at` varchar(128) NOT NULL DEFAULT "",
+  `diagnostics_otel_enabled` boolean NOT NULL,
+  `plugins_allow_csv` varchar(2048) NOT NULL DEFAULT "",
+  `log_attributes` variant NOT NULL COMMENT "脱敏后的配置 JSON 快照"
+) ENGINE=OLAP
+UNIQUE KEY(`config_key`)
+DISTRIBUTED BY HASH(`config_key`) BUCKETS 1
+PROPERTIES (
+  "enable_unique_key_merge_on_write" = "true",
+  "replication_allocation" = "tag.location.default: 1",
+  "light_schema_change" = "true"
+);
+
+-- agent_models：从 models.json 采集的模型目录（按 agent/provider/model_id 去重）
+CREATE TABLE IF NOT EXISTS `agent_models` (
+  `agent_name` varchar(128) NOT NULL DEFAULT "" COMMENT "agent 标识（如 main）",
+  `provider` varchar(128) NOT NULL DEFAULT "" COMMENT "模型 provider",
+  `model_id` varchar(256) NOT NULL DEFAULT "" COMMENT "模型 id",
+  `display_name` varchar(256) NOT NULL DEFAULT "" COMMENT "模型展示名",
+  `reasoning` boolean NOT NULL COMMENT "是否推理模型",
+  `context_window` bigint NOT NULL DEFAULT 0 COMMENT "上下文窗口",
+  `max_tokens` bigint NOT NULL DEFAULT 0 COMMENT "最大输出 token",
+  `cost_input` double NOT NULL DEFAULT 0 COMMENT "输入单价",
+  `cost_output` double NOT NULL DEFAULT 0 COMMENT "输出单价",
+  `cost_cache_read` double NOT NULL DEFAULT 0 COMMENT "cache read 单价",
+  `cost_cache_write` double NOT NULL DEFAULT 0 COMMENT "cache write 单价",
+  `input_capabilities_csv` varchar(512) NOT NULL DEFAULT "" COMMENT "输入能力（逗号分隔）",
+  `collected_at` bigint NOT NULL COMMENT "采集时间(ms)",
+  `content_sha256` varchar(64) NOT NULL DEFAULT "" COMMENT "原文摘要（预留）",
+  `source_path` varchar(1024) NOT NULL DEFAULT "" COMMENT "采集源路径",
+  `log_attributes` variant NOT NULL COMMENT "模型原始条目快照"
+) ENGINE=OLAP
+UNIQUE KEY(`agent_name`, `provider`, `model_id`)
+DISTRIBUTED BY HASH(`agent_name`, `provider`) BUCKETS 4
+PROPERTIES (
+  "enable_unique_key_merge_on_write" = "true",
+  "replication_allocation" = "tag.location.default: 1",
+  "light_schema_change" = "true"
+);

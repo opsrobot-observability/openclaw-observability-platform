@@ -31,6 +31,11 @@ npm run dev:mock
 | `/api/agent-sessions-logs-search` | `mock/data/log-search.mjs` |
 | `/api/config-audit-logs` | `mock/data/config-audit-logs.mjs` |
 | `/api/config-audit-stats` | `mock/data/config-audit-stats.mjs` |
+| `/api/monitor-dashboard` | `mock/data/monitor-dashboard.mjs` |
+| `/api/monitor-session` | `mock/data/monitor-session.mjs` |
+| `/api/monitor-session-overview` | `mock/data/monitor-session.mjs` |
+| `/api/monitor-session-risk` | `mock/data/monitor-session.mjs` |
+| `/api/monitor-session-trend` | `mock/data/monitor-session.mjs` |
 
 ## 修改 Mock 数据
 

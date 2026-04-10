@@ -82,6 +82,8 @@ export default function AuditOverview() {
   }, [data]);
 
   const hasPie = pieData.length > 0;
+  const windowKey = activeDays <= 1 ? "today" : activeDays <= 7 ? "week" : "month";
+  const summary = data?.summary ?? data?.windows?.[windowKey] ?? null;
 
   return (
     <div className="space-y-8">
@@ -104,23 +106,23 @@ export default function AuditOverview() {
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <MetricCard
                 title={intl.get("auditOverview.sessionTotal")}
-                value={num(data.summary?.session_total)}
+                value={num(summary?.session_total)}
                 hint={intl.get("auditOverview.sessionTotalHint", { days: activeDays })}
               />
               <MetricCard
                 title={intl.get("auditOverview.activeSessions")}
-                value={num(data.summary?.active_sessions)}
+                value={num(summary?.active_sessions)}
                 hint={intl.get("auditOverview.activeSessionsHint", { days: activeDays })}
                 accent="bg-primary-soft/30 dark:bg-primary/10"
               />
               <MetricCard
                 title={intl.get("auditOverview.userAccess")}
-                value={num(data.summary?.user_access)}
+                value={num(summary?.user_access)}
                 hint={intl.get("auditOverview.userAccessHint")}
               />
               <MetricCard
                 title={intl.get("auditOverview.deviceConnections")}
-                value={num(data.summary?.device_connections)}
+                value={num(summary?.device_connections)}
                 hint={intl.get("auditOverview.deviceConnectionsHint")}
               />
             </div>

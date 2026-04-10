@@ -44,7 +44,9 @@
 - **[👉 配置变更审计](./features/config-audit.md)**：追踪和审计 AI Agent 配置变更行为，实现配置变更可追溯、可审计，防范配置异常带来的安全风险。
 ![alt text](./pictures/变更列表.png)
 - **[👉 生产力核算：成本分析账单](./features/cost-analysis.md)**：提供 Token 消耗的整体监控和分析仪表盘，直观呈现 Token 消耗全局态势，为成本管控提供数据支撑。
-![alt text](./pictures/Token%20消耗.png)
+![alt text](./pictures/Token消耗.png)
+- **[👉 数字员工模块：概览与画像](./features/digital-employee.md)**：新增数字员工概览与数字员工画像功能模块，全方位展示数字员工的工作效能、能力标签及安全评分，为精细化员工运营提供数据支持。
+![数字员工画像](./pictures/数字员工画像.png)
 
 ### 🏗️ 架构参考
 解析底层数据收集和清洗机制。
@@ -58,4 +60,4 @@
 
 ---
 
-> GitHub 官方仓库: [https://github.com/aishu-opsRobot/openclaw-observability-platform](https://github.com/aishu-opsRobot/openclaw-observability-platform)
+> GitHub 官方仓库: [https://github.com/opsrobot-ai/opsrobot](https://github.com/opsrobot-ai/opsrobot)
