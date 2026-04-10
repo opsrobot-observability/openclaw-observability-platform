@@ -154,7 +154,23 @@ function policyStrictScore(v, strictKeywords = []) {
 }
 
 /**
- * 事件时间线范围：与左侧选中的「数字员工」严格一致（session_key / session_id 精确匹配）。
+ * 事件风险：按会话归一化并平滑，避免仅因累计次数导致评分过高。
+ * @param {number} riskHigh
+ * @param {number} riskMedium
+ * @param {number} riskLow
+ * @param {number} sessionCount
+ */
+function normalizedEventRiskScore(riskHigh, riskMedium, riskLow, sessionCount) {
+  const rh = Number(riskHigh) || 0;
+  const rm = Number(riskMedium) || 0;
+  const rl = Number(riskLow) || 0;
+  const n = Math.max(1, Number(sessionCount) || 1);
+  const perSessionSeverity = (rh * 10 + rm * 3 + rl * 0.5) / n;
+  return Math.round(Math.min(100, Math.sqrt(Math.max(0, perSessionSeverity)) * 18) * 10) / 10;
+}
+
+/**
+ * 事件时间线范围：与左侧选中的「数字员工」严格一致（优先 agent_name，兼容 session_key/session_id）。
  * @param {Record<string, unknown>} r mapAgentSessionRows 行
  * @param {string} scopeRaw 列表行主键：与前端 rowSessionKey 一致
  */
@@ -162,12 +178,14 @@ export function sessionRowMatchesDigitalEmployeeScope(r, scopeRaw) {
   const scope = String(scopeRaw ?? "").trim();
   if (!scope) return true;
 
+  const rowAgentName = r.agentName != null && String(r.agentName).trim() ? String(r.agentName).trim() : "";
   const rowSk = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
   const rowSid =
     (r.session_id != null && String(r.session_id).trim()) ||
     (r.sessionId != null && String(r.sessionId).trim()) ||
     "";
 
+  if (rowAgentName && rowAgentName === scope) return true;
   if (rowSid && rowSid === scope) return true;
   if (rowSk && rowSk === scope) return true;
   return false;
@@ -391,11 +409,12 @@ export function buildEmployeeProfileDetail(agent, sessionRows, ctx) {
   ];
   const costScore = avgScore(costParts);
 
-  const riskEventRaw =
-    12 * (Number(agent.riskHighTotal) || 0) +
-    5 * (Number(agent.riskMediumTotal) || 0) +
-    2 * (Number(agent.riskLowTotal) || 0);
-  const riskEventsScore = Math.min(100, Math.round(riskEventRaw * 10) / 10);
+  const riskEventsScore = normalizedEventRiskScore(
+    Number(agent.riskHighTotal) || 0,
+    Number(agent.riskMediumTotal) || 0,
+    Number(agent.riskLowTotal) || 0,
+    Number(agent.sessionCount) || 1,
+  );
 
   const securityPolicyRisk = avgScore([
     100 - policyStrictScore(hints.execSecurity, ["strict", "safe", "restricted"]),
@@ -413,7 +432,10 @@ export function buildEmployeeProfileDetail(agent, sessionRows, ctx) {
       return 72;
     })(),
   ]);
-  const securityScoreFromPolicy = Math.min(100, Math.round((securityPolicyRisk * 0.65 + riskEventsScore * 0.35) * 10) / 10);
+  const securityScoreFromPolicy = Math.min(
+    100,
+    Math.round((securityPolicyRisk * 0.7 + riskEventsScore * 0.3) * 10) / 10,
+  );
   // 与概览保持一致：优先复用概览聚合出的风险评分
   const securityScoreNum =
     agent.securityRiskScore != null && Number.isFinite(Number(agent.securityRiskScore))
@@ -482,28 +504,21 @@ export function buildEmployeeProfileDetail(agent, sessionRows, ctx) {
   const riskMediumCountFinal = Math.max(Number(agent.riskMediumTotal) || 0, Number(timelineRiskSummary.medium) || 0);
   const riskLowCountFinal = Math.max(Number(agent.riskLowTotal) || 0, Number(timelineRiskSummary.low) || 0);
 
-  /** 系统标识：带 sessionScope 时与当前选中数字员工一致；否则为该 agent 窗口内 updated_at 最新一条非空 session_key */
+  /** 系统标识：同一 agent_name 在窗口内全部去重 session_key（按最近活跃优先） */
+  const headerSessionKeys = [];
+  const seenHeaderSessionKeys = new Set();
+  const headerRowsSorted = [...sessionRows].sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+  for (const r of headerRowsSorted) {
+    const k = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
+    if (!k || seenHeaderSessionKeys.has(k)) continue;
+    seenHeaderSessionKeys.add(k);
+    headerSessionKeys.push(k);
+  }
   let headerSessionKey = null;
-  if (sessionScope && sessionScope.includes(":")) {
+  if (sessionScope && seenHeaderSessionKeys.has(sessionScope)) {
     headerSessionKey = sessionScope;
-  } else if (sessionScope && rowsForTimeline.length > 0) {
-    const sorted = [...rowsForTimeline].sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
-    for (const r of sorted) {
-      const k = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
-      if (k) {
-        headerSessionKey = k;
-        break;
-      }
-    }
-  } else if (!sessionScope && sessionRows.length > 0) {
-    const sorted = [...sessionRows].sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
-    for (const r of sorted) {
-      const k = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
-      if (k) {
-        headerSessionKey = k;
-        break;
-      }
-    }
+  } else if (headerSessionKeys.length > 0) {
+    headerSessionKey = headerSessionKeys[0];
   }
 
   return {
@@ -514,6 +529,8 @@ export function buildEmployeeProfileDetail(agent, sessionRows, ctx) {
     header: {
       /** 库列 `agent_sessions.session_key`；优先概览 o3，否则由本会话行按 updated_at 最近一条推导 */
       sessionKey: headerSessionKey,
+      /** 同一 agent_name 在当前窗口内的全部 session_key（去重，按更新时间倒序） */
+      sessionKeys: headerSessionKeys,
       chatType,
       channelTop: topChannel,
       online,

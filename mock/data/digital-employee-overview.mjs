@@ -5,9 +5,10 @@
 
 const MOCK_EMPLOYEES = [
   {
-    agentName: "客服助手·小智",
-    employeeKey: "de-kefu-001",
-    sessionKey: "sk-de-kefu-001",
+    agentName: "main",
+    employeeKey: "main",
+    sessionKey: "session-main-001",
+    sessionKeys: ["session-main-001", "session-main-002", "session-main-003"],
     displayLabel: "webchat-kefu",
     sessionCount: 178,
     totalTokens: 1824000,
@@ -33,9 +34,10 @@ const MOCK_EMPLOYEES = [
     models: [{ name: "gpt-4o-mini", count: 178 }],
   },
   {
-    agentName: "运维巡检员",
-    employeeKey: "de-ops-002",
-    sessionKey: "sk-de-ops-002",
+    agentName: "mc-gateway-2dfbae07-6536-4f38-b59b-d0fe548074d5",
+    employeeKey: "mc-gateway-2dfbae07-6536-4f38-b59b-d0fe548074d5",
+    sessionKey: "session-gw-001",
+    sessionKeys: ["session-gw-001", "session-gw-002"],
     displayLabel: "ops-runner",
     sessionCount: 132,
     totalTokens: 1548000,
@@ -61,9 +63,10 @@ const MOCK_EMPLOYEES = [
     models: [{ name: "claude-3-5-sonnet", count: 132 }],
   },
   {
-    agentName: "数据分析员",
-    employeeKey: "de-data-003",
-    sessionKey: "sk-de-data-003",
+    agentName: "data-analyst",
+    employeeKey: "data-analyst",
+    sessionKey: "session-data-001",
+    sessionKeys: ["session-data-001", "session-data-002", "session-data-003", "session-data-004"],
     displayLabel: "nl2sql",
     sessionCount: 96,
     totalTokens: 1203000,
@@ -89,9 +92,10 @@ const MOCK_EMPLOYEES = [
     models: [{ name: "gpt-4o", count: 96 }],
   },
   {
-    agentName: "HR 面试助手",
-    employeeKey: "de-hr-004",
-    sessionKey: "sk-de-hr-004",
+    agentName: "hr-interviewer",
+    employeeKey: "hr-interviewer",
+    sessionKey: "session-hr-001",
+    sessionKeys: ["session-hr-001", "session-hr-002"],
     displayLabel: "hr-interview",
     sessionCount: 84,
     totalTokens: 793000,
@@ -138,7 +142,7 @@ function buildCostTrendByEmployee(days) {
   const series = MOCK_EMPLOYEES.map((e, idx) => {
     const base = e.totalCostUsd / Math.max(1, dayList.length);
     return {
-      sessionKey: e.sessionKey,
+      sessionKey: e.employeeKey,
       agentName: e.agentName,
       displayLabel: e.displayLabel,
       values: dayList.map((_, i) => Math.round((base * (0.82 + ((idx + i) % 4) * 0.09)) * 1e4) / 1e4),
@@ -160,7 +164,7 @@ function buildSessionRows(agents, days) {
         list.push({
           rowId: `${a.employeeKey}-${di}-${i}`,
           sessionId: `${a.employeeKey}-sid-${di}-${i}`,
-          sessionKey: a.sessionKey,
+          sessionKey: a.sessionKeys[(i + di) % a.sessionKeys.length],
           session_id: `${a.employeeKey}-sid-${di}-${i}`,
           agentName: a.agentName,
           employeeKey: a.employeeKey,
@@ -300,7 +304,7 @@ export function mockDigitalEmployeeOverview(days = 7, _hours) {
         .sort((a, b) => (b.riskHighTotal - a.riskHighTotal) || (b.riskMediumTotal - a.riskMediumTotal))
         .slice(0, 10)
         .map((a) => ({
-          sessionKey: a.sessionKey,
+          sessionKey: a.employeeKey,
           agentName: a.agentName,
           displayLabel: a.displayLabel,
           riskHighTotal: a.riskHighTotal,
@@ -309,7 +313,7 @@ export function mockDigitalEmployeeOverview(days = 7, _hours) {
         })),
       highEfficiency: [...agentsAggregated]
         .map((a) => ({
-          sessionKey: a.sessionKey,
+          sessionKey: a.employeeKey,
           agentName: a.agentName,
           displayLabel: a.displayLabel,
           efficiencyScore: Math.round((((a.successRate || 0) * (a.sessionCount || 0)) / Math.max(0.01, Number(a.totalCostUsd) || 0.01)) * 100) / 100,

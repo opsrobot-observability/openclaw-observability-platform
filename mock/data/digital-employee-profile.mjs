@@ -17,7 +17,10 @@ export function mockDigitalEmployeeProfile(agentName, days, hours, sessionScopeR
   const agent =
     ov.agentsAggregated?.find(
       (a) =>
-        (sessionScope && String(a.sessionKey || "").trim() === sessionScope) ||
+        (sessionScope &&
+          (String(a.employeeKey || "").trim() === sessionScope ||
+            String(a.agentName || "").trim() === sessionScope ||
+            String(a.sessionKey || "").trim() === sessionScope)) ||
         String(a.agentName || "").trim() === wanted,
     ) || null;
   if (!agent) {
@@ -33,14 +36,14 @@ export function mockDigitalEmployeeProfile(agentName, days, hours, sessionScopeR
   const dailyCostUsd = agent.totalCostUsd / billingDays;
   const successPct = Number(agent.successRate) * 100;
   const errPct = Math.max(0, 100 - successPct);
-  const agentSeries = ov.o1_summary?.costTrendByEmployee?.series?.find((s) => s.sessionKey === agent.sessionKey);
+  const agentSeries = ov.o1_summary?.costTrendByEmployee?.series?.find((s) => s.agentName === agent.agentName);
   const daysSeries = ov.o1_summary?.costTrendByEmployee?.days ?? [];
   const costTrend = daysSeries.map((day, idx) => ({
     day,
     usd: Math.round((Number(agentSeries?.values?.[idx]) || 0) * 1e4) / 1e4,
   }));
   const agentSessions = (ov.o3_employees ?? [])
-    .filter((s) => String(s.sessionKey || "") === String(agent.sessionKey || ""))
+    .filter((s) => String(s.agentName || "") === String(agent.agentName || ""))
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
   const previewRows = agentSessions.slice(0, 20).map((s, i) => ({
     session_id: s.session_id || s.sessionId,
@@ -79,6 +82,7 @@ export function mockDigitalEmployeeProfile(agentName, days, hours, sessionScopeR
     header: {
       employeeKey: agent.employeeKey,
       sessionKey: agent.sessionKey,
+      sessionKeys: Array.isArray(agent.sessionKeys) ? agent.sessionKeys : [agent.sessionKey].filter(Boolean),
       chatType: agent.chatTypeTop ?? "—",
       channelTop: agent.channels?.[0]?.name ?? "—",
       online: true,

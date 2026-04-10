@@ -1,10 +1,12 @@
 /**
- * 数字员工会话列表：主键与去重（与 Doris / 画像选中态一致）
- * 版本 1.0.1
+ * 数字员工列表：主键与去重（与 Doris / 画像选中态一致）
+ * 版本 1.1.0
  */
 
-/** 列表主键：优先 `session_key`，否则 `session_id` / `sessionId`（API 行字段） */
+/** 列表主键：优先 `agentName`，否则回落 `session_key` / `session_id` / `sessionId` */
 export function rowSessionKey(row) {
+  const agentName = row?.agentName != null && String(row.agentName).trim() ? String(row.agentName).trim() : "";
+  if (agentName) return agentName;
   const sk = row?.sessionKey != null && String(row.sessionKey).trim() ? String(row.sessionKey).trim() : "";
   if (sk) return sk;
   const sid =
@@ -15,7 +17,7 @@ export function rowSessionKey(row) {
 
 /**
  * 按 `rowSessionKey` 去重：同一 session_key 仅保留一行；
- * 无 session_key 且无 session_id 时以 `rowId` / 索引区分，不合并。
+ * 当前口径下优先按 agent_name 去重，无 key 时以 `rowId` / 索引区分，不合并。
  * 冲突时保留 `lastUpdatedAt` 较新的行（与概览 Builder 策略一致）。
  * @param {object[]} rows
  */

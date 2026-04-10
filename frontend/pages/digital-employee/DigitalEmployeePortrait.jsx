@@ -80,14 +80,37 @@ function parseTagsDisplay(tagsDisplay) {
   return filtered.length ? filtered : [intl.get("digitalEmployee.portrait.tag.untagged")];
 }
 
-/** 顶区 session_key：整段字符串展示，仅 CSS 自动换行（不按 `:` 拆成多段） */
-function SessionKeyDisplay({ value }) {
-  const s = String(value ?? "").trim();
-  if (!s) return <span className="text-gray-400 dark:text-gray-500">—</span>;
+function SessionKeyListDisplay({ values }) {
+  const [expanded, setExpanded] = useState(false);
+  const list = Array.isArray(values)
+    ? values.map((v) => String(v ?? "").trim()).filter(Boolean)
+    : [];
+  if (list.length === 0) {
+    return <span className="text-gray-400 dark:text-gray-500">—</span>;
+  }
+  const visibleList = expanded ? list : list.slice(0, 1);
   return (
-    <p className="mt-1.5 max-w-full rounded-lg border border-gray-100 bg-white/80 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-gray-800 break-all dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-100">
-      {s}
-    </p>
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="mb-1 inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <span>{expanded ? "▾" : "▸"}</span>
+        <span>
+          {expanded
+            ? intl.get("digitalEmployee.portrait.systemKey.collapse")
+            : intl.get("digitalEmployee.portrait.systemKey.expand", { count: list.length })}
+        </span>
+      </button>
+      <div className="space-y-1 rounded-lg border border-gray-100 bg-white/80 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-100">
+        {visibleList.map((k) => (
+          <p key={k} className="break-all">
+            {k}
+          </p>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -195,7 +218,7 @@ export default function DigitalEmployeePortrait() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
 
   const [detailAgent, setDetailAgent] = useState(null);
-  /** 左侧列表唯一选中键（session_key 优先，否则 session_id） */
+  /** 左侧列表唯一选中键（当前口径优先 agent_name） */
   const [selectedSessionKey, setSelectedSessionKey] = useState(null);
   const [profile, setProfile] = useState(null);
   const [profileErr, setProfileErr] = useState(null);
@@ -306,7 +329,7 @@ export default function DigitalEmployeePortrait() {
     };
   }, [profileUrl]);
 
-  // 列表：接口 `o3_employees` 为会话级行；再按 session_key（无则 session_id）去重，避免同一系统标识多行
+  // 列表：接口 `o3_employees` 为明细行；按 agent_name 去重，避免同一员工多行
   const employees = useMemo(
     () => dedupeEmployeesBySessionKey(overview?.o3_employees ?? overview?.agents ?? []),
     [overview],
@@ -661,7 +684,7 @@ export default function DigitalEmployeePortrait() {
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                               {intl.get("digitalEmployee.portrait.systemKey")}
                             </p>
-                            <SessionKeyDisplay value={profile.header?.sessionKey} />
+                            <SessionKeyListDisplay values={profile.header?.sessionKeys} />
                           </div>
                           <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                             {intl.get("digitalEmployee.portrait.lastActive")}{" "}

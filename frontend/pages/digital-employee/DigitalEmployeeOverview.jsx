@@ -158,12 +158,12 @@ export default function DigitalEmployeeOverview() {
   const o1 = data?.o1_summary;
   const o2 = data?.o2_dimensions;
 
-  /** 与画像页一致：按 session_key 去重后的会话行 */
+  /** 与画像页一致：按数字员工主键（agent_name）去重后的行 */
   const o3EmployeesDeduped = useMemo(
     () => dedupeEmployeesBySessionKey(data?.o3_employees ?? []),
     [data],
   );
-  /** 后端按 employeeKey(session_key/session_id) 聚合后的员工行（健康度口径基准） */
+  /** 后端按 employeeKey(agent_name) 聚合后的员工行（健康度口径基准） */
   const agentsAggregated = useMemo(() => data?.agentsAggregated ?? [], [data]);
   const aggByEmployeeKey = useMemo(
     () => new Map(agentsAggregated.map((a) => [String(a.employeeKey ?? "").trim(), a])),
@@ -212,10 +212,10 @@ export default function DigitalEmployeeOverview() {
     () =>
       employeesForCharts
         .map((a) => ({
-          sessionKey: String(a.sessionKey ?? a.employeeKey ?? a.agentName ?? "").trim(),
+          agentName: String(a.agentName ?? a.employeeKey ?? "").trim(),
           value: Number.isFinite(Number(a.avgSkillCount)) ? Number(a.avgSkillCount) : 0,
         }))
-        .filter((x) => x.sessionKey)
+        .filter((x) => x.agentName)
         .sort((a, b) => b.value - a.value)
         .slice(0, 12),
     [employeesForCharts],
@@ -224,10 +224,10 @@ export default function DigitalEmployeeOverview() {
     () =>
       employeesForCharts
         .map((a) => ({
-          sessionKey: String(a.sessionKey ?? a.employeeKey ?? a.agentName ?? "").trim(),
+          agentName: String(a.agentName ?? a.employeeKey ?? "").trim(),
           value: Number.isFinite(Number(a.successRate)) ? Number(a.successRate) : 0,
         }))
-        .filter((x) => x.sessionKey)
+        .filter((x) => x.agentName)
         .sort((a, b) => b.value - a.value)
         .slice(0, 12),
     [employeesForCharts],
@@ -236,10 +236,10 @@ export default function DigitalEmployeeOverview() {
     () =>
       employeesForCharts
         .map((a) => ({
-          sessionKey: String(a.sessionKey ?? a.employeeKey ?? a.agentName ?? "").trim(),
+          agentName: String(a.agentName ?? a.employeeKey ?? "").trim(),
           value: Number.isFinite(Number(a.p95DurationMs)) ? Number(a.p95DurationMs) : 0,
         }))
-        .filter((x) => x.sessionKey)
+        .filter((x) => x.agentName)
         .sort((a, b) => b.value - a.value)
         .slice(0, 12),
     [employeesForCharts],
@@ -248,10 +248,10 @@ export default function DigitalEmployeeOverview() {
     () =>
       employeesForCharts
         .map((a) => ({
-          sessionKey: String(a.sessionKey ?? a.employeeKey ?? a.agentName ?? "").trim(),
+          agentName: String(a.agentName ?? a.employeeKey ?? "").trim(),
           value: Number.isFinite(Number(a.riskHighTotal)) ? Number(a.riskHighTotal) : 0,
         }))
-        .filter((x) => x.sessionKey)
+        .filter((x) => x.agentName)
         .sort((a, b) => b.value - a.value)
         .slice(0, 12),
     [employeesForCharts],
@@ -294,7 +294,7 @@ export default function DigitalEmployeeOverview() {
     return list;
   }, [o3EmployeesDeduped, aggByEmployeeKey, filterChannel, filterHealthTier, listSort]);
 
-  // 概览列表：会话级行，已按 session_key 去重；不做 TopN 截断
+  // 概览列表：员工级行，已按 agent_name 去重；不做 TopN 截断
   const tableRowsDisplay = tableRows;
 
   const topRisk = useMemo(() => (data?.topN?.highRisk ?? []).slice(0, 5), [data]);
@@ -312,23 +312,23 @@ export default function DigitalEmployeeOverview() {
     sessionStorage.setItem("digital-employee:focusAgent", JSON.stringify(payload));
     window.dispatchEvent(new CustomEvent("openclaw-nav", { detail: { id: "digital-employee-list" } }));
   }, [activeDays]);
-  const employeeBySessionKey = useMemo(() => {
+  const employeeByAgentName = useMemo(() => {
     const m = new Map();
     for (const r of employeesForCharts) {
-      const k = String(r.sessionKey ?? r.employeeKey ?? "").trim();
+      const k = String(r.agentName ?? "").trim();
       if (k) m.set(k, r);
     }
     return m;
   }, [employeesForCharts]);
-  const drillBySessionKey = useCallback(
-    (sessionKey) => {
-      const k = String(sessionKey ?? "").trim();
+  const drillByAgentName = useCallback(
+    (agentName) => {
+      const k = String(agentName ?? "").trim();
       if (!k) return;
-      const row = employeeBySessionKey.get(k);
+      const row = employeeByAgentName.get(k);
       if (!row) return;
       goPortrait(row);
     },
-    [employeeBySessionKey, goPortrait],
+    [employeeByAgentName, goPortrait],
   );
 
   const resetInteractions = () => {
@@ -482,7 +482,7 @@ export default function DigitalEmployeeOverview() {
                           tickLine={false}
                           tickFormatter={(d) => (typeof d === "string" && d.length >= 10 ? d.slice(5) : d)}
                         />
-                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={52} />
+                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => fmtUsd(v)} width={86} />
                         <Tooltip
                           formatter={(v, name) => [fmtUsd(v), name]}
                           labelFormatter={(d) => intl.get("digitalEmployee.overview.chart.dateLabel", { date: d })}
@@ -490,14 +490,14 @@ export default function DigitalEmployeeOverview() {
                         <Legend
                           wrapperStyle={{ fontSize: 10 }}
                           formatter={(value) => <span className="text-gray-600 dark:text-gray-400">{value}</span>}
-                          onClick={(e) => drillBySessionKey(e?.value)}
+                          onClick={(e) => drillByAgentName(e?.value)}
                         />
                         {costTrendByEmployee.series.map((s, j) => (
                           <Line
-                            key={s.sessionKey ?? s.agentName}
+                            key={s.agentName ?? `series-${j}`}
                             type="monotone"
                             dataKey={`s${j}`}
-                            name={s.sessionKey ?? s.agentName}
+                            name={s.agentName}
                             stroke={EMPLOYEE_COST_LINE_COLORS[j % EMPLOYEE_COST_LINE_COLORS.length]}
                             strokeWidth={2}
                             dot={{ r: 2 }}
@@ -542,10 +542,10 @@ export default function DigitalEmployeeOverview() {
                         <p className="flex h-full items-center justify-center text-center text-xs text-gray-400">{intl.get("digitalEmployee.overview.cockpit.noCapabilityData")}</p>
                       ) : (
                         <BarChart data={capabilityChartRows}>
-                          <XAxis dataKey="sessionKey" tick={{ fontSize: 9 }} tickLine={false} />
+                          <XAxis dataKey="agentName" tick={{ fontSize: 9 }} tickLine={false} />
                           <YAxis tick={{ fontSize: 9 }} />
                           <Tooltip formatter={(v) => [`${v} ${intl.get("digitalEmployee.common.unit.count")}`, intl.get("digitalEmployee.overview.chart.avgSkillCount")]} />
-                          <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} onClick={(p) => drillBySessionKey(p?.payload?.sessionKey)} />
+                          <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} onClick={(p) => drillByAgentName(p?.payload?.agentName)} />
                         </BarChart>
                       )}
                     </ResponsiveContainer>
@@ -561,10 +561,10 @@ export default function DigitalEmployeeOverview() {
                         <p className="flex h-full items-center justify-center text-center text-xs text-gray-400">{intl.get("digitalEmployee.overview.cockpit.noQualityData")}</p>
                       ) : (
                         <BarChart data={qualityChartRows}>
-                          <XAxis dataKey="sessionKey" tick={{ fontSize: 9 }} tickLine={false} />
+                          <XAxis dataKey="agentName" tick={{ fontSize: 9 }} tickLine={false} />
                           <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${Math.round(v * 100)}%`} />
                           <Tooltip formatter={(v) => [fmtPct(v), intl.get("digitalEmployee.overview.chart.successRate")]} />
-                          <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} onClick={(p) => drillBySessionKey(p?.payload?.sessionKey)} />
+                          <Bar dataKey="value" fill="#22c55e" radius={[4, 4, 0, 0]} onClick={(p) => drillByAgentName(p?.payload?.agentName)} />
                         </BarChart>
                       )}
                     </ResponsiveContainer>
@@ -583,10 +583,10 @@ export default function DigitalEmployeeOverview() {
                         <p className="flex h-full items-center justify-center text-center text-xs text-gray-400">{intl.get("digitalEmployee.overview.cockpit.noEfficacyData")}</p>
                       ) : (
                         <BarChart data={efficacyChartRows}>
-                          <XAxis dataKey="sessionKey" tick={{ fontSize: 9 }} tickLine={false} />
+                          <XAxis dataKey="agentName" tick={{ fontSize: 9 }} tickLine={false} />
                           <YAxis tick={{ fontSize: 9 }} />
                           <Tooltip formatter={(v) => [fmtDurationMs(v), intl.get("digitalEmployee.overview.chart.p95Duration")]} />
-                          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} onClick={(p) => drillBySessionKey(p?.payload?.sessionKey)} />
+                          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} onClick={(p) => drillByAgentName(p?.payload?.agentName)} />
                         </BarChart>
                       )}
                     </ResponsiveContainer>
@@ -602,10 +602,10 @@ export default function DigitalEmployeeOverview() {
                         <p className="flex h-full items-center justify-center text-center text-xs text-gray-400">{intl.get("digitalEmployee.overview.cockpit.noSecurityData")}</p>
                       ) : (
                         <BarChart data={securityChartRows}>
-                          <XAxis dataKey="sessionKey" tick={{ fontSize: 9 }} tickLine={false} />
+                          <XAxis dataKey="agentName" tick={{ fontSize: 9 }} tickLine={false} />
                           <YAxis tick={{ fontSize: 9 }} />
                           <Tooltip formatter={(v) => [`${v} ${intl.get("digitalEmployee.common.unit.times")}`, intl.get("digitalEmployee.overview.chart.highRiskTag")]} />
-                          <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} onClick={(p) => drillBySessionKey(p?.payload?.sessionKey)} />
+                          <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]} onClick={(p) => drillByAgentName(p?.payload?.agentName)} />
                         </BarChart>
                       )}
                     </ResponsiveContainer>
@@ -782,7 +782,6 @@ export default function DigitalEmployeeOverview() {
                         >
                           <td className="px-3 py-3">
                             <p className="font-medium text-gray-900 dark:text-gray-100">{row.agentName}</p>
-                            <p className="line-clamp-1 text-xs text-gray-500 dark:text-gray-400">{row.displayLabel}</p>
                           </td>
                           <td className="px-3 py-3">
                             <span

@@ -90,12 +90,8 @@ function normalizeAgentQuery(name) {
 
 /** @param {Record<string, unknown>} r */
 function rowEmployeeKey(r) {
-  const sk = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
-  if (sk) return sk;
-  const sid =
-    (r.session_id != null && String(r.session_id).trim() ? String(r.session_id).trim() : "") ||
-    (r.sessionId != null && String(r.sessionId).trim() ? String(r.sessionId).trim() : "");
-  return sid || "";
+  const agentName = r.agentName != null && String(r.agentName).trim() ? String(r.agentName).trim() : "";
+  return agentName || "";
 }
 
 /**
@@ -103,7 +99,7 @@ function rowEmployeeKey(r) {
  * @param {string|null|undefined} agentNameRaw URL 中的 agentName
  * @param {number|string|undefined} days
  * @param {number|string|undefined|null} hours
- * @param {string|null|undefined} sessionScopeRaw 与列表 `rowSessionKey` 一致，用于事件时间线仅含本数字员工会话
+ * @param {string|null|undefined} sessionScopeRaw 与列表主键一致（agent_name）
  */
 export async function buildDigitalEmployeeProfile(agentNameRaw, days, hours, sessionScopeRaw) {
   const wanted = normalizeAgentQuery(agentNameRaw);

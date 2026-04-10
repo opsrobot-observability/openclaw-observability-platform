@@ -45,14 +45,10 @@ function dayKeyFromMs(ms) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-/** 统一数字员工主键：session_key 优先，其次 session_id */
+/** 统一数字员工主键：agent_name */
 function employeeKeyFromRow(r, fallback = "") {
-  const sk = r.sessionKey != null && String(r.sessionKey).trim() ? String(r.sessionKey).trim() : "";
-  if (sk) return sk;
-  const sid =
-    (r.session_id != null && String(r.session_id).trim() ? String(r.session_id).trim() : "") ||
-    (r.sessionId != null && String(r.sessionId).trim() ? String(r.sessionId).trim() : "");
-  return sid || fallback;
+  const agentName = r.agentName != null && String(r.agentName).trim() ? String(r.agentName).trim() : "";
+  return agentName || fallback;
 }
 
 /** @typedef {"green"|"yellow"|"red"|"unknown"} HealthTier */
@@ -91,8 +87,9 @@ function dimEfficacy(p95Ms) {
 
 /** @param {number} riskHigh @param {number} riskMedium */
 function dimSecurity(riskHigh, riskMedium) {
-  if (riskHigh >= 1) return "red";
-  if (riskMedium >= 2) return "yellow";
+  // 优化：降低单次偶发事件的惩罚，避免安全维度长期偏红。
+  if (riskHigh >= 2) return "red";
+  if (riskHigh >= 1 || riskMedium >= 3) return "yellow";
   return "green";
 }
 
@@ -166,15 +163,22 @@ function parseProviderFromModelId(modelStr) {
  * @param {number} riskHigh
  * @param {number} riskMedium
  * @param {number} riskLow
+ * @param {number} sessionCount
  */
-function unifiedRiskScore(compositeScore, riskHigh, riskMedium, riskLow) {
+function unifiedRiskScore(compositeScore, riskHigh, riskMedium, riskLow, sessionCount = 1) {
   const c = Number(compositeScore);
-  const base = !Number.isFinite(c) ? 45 : c >= 80 ? 24 : c >= 60 ? 45 : c >= 40 ? 66 : 82;
+  // 基础风险：由综合分反推，分值越高基础风险越低（较旧规则更温和）。
+  const base = !Number.isFinite(c) ? 35 : c >= 85 ? 12 : c >= 75 ? 22 : c >= 65 ? 32 : c >= 55 ? 45 : 58;
   const rh = Number(riskHigh) || 0;
   const rm = Number(riskMedium) || 0;
   const rl = Number(riskLow) || 0;
-  const score = base + rh * 8 + rm * 3 + rl * 1;
-  return Math.min(100, Math.round(score * 10) / 10);
+  const n = Math.max(1, Number(sessionCount) || 1);
+  // 事件风险：按会话归一化 + 平滑函数，避免会话数大时仅因累计次数拉满。
+  const perSessionSeverity = (rh * 10 + rm * 3 + rl * 0.5) / n;
+  const eventRisk = Math.min(100, Math.sqrt(Math.max(0, perSessionSeverity)) * 18);
+  // 最终风险：基础风险与事件风险融合（基础占比略高，降低偶发噪声影响）。
+  const score = base * 0.55 + eventRisk * 0.45;
+  return Math.round(Math.min(100, Math.max(0, score)) * 10) / 10;
 }
 
 /**
@@ -184,12 +188,10 @@ function unifiedRiskScore(compositeScore, riskHigh, riskMedium, riskLow) {
 export function buildOverviewPayload(rows, ctx) {
   const { days, windowStartMs } = ctx;
   const allRows = Array.isArray(rows) ? rows : [];
-  // O3 列表展示口径：以 session_key 优先、否则 session_id 取最新一条（避免同一系统标识多行）
+  // O3 列表展示口径：按 agent_name 取最新一条（避免同一员工多行）
   const latestRowByEmployee = new Map();
   for (const r of allRows) {
-    const sk = (r.sessionKey && String(r.sessionKey).trim()) || "";
-    const sid = (r.session_id && String(r.session_id).trim()) || (r.sessionId && String(r.sessionId).trim()) || "";
-    const key = sk || sid || `row-${latestRowByEmployee.size}`;
+    const key = employeeKeyFromRow(r, `row-${latestRowByEmployee.size}`);
     if (!latestRowByEmployee.has(key)) latestRowByEmployee.set(key, r);
     else {
       const prev = latestRowByEmployee.get(key);
@@ -213,7 +215,7 @@ export function buildOverviewPayload(rows, ctx) {
       security: dimSec,
     };
     const compositeScore = compositeScoreFromDims(dims);
-    const securityRiskScore = unifiedRiskScore(compositeScore, r.riskHigh, r.riskMedium, r.riskLow);
+    const securityRiskScore = unifiedRiskScore(compositeScore, r.riskHigh, r.riskMedium, r.riskLow, 1);
     const healthOverall = healthFromCompositeAndRisk(compositeScore, securityRiskScore);
     return {
       rowId: (r.session_id && String(r.session_id)) || (r.sessionId && String(r.sessionId)) || `row-${i}`,
@@ -343,7 +345,7 @@ export function buildOverviewPayload(rows, ctx) {
   let globalCostRows = 0;
   const costByDay = new Map();
   const sessionsByDay = new Map();
-  /** @type {Map<string, Map<string, number>>} employeeKey -> (day -> usd) */
+  /** @type {Map<string, Map<string, number>>} employeeKey(agent_name) -> (day -> usd) */
   const costByAgentDay = new Map();
   for (const r of allRows) {
     const tMs = Number(r.endedAt) || Number(r.updatedAt);
@@ -407,7 +409,13 @@ export function buildOverviewPayload(rows, ctx) {
         : null;
 
     const compositeScore = compositeScoreFromDims(dims);
-    const securityRiskScore = unifiedRiskScore(compositeScore, a.riskHighTotal, a.riskMediumTotal, a.riskLowTotal);
+    const securityRiskScore = unifiedRiskScore(
+      compositeScore,
+      a.riskHighTotal,
+      a.riskMediumTotal,
+      a.riskLowTotal,
+      a.sessionCount,
+    );
     const overallHealth = healthFromCompositeAndRisk(compositeScore, securityRiskScore);
 
     agents.push({
@@ -550,7 +558,7 @@ export function buildOverviewPayload(rows, ctx) {
     .sort((a, b) => b.riskHighTotal - a.riskHighTotal || b.riskMediumTotal - a.riskMediumTotal)
     .slice(0, 10)
     .map((a) => ({
-      sessionKey: a.sessionKey ?? a.employeeKey ?? null,
+      sessionKey: a.employeeKey ?? a.sessionKey ?? null,
       agentName: a.agentName,
       displayLabel: a.displayLabel,
       riskHighTotal: a.riskHighTotal,
@@ -567,7 +575,7 @@ export function buildOverviewPayload(rows, ctx) {
     .sort((a, b) => b.efficiencyScore - a.efficiencyScore)
     .slice(0, 10)
     .map((a) => ({
-      sessionKey: a.sessionKey ?? a.employeeKey ?? null,
+      sessionKey: a.employeeKey ?? a.sessionKey ?? null,
       agentName: a.agentName,
       displayLabel: a.displayLabel,
       efficiencyScore: a.efficiencyScore,
@@ -630,7 +638,7 @@ export function buildOverviewPayload(rows, ctx) {
     o1_summary,
     o2_dimensions,
     o3_employees,
-    /** 按 employeeKey(session_key/session_id) 聚合的员工行 */
+    /** 按 employeeKey(agent_name) 聚合的员工行 */
     agentsAggregated: agents,
     topN: {
       highRisk: topRisk,
