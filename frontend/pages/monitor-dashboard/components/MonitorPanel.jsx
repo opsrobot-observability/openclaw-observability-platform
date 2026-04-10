@@ -1,7 +1,7 @@
 export default function MonitorPanel({ title, children, className = "", headerExtra }) {
   return (
     <div
-      className={`relative bg-[#020b1a]/60 border border-[#16436e] shadow-[inset_0_0_20px_rgba(0,163,255,0.1)] rounded flex flex-col backdrop-blur-sm overflow-hidden ${className}`}
+      className={`relative bg-[#020b1a]/10 border border-[#16436e] shadow-[inset_0_0_20px_rgba(0,163,255,0.1)] rounded flex flex-col backdrop-blur-sm overflow-hidden ${className}`}
     >
       <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#00f0ff]" />
       <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00f0ff]" />

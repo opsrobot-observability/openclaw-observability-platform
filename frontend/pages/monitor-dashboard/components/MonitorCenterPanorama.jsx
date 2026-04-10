@@ -1,4 +1,4 @@
-import centerBg from "../images/centerpic6.png";
+import centerBg from "../images/centerpic8.png";
 import centerTopBg from "../images/centertopbg1.png";
 import intl from "react-intl-universal";
 
@@ -23,12 +23,12 @@ export default function MonitorCenterPanorama({ kpis, loading }) {
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col lg:col-span-2">
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden relative">
+      <div className="flex h-full min-h-0 w-full flex-col relative">
         <div className="box-border min-h-0 w-full min-w-full flex-1 self-stretch flex flex-col">
           {/* 指标卡区域 */}
           <div className="z-10 flex gap-2 justify-between lg:justify-start mb-4 h-[110px] px-2">
             {cards.map((card, index) => (
-              <div 
+              <div
                 key={index}
                 className="relative flex-1 flex flex-col items-center bg-center bg-[length:100%_100%] bg-no-repeat transition-transform hover:scale-105 duration-300 mx-1"
                 style={{ backgroundImage: `url(${centerTopBg})` }}
@@ -55,9 +55,14 @@ export default function MonitorCenterPanorama({ kpis, loading }) {
           {/* 全景图片内容区域 */}
           <div
             className="w-full flex-1 min-h-0 bg-contain bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${centerBg})` }}
+            // style={{ backgroundImage: `url(${centerBg})` }}
             aria-hidden
-          />
+          >
+            <div
+              className="absolute -top-[20px] -left-[100px] h-[calc(100%+200px)] w-[calc(100%+200px)] bg-contain bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${centerBg})` }}
+            />
+          </div>
         </div>
       </div>
     </div>

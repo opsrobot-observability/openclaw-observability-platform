@@ -6,9 +6,8 @@ import intl from "react-intl-universal";
 import { useMonitorFullscreen } from "./hooks/useMonitorFullscreen.js";
 import { useMonitorDashboard } from "./hooks/useMonitorDashboard.js";
 import { useMonitorSession } from "./hooks/useMonitorSession.js";
-import bgImage from "./images/opsRobotbg3.png";
-import topBg from "./images/centertopbg3.png";
-import topLineBg from "./images/toplinebg1.png";
+import topBg from "./images/topbg3.png";
+import topLineBg from "./images/toplinebg2.png";
 
 export default function MonitorDashboard() {
   const { containerRef, isFullscreen, toggleFullscreen } = useMonitorFullscreen();
@@ -28,7 +27,7 @@ export default function MonitorDashboard() {
   return (
     <div
       ref={containerRef}
-      className={`w-full bg-[#010611] flex-1 text-white p-2 pt-0 font-sans selection:bg-[#00f0ff]/30 flex flex-col gap-0 relative overflow-y-auto lg:overflow-hidden ${
+      className={`w-full bg-[#061333] flex-1 text-white p-2 pt-0 font-sans selection:bg-[#00f0ff]/30 flex flex-col gap-0 relative overflow-y-auto lg:overflow-hidden ${
         isFullscreen ? "h-screen" : "min-h-[750px]"
       }`}
       // style={{
@@ -41,7 +40,7 @@ export default function MonitorDashboard() {
     >
       {/* 顶部贯穿背景线 */}
       <div 
-        className="absolute top-0 left-0 w-full h-[24px] z-9 pointer-events-none"
+        className="absolute top-0 left-0 w-full h-[28px] z-9 pointer-events-none"
         style={{
           backgroundImage: `url(${topLineBg})`,
           backgroundRepeat: "repeat-x",
@@ -106,7 +105,7 @@ export default function MonitorDashboard() {
         />
       </div>
 
-      <div className="mt-3 flex min-h-0 flex-[3] flex-col">
+      <div className="mt-3 flex min-h-0 flex-[3] flex-col z-50">
         <MonitorBottomRow
           topInstances={otelData?.topInstances}
           tokenDistribution={otelData?.tokenDistribution}
