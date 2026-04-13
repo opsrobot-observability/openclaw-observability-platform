@@ -24,7 +24,6 @@ const PAGE_META_KEYS = {
   audit: { title: "page.audit.title", subtitle: "page.audit.subtitle" },
   "audit-overview": { title: "page.auditOverview.title", subtitle: "page.auditOverview.subtitle" },
   "session-audit": { title: "page.sessionAudit.title", subtitle: "page.sessionAudit.subtitle" },
-  "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
   traceability: { title: "page.traceability.title", subtitle: "page.traceability.subtitle" },
   inspection: { title: "page.inspection.title", subtitle: "page.inspection.subtitle" },
   "cost-overview": { title: "page.costOverview.title", subtitle: "page.costOverview.subtitle" },
@@ -33,6 +32,7 @@ const PAGE_META_KEYS = {
   "llm-cost": { title: "page.llmCost.title", subtitle: "page.llmCost.subtitle" },
   "openclaw-instance": { title: "page.openclawInstance.title", subtitle: "page.openclawInstance.subtitle" },
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
+  "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
 };
 
 const NAV_KEYS = [
@@ -41,7 +41,7 @@ const NAV_KEYS = [
     labelKey: "nav.fullTimeMonitoring",
     icon: "clock",
     children: [
-      { id: "instance-monitoring", labelKey: "nav.instanceMonitoring" },
+      { id: "monitor-dashboard", labelKey: "nav.monitorDashboard" },
       { id: "openclaw-instance", labelKey: "nav.openclawInstance" },
       // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
       { id: "digital-employee-list", labelKey: "nav.digitalEmployeeList" },
@@ -597,9 +597,11 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className={`flex-1 overflow-y-auto ${activeNav === "monitor-dashboard" ? "flex flex-col" : "p-6"}`}>
           {activeNav === "openclaw-instance" ? (
             <OpenClawInstance />
+          ) : activeNav === "monitor-dashboard" ? (
+            <MonitorDashboard />
           ) : activeNav === "instance-monitoring" ? (
             <InstanceMonitoring />
           ) : activeNav === "cost-overview" ? (
