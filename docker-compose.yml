@@ -5,7 +5,7 @@ services:
   # frontend - 静态文件服务
   # =============================================================================
   frontend:
-    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-frontend:latest
+    image: ghcr.io/opsrobot-observability/openclaw-observability-platform-frontend:latest
     container_name: frontend
     restart: unless-stopped
     ports:
@@ -26,7 +26,7 @@ services:
   # backend 服务 - Node.js 后端
   # =============================================================================
   backend:
-    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-backend:latest
+    image: ghcr.io/opsrobot-observability/openclaw-observability-platform-backend:latest
     container_name: backend
     restart: unless-stopped
     ports:

@@ -9,7 +9,7 @@ import { mockAgentSessions } from "./data/agent-sessions.mjs";
 import { mockAgentSessionsLogs } from "./data/agent-sessions-logs.mjs";
 import { mockAuditOverview } from "./data/audit-overview.mjs";
 import { mockLogTables } from "./data/log-tables.mjs";
-import { mockLogSearch } from "./data/log-search.mjs";
+import { mockLogSearch, mockUnifiedLogsSearch } from "./data/log-search.mjs";
 import { mockConfigAuditLogs } from "./data/config-audit-logs.mjs";
 import { mockConfigAuditStats } from "./data/config-audit-stats.mjs";
 import { mockSessionCostDetail } from "./data/session-cost-detail.mjs";
@@ -116,6 +116,13 @@ export function handleMockRequest(url, res) {
       return true;
     }
     sendJson(res, 200, data);
+    return true;
+  }
+
+  // --- 统一日志搜索 ---
+  if (url.startsWith("/api/logs-search")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockUnifiedLogsSearch(Object.fromEntries(u.searchParams.entries())));
     return true;
   }
 

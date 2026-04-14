@@ -31,9 +31,33 @@ export function downloadCsv(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
-export function filenameWithTime(prefix) {
+/**
+ * 下载纯文本（UTF-8），如 NDJSON / 每行一条 JSON
+ * @param {string} filename
+ * @param {string} text
+ * @param {string} [mime]
+ */
+export function downloadUtf8Text(filename, text, mime = "text/plain;charset=utf-8") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * @param {string} prefix
+ * @param {string} [ext] - 不含点，默认 csv
+ */
+export function filenameWithTime(prefix, ext = "csv") {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  return `${prefix}_${stamp}.csv`;
+  const safe = String(ext || "csv").replace(/^\./, "");
+  return `${prefix}_${stamp}.${safe}`;
 }

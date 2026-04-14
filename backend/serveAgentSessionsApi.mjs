@@ -1,6 +1,7 @@
 /**
  * 独立 HTTP 服务（供 `vite preview` 代理）
  * - GET /api/agent-sessions
+ * - GET /api/logs-search（统一：agent_sessions / audit_logs / gateway_logs / all）
  * - GET /api/agent-sessions-logs-search
  * - GET /api/agent-sessions-logs-tables
  * - GET /api/agent-sessions-logs?sessionId=
@@ -22,6 +23,7 @@ import {
   listOtelAgentSessionsLogTables,
   queryAgentSessionsLogsSearch,
 } from "./log-search/log-search-query.mjs";
+import { queryUnifiedLogsSearch } from "./log-search/unified-logs-search.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "./security-audit/config-audit-query.mjs";
 import {
   querySessionCostDetail,
@@ -176,6 +178,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (url.startsWith("/api/logs-search")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const o = Object.fromEntries(u.searchParams.entries());
+      const data = await queryUnifiedLogsSearch(o);
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   if (url.startsWith("/api/agent-sessions-logs-search")) {
     try {
       const u = new URL(url, "http://127.0.0.1");
@@ -197,6 +212,13 @@ const server = http.createServer(async (req, res) => {
         model: u.searchParams.get("model") ?? "",
         channel: u.searchParams.get("channel") ?? "",
         agentName: u.searchParams.get("agentName") ?? "",
+        sessionId: u.searchParams.get("sessionId") ?? "",
+        traceId: u.searchParams.get("traceId") ?? "",
+        requestId: u.searchParams.get("requestId") ?? "",
+        levels: u.searchParams.get("levels") ?? "",
+        logCategory: u.searchParams.get("logCategory") ?? "",
+        sortKey: u.searchParams.get("sortKey") ?? "time",
+        sortDir: u.searchParams.get("sortDir") ?? "desc",
         error: err,
         limit: Number(u.searchParams.get("limit") ?? "100"),
         offset: Number(u.searchParams.get("offset") ?? "0"),

@@ -2,6 +2,11 @@
  * Mock: GET /api/agent-sessions-logs-search
  * 对齐 backend/log-search/log-search-query.mjs → queryAgentSessionsLogsSearch()
  */
+import {
+  normalizeAgentSessionsRow,
+  normalizeAuditRow,
+  normalizeGatewayRow,
+} from "../../backend/log-search/log-unified-model.mjs";
 
 function isoStr(offsetMs = 0) {
   return new Date(Date.now() + offsetMs).toISOString();
@@ -30,8 +35,8 @@ export function mockLogSearch(params) {
       channel: "web",
     },
     {
-      id: "log-search-002",
-      sessionId: "sess_f9e8d7c6b5a49382",
+      message_id: "log-search-002",
+      session_id: "sess_f9e8d7c6b5a49382",
       timestamp: isoStr(-7200_000),
       type: "message",
       version: "1.0",
@@ -47,8 +52,8 @@ export function mockLogSearch(params) {
       channel: "internal",
     },
     {
-      id: "log-search-003",
-      sessionId: "sess_1122334455667788",
+      message_id: "log-search-003",
+      session_id: "sess_1122334455667788",
       timestamp: isoStr(-14400_000),
       type: "message",
       version: "1.0",
@@ -64,8 +69,8 @@ export function mockLogSearch(params) {
       channel: "api",
     },
     {
-      id: "log-search-004",
-      sessionId: "sess_aabbccddeeff0011",
+      message_id: "log-search-004",
+      session_id: "sess_aabbccddeeff0011",
       timestamp: isoStr(-21600_000),
       type: "message",
       version: "1.0",
@@ -81,8 +86,8 @@ export function mockLogSearch(params) {
       channel: "feishu",
     },
     {
-      id: "log-search-005",
-      sessionId: "sess_9988776655443322",
+      message_id: "log-search-005",
+      session_id: "sess_9988776655443322",
       timestamp: isoStr(-43200_000),
       type: "message",
       version: "1.0",
@@ -127,5 +132,111 @@ export function mockLogSearch(params) {
       models: ["gpt-4o-mini", "gpt-4o", "claude-3-5-sonnet", "MiniMax-M2.5", "deepseek-r1", "qwen-turbo"],
     },
     rows: sliced,
+  };
+}
+
+/**
+ * Mock: GET /api/logs-search
+ */
+export function mockUnifiedLogsSearch(params) {
+  const ds = params.dataSource || "agent_sessions";
+  const limit = Math.min(Number(params.limit) || 100, 500);
+  const offset = Number(params.offset) || 0;
+
+  if (ds === "agent_sessions") {
+    const agent = mockLogSearch(params);
+    const unifiedRows = (agent.rows || []).map((row) => normalizeAgentSessionsRow(row));
+    return {
+      dataSource: "agent_sessions",
+      total: agent.total,
+      limit: agent.limit,
+      offset: agent.offset,
+      unifiedRows,
+      meta: { agent },
+    };
+  }
+
+  if (ds === "audit_logs") {
+    const rows = [
+      {
+        id: 9001,
+        event_time: isoStr(-1800_000),
+        log_attributes: JSON.stringify({
+          source: "config",
+          event: "reload",
+          level: "info",
+          session_id: "sess_mock_audit",
+          trace_id: "tr_audit_1",
+        }),
+      },
+    ];
+    const unifiedRows = rows.map((r) => normalizeAuditRow(r));
+    return {
+      dataSource: "audit_logs",
+      total: rows.length,
+      limit,
+      offset,
+      unifiedRows,
+      meta: { audit: { total: rows.length, rows } },
+    };
+  }
+
+  if (ds === "gateway_logs") {
+    const rows = [
+      {
+        id: 8001,
+        event_time: isoStr(-900_000),
+        module: "http",
+        level: "info",
+        log_attributes: JSON.stringify({
+          message: "GET /v1/chat",
+          session_id: "sess_gw_1",
+          trace_id: "tr_gw_1",
+        }),
+      },
+    ];
+    const unifiedRows = rows.map((r) => normalizeGatewayRow(r));
+    return {
+      dataSource: "gateway_logs",
+      total: rows.length,
+      limit,
+      offset,
+      unifiedRows,
+      meta: { gateway: { total: rows.length, rows } },
+    };
+  }
+
+  const agent = mockLogSearch({ ...params, limit: 50, offset: 0 });
+  const auditRows = [
+    {
+      id: 9001,
+      event_time: isoStr(-1800_000),
+      log_attributes: JSON.stringify({ event: "audit_mock", level: "warn" }),
+    },
+  ];
+  const gwRows = [
+    {
+      id: 8001,
+      event_time: isoStr(-900_000),
+      module: "router",
+      level: "info",
+      log_attributes: JSON.stringify({ message: "gateway mock" }),
+    },
+  ];
+  const merged = [
+    ...(agent.rows || []).map((row) => normalizeAgentSessionsRow(row)),
+    ...auditRows.map((row) => normalizeAuditRow(row)),
+    ...gwRows.map((row) => normalizeGatewayRow(row)),
+  ].sort((a, b) => String(b.time).localeCompare(String(a.time)));
+  const unifiedRows = merged.slice(offset, offset + limit);
+
+  return {
+    dataSource: "all",
+    total: merged.length,
+    limit,
+    offset,
+    unifiedRows,
+    mergeNote: "mock all",
+    meta: {},
   };
 }

@@ -13,6 +13,7 @@ import {
   listOtelAgentSessionsLogTables,
   queryAgentSessionsLogsSearch,
 } from "../backend/log-search/log-search-query.mjs";
+import { queryUnifiedLogsSearch } from "../backend/log-search/unified-logs-search.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
 import {
@@ -219,6 +220,18 @@ export function agentSessionsDevApi() {
           return;
         }
 
+        if (url.startsWith("/api/logs-search")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryUnifiedLogsSearch(Object.fromEntries(u.searchParams.entries()));
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
         if (url.startsWith("/api/agent-sessions-logs-search")) {
           try {
             const u = new URL(url, "http://vite.local");
@@ -228,6 +241,9 @@ export function agentSessionsDevApi() {
               sendJson(res, 400, { error: "missing startIso or endIso" });
               return;
             }
+            const errParam = u.searchParams.get("error");
+            const err =
+              errParam === "yes" || errParam === "no" ? /** @type {"yes"|"no"} */ (errParam) : "all";
             const data = await queryAgentSessionsLogsSearch({
               startIso,
               endIso,
@@ -237,7 +253,14 @@ export function agentSessionsDevApi() {
               model: u.searchParams.get("model") ?? "",
               channel: u.searchParams.get("channel") ?? "",
               agentName: u.searchParams.get("agentName") ?? "",
-              error: /** @type {"all"|"yes"|"no"} */ (u.searchParams.get("error") ?? "all"),
+              sessionId: u.searchParams.get("sessionId") ?? "",
+              traceId: u.searchParams.get("traceId") ?? "",
+              requestId: u.searchParams.get("requestId") ?? "",
+              levels: u.searchParams.get("levels") ?? "",
+              logCategory: u.searchParams.get("logCategory") ?? "",
+              sortKey: u.searchParams.get("sortKey") ?? "time",
+              sortDir: u.searchParams.get("sortDir") ?? "desc",
+              error: err,
               limit: Number(u.searchParams.get("limit") ?? "100"),
               offset: Number(u.searchParams.get("offset") ?? "0"),
               logTable: u.searchParams.get("logTable") ?? "",
