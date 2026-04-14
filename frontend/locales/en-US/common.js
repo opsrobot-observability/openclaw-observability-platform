@@ -52,6 +52,7 @@ export default {
   "nav.instanceMonitoring": "Cockpit",
   "nav.digitalEmployeeOverview": "Digital Employee Overview",
   "nav.digitalEmployeeList": "Digital employees",
+  "nav.sreAgent": "SRE Agent",
 
   "page.panorama.title": "Overview",
   "page.panorama.subtitle": "Key metrics & orders at a glance · Real-time",

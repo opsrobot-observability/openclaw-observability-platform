@@ -17,11 +17,6 @@ import AuditOverview from "./AuditOverview.jsx";
 import SreAgent from "./SreAgent.jsx";
 import LogSearch from "./LogSearch.jsx";
 import MonitorDashboard from "./monitor-dashboard/index.jsx";
-<<<<<<< .mine
-import MonitorDashboard from "./monitor-dashboard/index.jsx";
-=======
-
->>>>>>> .theirs
 
 const PAGE_META_KEYS = {
   panorama: { title: "page.panorama.title", subtitle: "page.panorama.subtitle" },
@@ -76,7 +71,7 @@ const NAV_KEYS = [
       { id: "llm-cost", labelKey: "nav.llmCost" },
     ],
   },
-  { id: "sre-agent", label: "SRE Agent", icon: "robot" },
+  { id: "sre-agent", labelKey: "nav.sreAgent", icon: "robot" },
 ];
 
 const STATS_KEYS = [
