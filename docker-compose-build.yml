@@ -12,12 +12,12 @@ services:
     container_name: frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_HTTP_PORT:-80}:80"
+      - "${FRONTEND_HTTPS_PORT:-443}:443"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -k https://127.0.0.1:443 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,8 +45,7 @@ services:
       - DORIS_DATABASE=${DORIS_DATABASE:-opsRobot}
       - PORT=8787
     depends_on:
-      doris:
-        condition: service_healthy
+      - doris
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8787 || exit 1"]
       interval: 10s

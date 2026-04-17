@@ -2,19 +2,23 @@ name: openclaw-observability-platform
 
 services:
   # =============================================================================
-  # frontend - 静态文件服务
+  # frontend - 静态文件服务 (支持 HTTPS)
   # =============================================================================
   frontend:
-    image: ghcr.io/opsrobot-observability/openclaw-observability-platform-frontend:latest
+    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-frontend:latest
     container_name: frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_HTTP_PORT:-80}:80"     # HTTP 端口 (自动跳转到 HTTPS)
+      - "${FRONTEND_HTTPS_PORT:-443}:443"  # HTTPS 端口
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro              # 挂载 SSL 证书目录 (只读)
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro  # 挂载 Nginx 配置文件 (只读)
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "nc -z 127.0.0.1 3000 || exit 1" ]
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 443 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +30,7 @@ services:
   # backend 服务 - Node.js 后端
   # =============================================================================
   backend:
-    image: ghcr.io/opsrobot-observability/openclaw-observability-platform-backend:latest
+    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-backend:latest
     container_name: backend
     restart: unless-stopped
     ports:
@@ -62,11 +66,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "4"
-          memory: 16G
+          cpus: "2"
+          memory: 8G
         reservations:
-          cpus: "1"
-          memory: 4G
+          cpus: "0.5"
+          memory: 2G
     ports:
       - "${DORIS_FE_HTTP_PORT:-8030}:8030" # FE HTTP port (Web UI)
       - "${DORIS_FE_MYSQL_PORT:-9030}:9030" # FE MySQL protocol port
@@ -80,11 +84,11 @@ services:
       - ./scripts/start-doris.sh:/start-doris.sh:ro
     entrypoint: [ "/bin/bash", "/start-doris.sh" ]
     healthcheck:
-      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -uroot -e 'SHOW BACKENDS\\G' | grep -q 'Alive: true' || exit 1" ]
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -uroot -e 'SELECT 1' || exit 1" ]
       interval: 15s
       timeout: 10s
-      retries: 20
-      start_period: 180s
+      retries: 10
+      start_period: 60s
     networks:
       - openclaw-net
 
@@ -121,3 +125,8 @@ networks:
 
 volumes:
   doris_data:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: ~/var/doris_data 
