@@ -2,7 +2,8 @@
 
 > English | [中文](./README_zh.md)
 
-![Instance-monitoring](./docs/pictures/Instance-monitoring.png)
+![概览页](./docs/pictures/概览页.png)
+![实例监控](./docs/pictures/实例监控.png)
 
 **OpenClaw Observability Platform**, developed based on the KWeaver Core framework, uses OTel protocol and eBPF technology for full-link tracing and monitoring of AI Agents. It provides rapid fault diagnosis, security compliance management, and lean computing operations capabilities to ensure high-quality growth of AI-powered businesses.
 
@@ -186,6 +187,21 @@ sources:
     - "sh"
     - "-c"
     - 'for f in ~/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+
+  cron_jobs_config_file:
+    type: exec
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in ~/.openclaw/cron/jobs.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+
+  cron_runs_config_file:
+    type: file
+    include:
+    - "~/.openclaw/cron/runs/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
 ```
 
 #### Start Vector Collector Service:
@@ -193,8 +209,48 @@ sources:
 ```bash
 vector --config vector.yaml
 ```
+### 5. Configure OpenClaw-Diagnostics-Otel Data Collection
 
-### 5. View All OpenClaw Observability Data:
+* [Official Documentation](https://docs.openclaw.ai/zh-CN/logging)
+
+In the openclaw.json file, add or modify the configuration as follows:
+```yaml
+{
+  "diagnostics": {
+    "enabled": true,
+    "otel": {
+      "enabled": true,
+      "endpoint": "http://192.168.72.87:4318",
+      "traces": true,
+      "metrics": true,
+      "logs": true,
+    },
+    "cacheTrace": {
+      "enabled": true,
+      "includeMessages": true,
+      "includePrompt": true,
+      "includeSystem": true
+    }
+  },
+  "plugins": {
+    "entries": {
+      "diagnostics-otel": {
+        "enabled": true
+      },
+    },
+    "allow": [
+      "diagnostics-otel",
+    ]
+  }
+}
+```
+
+After modifying the configuration, restart OpenClaw:
+```bash
+openclaw gateway restart
+```
+
+### 6. View All OpenClaw Observability Data:
 
 - Interact with OpenClaw through its interface
 - View collected data in the opsRobot product interface: http://localhost:3000
@@ -202,7 +258,13 @@ vector --config vector.yaml
 ---
 
 ## More Screenshots
+Session Traceability Analysis:
+![溯源分析](./docs/pictures/溯源分析.png)
 
+Token Consumption Dashboard:
+![Token消耗](./docs/pictures/Token消耗.png)
+
+Digital Employee Module (Overview & Portrait):
 ![Digital-Employee-Overview](./docs/pictures/Digital-Emmployee-Overview.png)
 ![Digital-Employee-Overview2](./docs/pictures/Digital-Employee-Overview2.png)
 ![Digital-Employee-Portrait-Capability](./docs/pictures/Digital-Employee-Portrait-Capability.png)

@@ -186,6 +186,21 @@ sources:
     - "sh"
     - "-c"
     - 'for f in ~/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+
+  cron_jobs_config_file:
+    type: exec
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in ~/.openclaw/cron/jobs.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+
+  cron_runs_config_file:
+    type: file
+    include:
+    - "~/.openclaw/cron/runs/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
 ```
 
 #### 启动 Vector 采集器服务：
@@ -193,8 +208,47 @@ sources:
 ```bash
 vector --config vector.yaml
 ```
+### 5.配置 OpenClaw-Diagnostics-Otel 数据采集
 
-### 5.查看 OpenClaw 的所有观测数据：
+* [官方文档介绍](https://docs.openclaw.ai/zh-CN/logging)
+
+在openclaw.json文件需要增加或者修改配置如下：
+```yaml
+{
+  "diagnostics": {
+    "enabled": true,
+    "otel": {
+      "enabled": true,
+      "endpoint": "http://192.168.72.87:4318",
+      "traces": true,
+      "metrics": true,
+      "logs": true,
+    },
+    "cacheTrace": {
+      "enabled": true,
+      "includeMessages": true,
+      "includePrompt": true,
+      "includeSystem": true
+    }
+  },
+  "plugins": {
+    "entries": {
+      "diagnostics-otel": {
+        "enabled": true
+      },
+    },
+    "allow": [
+      "diagnostics-otel",
+    ]
+  }
+}
+```
+修改配置完成后，需要 重启openclaw：
+```bash
+openclaw gataway restart
+```
+
+### 6.查看 OpenClaw 的所有观测数据：
 
 * 在 OpenClaw 界面进行对话互动
 * 在 opsRobot 产品界面中查看采集数据：http://localhost:3000

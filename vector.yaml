@@ -10,7 +10,7 @@ sources:
     command: 
       - "sh"
       - "-c"
-      - 'for f in /Users/lxg/.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+      - 'for f in <YOUR PATH>.openclaw/agents/*/sessions/sessions.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
     mode: scheduled
     scheduled:
       exec_interval_secs: 60
@@ -19,7 +19,7 @@ sources:
   session_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
+    - "<YOUR PATH>.openclaw/agents/*/sessions/*.jsonl" #修改为实际的 openclaw  session 日志路径
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -28,8 +28,8 @@ sources:
   gateway_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/logs/gateway.log"
-    - "/Users/lxg/.openclaw/logs/gateway.err.log"
+    - "<YOUR PATH>.openclaw/logs/gateway.log"
+    - "<YOUR PATH>.openclaw/logs/gateway.err.log"
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -38,7 +38,7 @@ sources:
   audit_logs:
     type: file
     include:
-    - "/Users/lxg/.openclaw/logs/config-audit.jsonl"
+    - "<YOUR PATH>.openclaw/logs/config-audit.jsonl"
     read_from: beginning
     fingerprint:
       strategy: device_and_inode
@@ -49,7 +49,7 @@ sources:
     command:
     - "sh"
     - "-c"
-    - 'f="/Users/lxg/.openclaw/openclaw.json"; if [ -f "$$f" ]; then j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"openclaw_root\":%s}\n" "$$f" "$$j"; fi'
+    - 'f="<YOUR PATH>.openclaw/openclaw.json"; if [ -f "$$f" ]; then j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"openclaw_root\":%s}\n" "$$f" "$$j"; fi'
     mode: scheduled
     scheduled:
       exec_interval_secs: 60
@@ -60,10 +60,30 @@ sources:
     command:
     - "sh"
     - "-c"
-    - 'for f in /Users/lxg/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+    - 'for f in <YOUR PATH>.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
     mode: scheduled
     scheduled:
       exec_interval_secs: 60
+
+
+  cron_jobs_config_file:
+    type: exec
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in <YOUR PATH>.openclaw/cron/jobs.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 60
+
+  cron_runs_config_file:
+    type: file
+    include:
+    - "<YOUR PATH>.openclaw/cron/runs/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
+      
 
 transforms:
   #解析 JSON，遍历每个 key-value 拆成独立记录
@@ -482,6 +502,65 @@ transforms:
 
       . = rows
 
+  cron_jobs_transform:
+    type: remap
+    inputs:
+    - cron_jobs_config_file
+    drop_on_error: false
+    drop_on_abort: true
+    source: |
+      parsed = parse_json!(string!(.message))
+
+      # 获取 jobs 数组
+      jobs_raw = get(parsed, ["jobs"]) ?? []
+      jobs, jobs_err = array(jobs_raw)
+      if jobs_err != null {
+        jobs = []
+      }
+
+      result = []
+      for_each(jobs) -> |_idx, job| {
+        if is_object(job) {
+          result = push(result, {
+            "id": string(get(job, ["id"]) ?? "") ?? "",
+            "agent_id": string(get(job, ["agentId"]) ?? "") ?? "",
+            "session_key": string(get(job, ["sessionKey"]) ?? "") ?? "",
+            "name": string(get(job, ["name"]) ?? "") ?? "",
+            "log_attributes": job
+          })
+        }
+      }
+      . = result
+
+
+  cron_runs_transform:
+    type: remap
+    inputs:
+    - cron_runs_config_file
+    drop_on_error: false
+    drop_on_abort: true
+    source: |
+      raw_message = string(.message) ?? ""
+
+      # 解析 JSON
+      obj, err = parse_json(raw_message)
+
+      if err != null {
+        # JSON 解析失败，跳过该事件
+        log("WARN: Failed to parse JSON, skipping: " + raw_message)
+        abort
+      }
+
+      .ts = int(get(obj, ["ts"]) ?? 0) ?? 0
+      .job_id = string(get(obj, ["jobId"]) ?? "") ?? ""
+      .action = string(get(obj, ["action"]) ?? "") ?? ""
+      .status = string(get(obj, ["status"]) ?? "") ?? ""
+      .delivery_status = string(get(obj, ["deliveryStatus"]) ?? "") ?? ""
+      .model = string(get(obj, ["model"]) ?? "") ?? ""
+      .provider = string(get(obj, ["provider"]) ?? "") ?? ""
+      .log_attributes = obj
+
+
 
 sinks:
   session_to_doris: &sink_template
@@ -546,6 +625,18 @@ sinks:
     - agent_models_transform
     uri: "http://127.0.0.1:8040/api/opsRobot/agent_models/_stream_load"
 
+
+  cron_jobs_to_doris:
+    <<: *sink_template
+    inputs:
+    - cron_jobs_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/cron_jobs/_stream_load"
+
+  cron_runs_to_doris:
+    <<: *sink_template
+    inputs:
+    - cron_runs_transform
+    uri: "http://127.0.0.1:8040/api/opsRobot/cron_runs/_stream_load"
 
   # session_to_console: &console_template
   #   type: console

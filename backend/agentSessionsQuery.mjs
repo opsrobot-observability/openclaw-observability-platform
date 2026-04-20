@@ -14,6 +14,26 @@ export function getDorisConfig() {
   };
 }
 
+/**
+ * 审计/网关日志表所在库（默认与 DORIS_DATABASE 一致；若两表在 otel、会话在 opsRobot 可设 DORIS_LOG_DATABASE=otel）
+ * @returns {string}
+ */
+export function getLogTablesDatabaseName() {
+  const cfg = getDorisConfig();
+  const raw = process.env.DORIS_LOG_DATABASE ?? cfg.database ?? "opsRobot";
+  return String(raw).replace(/[`'"]/g, "").trim() || "opsRobot";
+}
+
+/**
+ * @param {string} table 仅允许 [a-zA-Z0-9_]
+ */
+export function qualifyOtelTable(table) {
+  const t = String(table ?? "").replace(/[^a-zA-Z0-9_]/g, "");
+  if (!t) throw new Error("invalid table name");
+  const db = getLogTablesDatabaseName();
+  return `\`${db}\`.\`${t}\``;
+}
+
 const SELECT_SQL = `
 SELECT
   session_id,

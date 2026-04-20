@@ -3,9 +3,71 @@
  */
 import mysql from "mysql2/promise";
 import { getDorisConfig } from "../agentSessionsQuery.mjs";
+import { pushAgentFieldFilter } from "./agent-field-filter.mjs";
+import { preprocessAgentSearchQuery, applyExtractedClauses } from "./log-query-advanced.mjs";
+import { buildAgentTextWhereParts } from "./log-query-text.mjs";
 
 const MAX_LIMIT = 500;
 const MAX_OFFSET = 5000;
+/** 与前端 fieldFilters JSON 一致，多条件 AND */
+const MAX_FIELD_FILTERS = 32;
+
+/**
+ * @param {unknown} raw
+ * @returns {{ key: string; value: string; exclude: boolean }[]}
+ */
+function normalizeFieldFiltersInput(p) {
+  const raw = p?.fieldFilters;
+  /** @type {unknown[]} */
+  let arr = [];
+  if (Array.isArray(raw)) arr = raw;
+  else if (typeof raw === "string" && raw.trim()) {
+    try {
+      const j = JSON.parse(raw);
+      if (Array.isArray(j)) arr = j;
+    } catch {
+      /* ignore */
+    }
+  }
+  const out = [];
+  for (const item of arr) {
+    if (!item || typeof item !== "object") continue;
+    const o = /** @type {Record<string, unknown>} */ (item);
+    const key = String(o.key ?? "").trim();
+    if (!key) continue;
+    const val = o.value;
+    const value = val === undefined || val === null ? "" : String(val);
+    const ex = o.exclude;
+    const exclude = ex === true || ex === 1 || String(ex).toLowerCase() === "true";
+    out.push({ key, value, exclude });
+    if (out.length >= MAX_FIELD_FILTERS) break;
+  }
+  if (out.length > 0) return out;
+  const k = String(p?.fieldFilterKey ?? "").trim();
+  if (k) {
+    const v = p?.fieldFilterValue === undefined || p?.fieldFilterValue === null ? "" : String(p.fieldFilterValue);
+    return [{ key: k, value: v, exclude: false }];
+  }
+  return [];
+}
+
+/**
+ * @param {string[]} where
+ * @param {unknown[]} params
+ * @param {string} key
+ * @param {string} value
+ * @param {string} concatBlob
+ * @param {boolean} exclude
+ */
+function pushAgentFieldFilterMaybeNegated(where, params, key, value, concatBlob, exclude) {
+  const i0 = where.length;
+  pushAgentFieldFilter(where, params, key, value, concatBlob);
+  if (!exclude) return;
+  const n = where.length - i0;
+  if (n <= 0) return;
+  const slice = where.splice(i0, n);
+  where.push(n === 1 ? `NOT (${slice[0]})` : `NOT (${slice.join(" AND ")})`);
+}
 
 /** 仅允许 otel 内日志表名，防注入 */
 export function sanitizeLogTableName(name) {
@@ -70,10 +132,20 @@ function normalizeRow(row) {
  *   model?: string;
  *   channel?: string;
  *   agentName?: string;
+ *   sessionId?: string;
+ *   traceId?: string;
+ *   requestId?: string;
+ *   levels?: string;
+ *   logCategory?: string;
+ *   sortKey?: string;
+ *   sortDir?: string;
  *   error?: "all" | "yes" | "no";
  *   limit?: number;
  *   offset?: number;
  *   logTable?: string;
+ *   fieldFilterKey?: string;
+ *   fieldFilterValue?: string;
+ *   fieldFilters?: unknown;
  * }} p
  */
 export async function queryAgentSessionsLogsSearch(p) {
@@ -96,6 +168,15 @@ export async function queryAgentSessionsLogsSearch(p) {
   const channelF = String(p.channel ?? "").trim();
   const agentF = String(p.agentName ?? "").trim();
   const error = p.error === "yes" || p.error === "no" ? p.error : "all";
+
+  const sessionIdF = String(p.sessionId ?? "").trim();
+  const traceIdF = String(p.traceId ?? "").trim();
+  const requestIdF = String(p.requestId ?? "").trim();
+  const levelsRaw = String(p.levels ?? "").trim();
+  const logCategory = String(p.logCategory ?? "").trim().toLowerCase();
+  const sortKeyRaw = String(p.sortKey ?? "timestamp").trim().toLowerCase();
+  const sortDirRaw = String(p.sortDir ?? "desc").trim().toLowerCase();
+  const orderDir = sortDirRaw === "asc" ? "ASC" : "DESC";
 
   const params = [startIso, endIso];
   const where = [
@@ -126,17 +207,58 @@ export async function queryAgentSessionsLogsSearch(p) {
     where.push("COALESCE(NULLIF(TRIM(s.`agent_name`), ''), '') = ?");
     params.push(agentF);
   }
+  if (sessionIdF) {
+    where.push("l.`session_id` = ?");
+    params.push(sessionIdF);
+  }
+  if (traceIdF) {
+    where.push(`(
+      GET_JSON_STRING(CAST(l.\`log_attributes\` AS STRING), '$.trace_id') = ?
+      OR GET_JSON_STRING(CAST(l.\`log_attributes\` AS STRING), '$.traceId') = ?
+    )`);
+    params.push(traceIdF, traceIdF);
+  }
+  if (requestIdF) {
+    where.push(`(
+      GET_JSON_STRING(CAST(l.\`log_attributes\` AS STRING), '$.request_id') = ?
+      OR GET_JSON_STRING(CAST(l.\`log_attributes\` AS STRING), '$.requestId') = ?
+    )`);
+    params.push(requestIdF, requestIdF);
+  }
+
+  const levels = levelsRaw
+    .split(/[, ]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (levels.length > 0) {
+    const hasErr = levels.some((l) => l === "error" || l === "fatal");
+    const hasNonErr = levels.some((l) => ["trace", "debug", "info", "warn"].includes(l));
+    if (hasErr && !hasNonErr) {
+      where.push("l.`message_is_error` = 1");
+    } else if (hasNonErr && !hasErr) {
+      where.push("(l.`message_is_error` IS NULL OR l.`message_is_error` = 0)");
+    }
+  }
+
+  if (logCategory === "skill") {
+    where.push("TRIM(COALESCE(l.`message_tool_name`, '')) <> ''");
+  } else if (logCategory === "channel") {
+    const ch = String(p.channel ?? "").trim();
+    if (ch && ch !== "全部") {
+      where.push("s.`channel` = ?");
+      params.push(ch);
+    }
+  } else if (logCategory === "gateway") {
+    where.push("1=0");
+  }
+
   if (error === "yes") {
     where.push("l.`message_is_error` = 1");
   } else if (error === "no") {
     where.push("(l.`message_is_error` IS NULL OR l.`message_is_error` = 0)");
   }
 
-  if (q) {
-    where.push(`(
-      LOCATE(
-        ?,
-        LOWER(CONCAT_WS(' ',
+  const concatBlob = `LOWER(CONCAT_WS(' ',
           COALESCE(l.\`type\`,''),
           COALESCE(l.\`provider\`,''),
           COALESCE(l.\`model_id\`,''),
@@ -146,12 +268,31 @@ export async function queryAgentSessionsLogsSearch(p) {
           COALESCE(l.\`session_id\`,''),
           COALESCE(l.\`message_id\`,''),
           COALESCE(l.\`message_parent_id\`,''),
-          COALESCE(s.\`agent_name\`,'')
-        ))
-      ) > 0
-    )`);
-    params.push(q.toLowerCase());
+          COALESCE(s.\`agent_name\`,''),
+          COALESCE(CAST(l.\`log_attributes\` AS STRING),'')))`;
+
+  const fieldFilters = normalizeFieldFiltersInput(p);
+  for (const { key, value, exclude } of fieldFilters) {
+    pushAgentFieldFilterMaybeNegated(where, params, key, value, concatBlob, exclude);
   }
+
+  const { remainder: textQ, clauses: queryClauses, splStripped } = preprocessAgentSearchQuery(q);
+  applyExtractedClauses(where, params, queryClauses, concatBlob);
+  const textOr = buildAgentTextWhereParts(textQ, concatBlob, params);
+  if (textOr.length > 0) {
+    where.push(`(${textOr.join(" OR ")})`);
+  }
+
+  const sortMap = {
+    time: "l.`timestamp`",
+    timestamp: "l.`timestamp`",
+    level: "l.`message_is_error`",
+    subsystem: "l.`type`",
+    type: "l.`type`",
+    agent: "s.`agent_name`",
+    agent_name: "s.`agent_name`",
+  };
+  const orderByCol = sortMap[sortKeyRaw] || "l.`timestamp`";
 
   const whereSql = where.join(" AND ");
 
@@ -189,7 +330,7 @@ SELECT
   s.\`agent_name\`,
   s.\`channel\`
 ${baseFrom}
-ORDER BY l.\`timestamp\` DESC
+ORDER BY ${orderByCol} ${orderDir}
 LIMIT ? OFFSET ?
 `;
     const listParams = [...params, limit, offset];
@@ -256,6 +397,8 @@ ORDER BY bucket
       source: `${dbName}.${logTable} + ${dbName}.agent_sessions`,
       database: dbName,
       logTable,
+      sortKey: sortKeyRaw,
+      sortDir: sortDirRaw,
       legend:
         `当前日志库表：\`${dbName}\`.\`${logTable}\`（主表或按日分表）。按 timestamp 字符串区间筛选；关键字在多列拼接结果中 LOCATE；左连 agent_sessions 取 channel、agent_name。`,
       total,
@@ -271,6 +414,7 @@ ORDER BY bucket
         channels,
         agents,
         models,
+        ...(splStripped ? { splStripped } : {}),
       },
       rows,
     };
