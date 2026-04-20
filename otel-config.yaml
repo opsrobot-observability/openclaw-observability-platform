@@ -42,3 +42,11 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [doris, debug]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [doris, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [doris, debug]
