@@ -129,6 +129,7 @@ export default function SreAgent() {
     messages, toolCalls, steps, workspacePanels, confirm,
     status, error, sendMessage, respondConfirm, cancel, reset: resetAgui, hydrateMessages,
     abortSessionFollowUp,
+    openSreVizQueueItem,
   } = useAgui(agent);
 
   const resetConversation = useCallback(() => {
@@ -313,6 +314,7 @@ export default function SreAgent() {
       handleAction={handleAction}
       inputRef={inputRef}
       respondConfirm={respondConfirm}
+      onOpenSreVizItem={openSreVizQueueItem}
     />
   );
 }

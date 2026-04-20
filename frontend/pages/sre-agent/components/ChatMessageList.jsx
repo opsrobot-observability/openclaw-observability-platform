@@ -16,6 +16,7 @@ export default function ChatMessageList({
   setInput,
   inputRef,
   respondConfirm,
+  onOpenSreVizItem,
 }) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
@@ -35,6 +36,7 @@ export default function ChatMessageList({
             onSelect={handleSend}
             setInput={setInput}
             inputRef={inputRef}
+            onOpenSreVizItem={onOpenSreVizItem}
           />
         );
       })}

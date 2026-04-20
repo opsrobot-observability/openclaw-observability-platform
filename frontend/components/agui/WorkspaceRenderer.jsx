@@ -11,6 +11,14 @@
  */
 import { useState, useEffect, useRef, useCallback } from "react";
 import CanvasChart from "./CanvasChart.jsx";
+import {
+  SreVizMetricsTrend,
+  SreVizLogsDistribution,
+  SreVizTraceCallChain,
+  SreVizTopologyMap,
+  SreVizAnomalyPattern,
+  SreMessageMarkdownPanel,
+} from "./SreVizPanels.jsx";
 
 export default function WorkspaceRenderer({ panels, onAction }) {
   if (!panels.length) return <WorkspaceEmpty />;
@@ -38,6 +46,12 @@ function WorkspacePanel({ panel, onAction }) {
     case "metrics_live": return <LiveMetrics panel={panel} />;
     case "pods_live":    return <LivePodGrid panel={panel} onAction={onAction} />;
     case "actions_live": return <LiveActions panel={panel} onAction={onAction} />;
+    case "sre_viz_metrics_trend": return <SreVizMetricsTrend panel={panel} />;
+    case "sre_viz_logs_distribution": return <SreVizLogsDistribution panel={panel} />;
+    case "sre_viz_trace_call_chain": return <SreVizTraceCallChain panel={panel} />;
+    case "sre_viz_topology_map": return <SreVizTopologyMap panel={panel} />;
+    case "sre_viz_anomaly_pattern": return <SreVizAnomalyPattern panel={panel} />;
+    case "sre_message_markdown": return <SreMessageMarkdownPanel panel={panel} />;
     default:             return null;
   }
 }

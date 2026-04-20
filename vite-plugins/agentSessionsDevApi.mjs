@@ -10,6 +10,7 @@ import {
   handleOpenClawSessionsMiddleware,
   isOpenClawSessionsPath,
 } from "../backend/sre-agent/sre-agent-handler.mjs";
+import { handleSreVizFileMiddleware, isSreVizJsonPath } from "../backend/sre-agent/sre-viz-file-handler.mjs";
 import { queryAuditDashboardMetrics } from "../backend/security-audit/audit-dashboard-query.mjs";
 import { queryCostOverviewSnapshot } from "../backend/cost-analysis/cost-overview-query.mjs";
 import {
@@ -102,6 +103,14 @@ export function agentSessionsDevApi() {
         }
         if (path === "/api/sre-agent/action" && req.method === "POST") {
           return handleSreAgentActionMiddleware(req, res);
+        }
+        if (isSreVizJsonPath(path) && req.method === "GET") {
+          void handleSreVizFileMiddleware(req, res).catch((e) => {
+            if (!res.headersSent && !res.writableEnded) {
+              sendJson(res, 500, { error: String(e?.message || e) });
+            }
+          });
+          return;
         }
         if (path.startsWith("/api/sre-agent") && req.method === "POST") {
           return handleSreAgentMiddleware(req, res);

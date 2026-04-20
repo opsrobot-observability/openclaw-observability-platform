@@ -35,6 +35,7 @@ export default function SreAgentChatWorkspace({
   handleAction,
   inputRef,
   respondConfirm,
+  onOpenSreVizItem,
 }) {
   return (
     <div
@@ -107,6 +108,7 @@ export default function SreAgentChatWorkspace({
           setInput={setInput}
           inputRef={inputRef}
           respondConfirm={respondConfirm}
+          onOpenSreVizItem={onOpenSreVizItem}
         />
 
         <div className="border-t border-gray-200 p-3 dark:border-gray-700">

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EventType, HttpAgent, uid } from "./agui.js";
 import { runOpenClawSessionFollowUpPoll } from "./sreAgentSessionFollowUp.js";
 import { normalizeConfirmPayload, parseAssistantConfirmSources } from "./aguiConfirmBlock.js";
+import { extractSreVizWorkQueue } from "./sreMessageVizExtract.js";
+import { sreVizModelToPanel } from "./sreVizModelToPanel.js";
 
 /**
  * useAgui — React hook for AG-UI event stream processing.
@@ -299,6 +301,48 @@ export default function useAgui(agent) {
     msgBufRef.current = {};
   }, [abortSessionFollowUp]);
 
+  const stripMsgVizPanels = (prev) => prev.filter((p) => !String(p.id).startsWith("msg-viz-"));
+
+  const resolveSreVizQueueItemToPanel = useCallback(async (item) => {
+    let model = item.kind === "inline" ? item.model : null;
+    if (item.kind === "path") {
+      try {
+        const r = await fetch(`/api/sre-agent/viz-json?path=${encodeURIComponent(item.path)}`);
+        if (!r.ok) return null;
+        model = await r.json();
+      } catch {
+        return null;
+      }
+    }
+    return model ? sreVizModelToPanel(model) : null;
+  }, []);
+
+  /** 打开单条 viz（内联 model 或 ~/.openclaw 路径拉取 JSON），仅用于 metrics_trend 等五种 AGUI 面板 */
+  const openSreVizQueueItem = useCallback(
+    async (item) => {
+      const p = await resolveSreVizQueueItemToPanel(item);
+      if (!p) return;
+      setWorkspacePanels((prev) => [...stripMsgVizPanels(prev), p]);
+    },
+    [resolveSreVizQueueItemToPanel],
+  );
+
+  /** 一次打开消息中全部 viz（批量追加，避免 strip 互相覆盖） */
+  const openAssistantMessageInWorkspace = useCallback(
+    async (markdown) => {
+      const queue = extractSreVizWorkQueue(String(markdown ?? ""));
+      if (queue.length === 0) return;
+      const panels = [];
+      for (const item of queue) {
+        const p = await resolveSreVizQueueItemToPanel(item);
+        if (p) panels.push(p);
+      }
+      if (panels.length === 0) return;
+      setWorkspacePanels((prev) => [...stripMsgVizPanels(prev), ...panels]);
+    },
+    [resolveSreVizQueueItemToPanel],
+  );
+
   /** 从历史会话载入消息（不触发 Agent 运行） */
   const hydrateMessages = useCallback((list) => {
     abortSessionFollowUp();
@@ -343,5 +387,7 @@ export default function useAgui(agent) {
     reset,
     hydrateMessages,
     abortSessionFollowUp,
+    openAssistantMessageInWorkspace,
+    openSreVizQueueItem,
   };
 }

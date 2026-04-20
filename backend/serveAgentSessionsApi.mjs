@@ -22,6 +22,7 @@ import {
   handleOpenClawSessions,
   isOpenClawSessionsPath,
 } from "./sre-agent/sre-agent-handler.mjs";
+import { handleSreVizFileRead, isSreVizJsonPath } from "./sre-agent/sre-viz-file-handler.mjs";
 import {
   queryAgentSessionsLogsRaw,
   queryAgentSessionsRawWithLogTokens,
@@ -80,6 +81,10 @@ const server = http.createServer(async (req, res) => {
 
   if (isOpenClawSessionsPath(path) && req.method === "GET") {
     return handleOpenClawSessions(req, res);
+  }
+
+  if (isSreVizJsonPath(path) && req.method === "GET") {
+    return handleSreVizFileRead(req, res, url);
   }
 
   // SRE Agent SSE endpoint (POST only)

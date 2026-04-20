@@ -7,7 +7,7 @@ const AssistantBubble = memo(function AssistantBubble({ text, streaming }) {
     () => ({
       pre: MarkdownPreWithCopy,
     }),
-    []
+    [],
   );
 
   return (
