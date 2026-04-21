@@ -10,35 +10,49 @@ function dayStr(offsetDays = 0) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function mockCostOverview() {
+export function mockCostOverview(params = {}) {
+  const { trendDays, start, end } = params;
   const now = Date.now();
+
+  let count = 14;
+  if (trendDays) {
+    count = Math.min(365, Math.max(1, Number(trendDays)));
+  } else if (start && end) {
+    const s = new Date(start);
+    const e = new Date(end);
+    if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+      count = Math.min(365, Math.max(1, Math.ceil((e.getTime() - s.getTime()) / 86400000) + 1));
+    }
+  }
+
+  const multiplier = count / 14;
 
   // 卡片数据
   const cards = {
-    today: { totalTokens: 284350, momPct: 12.3 },
+    today: { totalTokens: Math.round(284350 * multiplier), momPct: 12.3 },
     week: { totalTokens: 1_823_600, momPct: -5.7 },
     month: { totalTokens: 7_462_100, momPct: 18.4 },
     dailyAvg7d: {
-      avgTokens: 260514,
-      peakDay: dayStr(-2).slice(5),
-      peakTokens: 412800,
+      avgTokens: Math.round(260514 * (1 + (Math.random() - 0.5) * 0.2)),
+      peakDay: dayStr(-Math.floor(Math.random() * count)).slice(5),
+      peakTokens: Math.round(412800 * (1 + (Math.random() - 0.5) * 0.2)),
     },
   };
 
   // Agent 占比
   const agentShare = [
-    { name: "客服助手·小智", tokens: 2_800_000, value: 37.5, fill: AGENT_COLORS[0] },
-    { name: "运维巡检员", tokens: 1_600_000, value: 21.4, fill: AGENT_COLORS[1] },
-    { name: "数据分析员", tokens: 1_200_000, value: 16.1, fill: AGENT_COLORS[2] },
-    { name: "HR 面试助手", tokens: 900_000, value: 12.1, fill: AGENT_COLORS[3] },
-    { name: "合规审查官", tokens: 520_000, value: 7.0, fill: AGENT_COLORS[4] },
-    { name: "其他", tokens: 442_100, value: 5.9, fill: AGENT_COLORS[6] },
+    { name: "客服助手·小智", tokens: Math.round(2_800_000 * multiplier), value: 37.5, fill: AGENT_COLORS[0] },
+    { name: "运维巡检员", tokens: Math.round(1_600_000 * multiplier), value: 21.4, fill: AGENT_COLORS[1] },
+    { name: "数据分析员", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: AGENT_COLORS[2] },
+    { name: "HR 面试助手", tokens: Math.round(900_000 * multiplier), value: 12.1, fill: AGENT_COLORS[3] },
+    { name: "合规审查官", tokens: Math.round(520_000 * multiplier), value: 7.0, fill: AGENT_COLORS[4] },
+    { name: "其他", tokens: Math.round(442_100 * multiplier), value: 5.9, fill: AGENT_COLORS[6] },
   ];
 
   // 输入/输出占比
   const inOut = {
-    inputTokens: 4_920_000,
-    outputTokens: 2_542_100,
+    inputTokens: Math.round(4_920_000 * multiplier),
+    outputTokens: Math.round(2_542_100 * multiplier),
     inputPct: 65.9,
     outputPct: 34.1,
     pie: [
@@ -47,12 +61,12 @@ export function mockCostOverview() {
     ],
   };
 
-  // 近 14 日趋势
-  const trend14d = [];
-  for (let i = 13; i >= 0; i--) {
+  // 动态趋势数据
+  const trendData = [];
+  for (let i = count - 1; i >= 0; i--) {
     const day = dayStr(-i);
     const base = 180_000 + Math.floor(Math.random() * 200_000);
-    trend14d.push({
+    trendData.push({
       date: day.slice(5),
       day,
       tokens: Math.round((base / 1_000_000) * 1000) / 1000,
@@ -70,7 +84,7 @@ export function mockCostOverview() {
   series.push({ dataKey: "aOther", name: "其他", color: "#cbd5e1" });
 
   const dailyByAgentRows = [];
-  for (let i = 13; i >= 0; i--) {
+  for (let i = count - 1; i >= 0; i--) {
     const day = dayStr(-i);
     const row = { date: day.slice(5) };
     topAgents.forEach((_, j) => {
@@ -82,10 +96,10 @@ export function mockCostOverview() {
 
   // 大模型占比
   const modelShare = [
-    { name: "gpt-4o", tokens: 3_500_000, value: 46.9, fill: "#4f46e5" },
-    { name: "claude-3-5-sonnet", tokens: 2_100_000, value: 28.1, fill: "#7c3aed" },
-    { name: "deepseek-v3", tokens: 1_200_000, value: 16.1, fill: "#2563eb" },
-    { name: "qwen-max", tokens: 662_100, value: 8.9, fill: "#3b82f6" },
+    { name: "gpt-4o", tokens: Math.round(3_500_000 * multiplier), value: 46.9, fill: "#4f46e5" },
+    { name: "claude-3-5-sonnet", tokens: Math.round(2_100_000 * multiplier), value: 28.1, fill: "#7c3aed" },
+    { name: "deepseek-v3", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: "#2563eb" },
+    { name: "qwen-max", tokens: Math.round(662_100 * multiplier), value: 8.9, fill: "#3b82f6" },
   ];
 
   // Top10 会话消耗 (tokens 单位为 M)
@@ -102,6 +116,24 @@ export function mockCostOverview() {
     { session_id: "sess_827364", tokens: 0.49, agentName: "合规审查官", userName: "王十二" },
   ];
 
+  // 每日按模型拆分
+  const modelsForTrend = ["gpt-4o", "claude-3-5-sonnet", "deepseek-v3", "qwen-max"];
+  const modelSeriesData = modelsForTrend.map((name, i) => ({
+    dataKey: `m${i}`,
+    name,
+    color: ["#4f46e5", "#7c3aed", "#2563eb", "#3b82f6"][i],
+  }));
+
+  const dailyByModelRows = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const day = dayStr(-i);
+    const row = { date: day.slice(5) };
+    modelsForTrend.forEach((_, j) => {
+      row[`m${j}`] = Math.round((20_000 + Math.random() * 40_000) / 1_000_000 * 1000) / 1000;
+    });
+    dailyByModelRows.push(row);
+  }
+
   return {
     source: "mock",
     generatedAt: now,
@@ -110,8 +142,27 @@ export function mockCostOverview() {
     modelShare,
     topSessions,
     inOut,
-    trend14d,
+    trend14d: trendData,
     dailyByAgent: { series, rows: dailyByAgentRows },
+    dailyByModel: { series: modelSeriesData, rows: dailyByModelRows },
+    abnormalities: {
+      gatewayLoss: {
+        tokens: Math.round(12_500 * multiplier),
+        sessions: Math.round(140 * multiplier),
+        percentage: 4.4,
+      },
+      loopLoss: {
+        agentName: "数据分析员",
+        sessions: Math.round(140 * multiplier),
+        tokens: Math.round(45_000 * multiplier),
+      },
+      modelErrors: {
+        modelName: "gpt-4o",
+        errorCalls: Math.round(120 * multiplier),
+        totalCalls: Math.round(1000 * multiplier),
+        errorRate: 12,
+      },
+    },
     legend: "Mock 数据 · 无需数据库连接",
   };
 }

@@ -41,7 +41,11 @@ function sendJson(res, status, body) {
 export function handleMockRequest(url, res) {
   // --- 成本概览 ---
   if (url.startsWith("/api/cost-overview")) {
-    sendJson(res, 200, mockCostOverview());
+    const u = new URL(url, "http://mock.local");
+    const trendDays = u.searchParams.get("trendDays");
+    const start = u.searchParams.get("start");
+    const end = u.searchParams.get("end");
+    sendJson(res, 200, mockCostOverview({ trendDays, start, end }));
     return true;
   }
 

@@ -11,12 +11,13 @@ import SortableTableTh from "../components/SortableTableTh.jsx";
 import TablePagination, { DEFAULT_TABLE_PAGE_SIZE } from "../components/TablePagination.jsx";
 import intl from "react-intl-universal";
 
-export default function AgentCostDetail() {
+export default function AgentCostDetail({ params }) {
   const [activeDays, setActiveDays] = useState(30);
   const rangeObj = useMemo(() => defaultRangeLastDays(activeDays), [activeDays]);
   const rangeStart = rangeObj.start;
   const rangeEnd = rangeObj.end;
   const [drillRow, setDrillRow] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(params?.agentName ?? "");
   const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [page, setPage] = useState(1);
@@ -82,7 +83,22 @@ export default function AgentCostDetail() {
     };
   }, [rangeStart, rangeEnd, rangeValid]);
 
-  const filtered = useMemo(() => (rangeValid ? rows : []), [rows, rangeValid]);
+  useEffect(() => {
+    if (params?.agentName) {
+      setSearchQuery(params.agentName);
+    }
+  }, [params]);
+
+  const filtered = useMemo(() => {
+    if (!rangeValid) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.agent.toLowerCase().includes(q) ||
+        r.agentId.toLowerCase().includes(q)
+    );
+  }, [rows, rangeValid, searchQuery]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return filtered;
@@ -178,14 +194,30 @@ export default function AgentCostDetail() {
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{intl.get("agentCostDetail.title")}</h2>
           </div>
-          <button
-            type="button"
-            disabled={!rangeValid || loading || sortedRows.length === 0}
-            onClick={handleExportCsv}
-            className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-          >
-            {intl.get("common.exportCsv")}
-          </button>
+          <div className="flex flex-1 items-center justify-end gap-3">
+            <div className="relative w-full max-w-xs">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder={intl.get("dashboard.searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="app-input w-full py-2 pl-9 pr-3 text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={!rangeValid || loading || sortedRows.length === 0}
+              onClick={handleExportCsv}
+              className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            >
+              {intl.get("common.exportCsv")}
+            </button>
+          </div>
         </div>
         {loading ? <LoadingSpinner message={intl.get("agentCostDetail.loading")} /> : null}
         <div className="mt-6 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">

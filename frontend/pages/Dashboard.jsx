@@ -280,14 +280,16 @@ export default function Dashboard() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [navParams, setNavParams] = useState(null);
   const [headerExtra, setHeaderExtra] = useState(null);
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("dashboard.regionAll");
   const [status, setStatus] = useState("dashboard.statusAll");
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersPageSize, setOrdersPageSize] = useState(10);
-  const setActiveNav = (id) => {
+  const setActiveNav = (id, params = null) => {
     setActiveNavRaw(id);
+    setNavParams(params);
     localStorage.setItem("nav-active", id);
     if (id === "log-search") setSidebarCollapsed(true);
   };
@@ -295,11 +297,11 @@ export default function Dashboard() {
   useEffect(() => {
     const onNav = (e) => {
       let id = e?.detail?.id;
+      let params = e?.detail?.params ?? null;
       if (!id || typeof id !== "string") return;
       if (id === "digital-employee-overview") id = "digital-employee-list";
       if (id === "otel-overview" || id === "config-change") id = "openclaw-instance";
-      setActiveNavRaw(id);
-      localStorage.setItem("nav-active", id);
+      setActiveNav(id, params);
       setSidebarOpen(false);
     };
     window.addEventListener("openclaw-nav", onNav);
@@ -612,9 +614,9 @@ export default function Dashboard() {
           ) : activeNav === "cost-overview-2" ? (
             <CostOverview2 />
           ) : activeNav === "agent-cost-detail" ? (
-            <AgentCostDetail />
+            <AgentCostDetail params={navParams} />
           ) : activeNav === "llm-cost" ? (
-            <LlmCost />
+            <LlmCost params={navParams} />
           ) : activeNav === "digital-employee-list" ? (
             <DigitalEmployeePortrait />
           ) : activeNav === "audit-overview" ? (
