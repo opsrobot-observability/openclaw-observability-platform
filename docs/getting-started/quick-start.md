@@ -6,9 +6,7 @@
 
 ## 📋 前提条件
 
-在此之前，请确保当前系统已安装以下基础依赖：
 
-- **Node.js**: `v18.0` 或更高版本 (建议使用 `npm` 或 `pnpm` 管理依赖)。
 - **Docker** 引擎与 **Docker Compose** 插件：用于启动作为数据中枢的 Apache Doris 数据库。
 - *(可选)* **Vector**: 若需从本地真实应用节点收集日志则需安装。仅体验控制台界面可跳过此步。
 
@@ -16,10 +14,13 @@
 
 ## 快速开始
 
+### 1.部署总览
+部署总览：
+![部署总览](./docs/pictures/deploy.png)
+
 ### 1.环境要求
 
 - Docker Desktop 及 Docker Compose 插件
-- Node.js 18+
 
 ### 2.克隆项目
 
@@ -232,7 +233,7 @@ service:
 ```
 
 ``` bash
-otelcol-contrib --config=.host-config.yaml
+otelcol-contrib --config=config.yaml
 ```
 
 ### 7.查看 OpenClaw 的所有观测数据：
