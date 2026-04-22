@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     ports:
       - "${FRONTEND_HTTP_PORT:-80}:80"     # HTTP 端口 (自动跳转到 HTTPS)
-      - "${FRONTEND_HTTPS_PORT:-443}:443"  # HTTPS 端口
+      - "${FRONTEND_HTTPS_PORT:-3000}:3000"  # HTTPS 端口
     volumes:
       - ./ssl:/etc/nginx/ssl:ro              # 挂载 SSL 证书目录 (只读)
       - ./nginx.conf:/etc/nginx/nginx.conf:ro  # 挂载 Nginx 配置文件 (只读)
@@ -18,7 +18,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "nc -z 127.0.0.1 443 || exit 1" ]
+      test: ["CMD-SHELL", "curl -k https://127.0.0.1:3000 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
