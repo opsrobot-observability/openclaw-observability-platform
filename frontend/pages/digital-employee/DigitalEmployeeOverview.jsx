@@ -123,8 +123,20 @@ export default function DigitalEmployeeOverview() {
   const [filterChannel, setFilterChannel] = useState(null);
   const [listSort, setListSort] = useState(null);
   const [sideTab, setSideTab] = useState("highRisk");
+  const [range, setRange] = useState(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 7 * 86400000);
+    return { start, end };
+  });
+  const { start: rangeStart, end: rangeEnd } = range;
 
-  const fetchUrl = useMemo(() => `/api/digital-employees/overview?days=${activeDays}`, [activeDays]);
+  const fetchUrl = useMemo(() => {
+    if (activeDays === null && rangeStart && rangeEnd) {
+      // Backend doesn't support start/end yet, but we pass them for future support
+      return `/api/digital-employees/overview?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
+    }
+    return `/api/digital-employees/overview?days=${activeDays ?? 7}`;
+  }, [activeDays, rangeStart, rangeEnd]);
 
   useEffect(() => {
     let cancelled = false;
@@ -343,6 +355,16 @@ export default function DigitalEmployeeOverview() {
         activeDays={activeDays}
         onPreset={(d) => {
           setActiveDays(d);
+          const end = new Date();
+          const start = new Date(end.getTime() - d * 86400000);
+          setRange({ start, end });
+          resetInteractions();
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setActiveDays(null);
+          setRange({ start: new Date(start), end: new Date(end) });
           resetInteractions();
         }}
       />

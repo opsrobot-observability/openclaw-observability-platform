@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CodeBlock from "../components/CodeBlock.jsx";
-import CostTimeRangeFilter from "../components/CostTimeRangeFilter.jsx";
+import CostTimeRangeFilter, { defaultRangeLastDays } from "../components/CostTimeRangeFilter.jsx";
 import { TRACE_SESSION_SAMPLES, findTraceSessionByQuery } from "../data/traceSessions.js";
 import intl from "react-intl-universal";
 
@@ -59,6 +59,8 @@ export default function FullChainTraceability({ setHeaderExtra }) {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [activeDays, setActiveDays] = useState(7);
+  const [range, setRange] = useState(() => defaultRangeLastDays(7));
+  const { start: rangeStart, end: rangeEnd } = range;
 
   const session = useMemo(() => (query ? findTraceSessionByQuery(query) : null), [query]);
 
@@ -100,7 +102,19 @@ export default function FullChainTraceability({ setHeaderExtra }) {
 
   return (
     <div className="space-y-6">
-      <CostTimeRangeFilter activeDays={activeDays} onPreset={setActiveDays} />
+      <CostTimeRangeFilter
+        activeDays={activeDays}
+        onPreset={(days) => {
+          setActiveDays(days);
+          setRange(defaultRangeLastDays(days));
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setActiveDays(null);
+          setRange({ start, end });
+        }}
+      />
 
       <section className="app-card p-4 sm:p-6">
         <h2 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-3 mb-6 dark:text-gray-100 dark:border-gray-800">{intl.get("fullChain.sessionList")}</h2>

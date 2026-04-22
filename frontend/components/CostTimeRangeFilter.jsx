@@ -45,6 +45,7 @@ export default function CostTimeRangeFilter({
   onPreset,
   rangeStart,
   rangeEnd,
+  onRangeChange,
   className = "",
 }) {
   const computed = useMemo(() => {
@@ -54,14 +55,26 @@ export default function CostTimeRangeFilter({
     return { start, end };
   }, [activeDays]);
 
-  const fmtDate = (d) => {
+  const toInputVal = (d) => {
     const dt = typeof d === "string" ? new Date(d) : d;
     if (!dt || Number.isNaN(dt.getTime())) return "";
-    return `${dt.getFullYear()}/${pad2(dt.getMonth() + 1)}/${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+    return toDatetimeLocalValue(dt);
   };
 
-  const startDisplay = rangeStart ? fmtDate(rangeStart) : fmtDate(computed.start);
-  const endDisplay = rangeEnd ? fmtDate(rangeEnd) : fmtDate(computed.end);
+  const startValue = rangeStart ? toInputVal(rangeStart) : toInputVal(computed.start);
+  const endValue = rangeEnd ? toInputVal(rangeEnd) : toInputVal(computed.end);
+
+  const handleStartChange = (e) => {
+    if (onRangeChange) {
+      onRangeChange(e.target.value, endValue);
+    }
+  };
+
+  const handleEndChange = (e) => {
+    if (onRangeChange) {
+      onRangeChange(startValue, e.target.value);
+    }
+  };
 
   return (
     <div
@@ -94,36 +107,27 @@ export default function CostTimeRangeFilter({
       <div className="flex flex-1 items-center justify-end gap-6">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">{intl.get("timeFilter.startTime")}</span>
-          <div className="relative">
-            <input
-              type="text"
-              readOnly
-              value={startDisplay}
-              className="w-44 rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-700 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Icon name="clock" className="h-3.5 w-3.5" />
-            </span>
-          </div>
+          <input
+            type="datetime-local"
+            value={startValue}
+            onChange={handleStartChange}
+            className="w-44 rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-700 outline-none transition-colors focus:border-primary/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-primary/40"
+          />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">{intl.get("timeFilter.endTime")}</span>
-          <div className="relative">
-            <input
-              type="text"
-              readOnly
-              value={endDisplay}
-              className="w-44 rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-700 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Icon name="clock" className="h-3.5 w-3.5" />
-            </span>
-          </div>
+          <input
+            type="datetime-local"
+            value={endValue}
+            onChange={handleEndChange}
+            className="w-44 rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-700 outline-none transition-colors focus:border-primary/50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:focus:border-primary/40"
+          />
         </div>
       </div>
     </div>
   );
 }
+
 
 export function rowInTimeRange(statDateStr, startMs, endMs) {
   const parts = statDateStr.split("-").map(Number);

@@ -157,13 +157,20 @@ export default function CostOverview2() {
 
   // Compute effective time bounds
   const effectiveTimeBounds = useMemo(() => {
+    if (filters.timePreset === null && filters.timeStart && filters.timeEnd) {
+      // Custom range: extract just the date part for Day-level API
+      const s = filters.timeStart.slice(0, 10);
+      const e = filters.timeEnd.slice(0, 10);
+      return { startDay: s, endDay: e };
+    }
+
     const now = new Date();
-    const days = Number(filters.timePreset);
+    const days = Number(filters.timePreset || 7);
     const endDay = now.toISOString().slice(0, 10);
     const start = new Date(now.getTime() - days * 86400000);
     const startDay = start.toISOString().slice(0, 10);
     return { startDay, endDay };
-  }, [filters.timePreset]);
+  }, [filters.timePreset, filters.timeStart, filters.timeEnd]);
 
   // Load filter options
   useEffect(() => {
@@ -238,7 +245,11 @@ export default function CostOverview2() {
   };
 
   const handlePreset = (days) => {
-    setFilters((f) => ({ ...f, timePreset: days }));
+    setFilters((f) => ({ ...f, timePreset: days, timeStart: "", timeEnd: "" }));
+  };
+
+  const handleRangeChange = (start, end) => {
+    setFilters((f) => ({ ...f, timePreset: null, timeStart: start, timeEnd: end }));
   };
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
@@ -259,6 +270,9 @@ export default function CostOverview2() {
       <CostTimeRangeFilter
         activeDays={filters.timePreset}
         onPreset={handlePreset}
+        rangeStart={filters.timeStart}
+        rangeEnd={filters.timeEnd}
+        onRangeChange={handleRangeChange}
       />
 
       {/* 表格 */}

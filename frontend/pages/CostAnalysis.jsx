@@ -78,6 +78,12 @@ function MomBadge({ pct }) {
 export default function CostAnalysis() {
   const { locale } = useLocale();
   const [trendDays, setTrendDays] = useState(14);
+  const [range, setRange] = useState(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 14 * 86400000);
+    return { start, end };
+  });
+  const { start: rangeStart, end: rangeEnd } = range;
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -88,7 +94,11 @@ export default function CostAnalysis() {
     setLoading(true);
     setErr(null);
     try {
-      const r = await fetch(`/api/cost-overview?trendDays=${trendDays}`);
+      let url = `/api/cost-overview?trendDays=${trendDays ?? 14}`;
+      if (trendDays === null && rangeStart && rangeEnd) {
+        url = `/api/cost-overview?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
+      }
+      const r = await fetch(url);
       const text = await r.text();
       if (!r.ok) {
         let msg = text;
@@ -226,7 +236,18 @@ export default function CostAnalysis() {
       {/* 顶部工具栏 */}
       <CostTimeRangeFilter
         activeDays={trendDays}
-        onPreset={setTrendDays}
+        onPreset={(d) => {
+          setTrendDays(d);
+          const end = new Date();
+          const start = new Date(end.getTime() - d * 86400000);
+          setRange({ start, end });
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setTrendDays(null);
+          setRange({ start: new Date(start), end: new Date(end) });
+        }}
       />
 
       {/* KPI：紧凑高度 + 左侧色条（整体约缩短 1/4） */}

@@ -13,9 +13,8 @@ import intl from "react-intl-universal";
 
 export default function AgentCostDetail() {
   const [activeDays, setActiveDays] = useState(30);
-  const rangeObj = useMemo(() => defaultRangeLastDays(activeDays), [activeDays]);
-  const rangeStart = rangeObj.start;
-  const rangeEnd = rangeObj.end;
+  const [range, setRange] = useState(() => defaultRangeLastDays(30));
+  const { start: rangeStart, end: rangeEnd } = range;
   const [drillRow, setDrillRow] = useState(null);
   const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
@@ -170,7 +169,16 @@ export default function AgentCostDetail() {
 
       <CostTimeRangeFilter
         activeDays={activeDays}
-        onPreset={setActiveDays}
+        onPreset={(days) => {
+          setActiveDays(days);
+          setRange(defaultRangeLastDays(days));
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setActiveDays(null);
+          setRange({ start, end });
+        }}
       />
 
       <section className="app-card p-4 sm:p-6">

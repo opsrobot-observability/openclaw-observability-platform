@@ -13,9 +13,8 @@ import TablePagination, { DEFAULT_TABLE_PAGE_SIZE } from "../components/TablePag
 
 export default function LlmCost() {
   const [activeDays, setActiveDays] = useState(30);
-  const rangeObj = useMemo(() => defaultRangeLastDays(activeDays), [activeDays]);
-  const rangeStart = rangeObj.start;
-  const rangeEnd = rangeObj.end;
+  const [range, setRange] = useState(() => defaultRangeLastDays(30));
+  const { start: rangeStart, end: rangeEnd } = range;
   const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [page, setPage] = useState(1);
@@ -170,7 +169,16 @@ export default function LlmCost() {
 
       <CostTimeRangeFilter
         activeDays={activeDays}
-        onPreset={setActiveDays}
+        onPreset={(days) => {
+          setActiveDays(days);
+          setRange(defaultRangeLastDays(days));
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setActiveDays(null);
+          setRange({ start, end });
+        }}
       />
 
       <section className="app-card p-4 sm:p-6">

@@ -168,6 +168,12 @@ const TAB_IDS = [
  */
 export default function DigitalEmployeePortrait() {
   const [queryMode, setQueryMode] = useState(() => ({ type: "days", days: 7 }));
+  const [range, setRange] = useState(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 7 * 86400000);
+    return { start, end };
+  });
+  const { start: rangeStart, end: rangeEnd } = range;
   const [overview, setOverview] = useState(null);
   const [overviewErr, setOverviewErr] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
@@ -213,13 +219,14 @@ export default function DigitalEmployeePortrait() {
     }
   }, []);
 
-  const overviewUrl = useMemo(
-    () =>
-      queryMode.type === "hours"
-        ? `/api/digital-employees/overview?hours=${queryMode.hours}`
-        : `/api/digital-employees/overview?days=${queryMode.days}`,
-    [queryMode],
-  );
+  const overviewUrl = useMemo(() => {
+    if (queryMode.type === "days" && queryMode.days === null && rangeStart && rangeEnd) {
+      return `/api/digital-employees/overview?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
+    }
+    return queryMode.type === "hours"
+      ? `/api/digital-employees/overview?hours=${queryMode.hours}`
+      : `/api/digital-employees/overview?days=${queryMode.days ?? 7}`;
+  }, [queryMode, rangeStart, rangeEnd]);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,13 +260,18 @@ export default function DigitalEmployeePortrait() {
   const profileUrl = useMemo(() => {
     if (!detailAgent) return null;
     const enc = encodeURIComponent(detailAgent);
-    const base =
-      queryMode.type === "hours"
-        ? `/api/digital-employees/profile?agentName=${enc}&hours=${queryMode.hours}`
-        : `/api/digital-employees/profile?agentName=${enc}&days=${queryMode.days}`;
+    let base = "";
+    if (queryMode.type === "days" && queryMode.days === null && rangeStart && rangeEnd) {
+      base = `/api/digital-employees/profile?agentName=${enc}&start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
+    } else {
+      base =
+        queryMode.type === "hours"
+          ? `/api/digital-employees/profile?agentName=${enc}&hours=${queryMode.hours}`
+          : `/api/digital-employees/profile?agentName=${enc}&days=${queryMode.days ?? 7}`;
+    }
     if (selectedSessionKey) return `${base}&sessionKey=${encodeURIComponent(selectedSessionKey)}`;
     return base;
-  }, [detailAgent, queryMode, selectedSessionKey]);
+  }, [detailAgent, queryMode, selectedSessionKey, rangeStart, rangeEnd]);
 
   useEffect(() => {
     if (!profileUrl) {
@@ -439,8 +451,19 @@ export default function DigitalEmployeePortrait() {
       </div>
 
       <CostTimeRangeFilter
-        activeDays={queryMode.type === "days" ? queryMode.days : 7}
-        onPreset={(d) => setQueryMode({ type: "days", days: d })}
+        activeDays={queryMode.type === "days" ? queryMode.days : null}
+        onPreset={(d) => {
+          setQueryMode({ type: "days", days: d });
+          const end = new Date();
+          const start = new Date(end.getTime() - d * 86400000);
+          setRange({ start, end });
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setQueryMode({ type: "days", days: null });
+          setRange({ start: new Date(start), end: new Date(end) });
+        }}
       />
       {queryMode.type === "hours" && (
         <p className="text-xs text-gray-500 dark:text-gray-400">

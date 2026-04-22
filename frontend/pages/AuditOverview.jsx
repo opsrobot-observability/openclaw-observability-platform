@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import intl from "react-intl-universal";
-import CostTimeRangeFilter from "../components/CostTimeRangeFilter.jsx";
+import CostTimeRangeFilter, { defaultRangeLastDays } from "../components/CostTimeRangeFilter.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import {
   CartesianGrid,
@@ -46,6 +46,8 @@ export default function AuditOverview() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDays, setActiveDays] = useState(7);
+  const [range, setRange] = useState(() => defaultRangeLastDays(7));
+  const { start: rangeStart, end: rangeEnd } = range;
 
   useEffect(() => {
     let cancelled = false;
@@ -87,7 +89,19 @@ export default function AuditOverview() {
 
   return (
     <div className="space-y-8">
-      <CostTimeRangeFilter activeDays={activeDays} onPreset={setActiveDays} />
+      <CostTimeRangeFilter
+        activeDays={activeDays}
+        onPreset={(days) => {
+          setActiveDays(days);
+          setRange(defaultRangeLastDays(days));
+        }}
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        onRangeChange={(start, end) => {
+          setActiveDays(null);
+          setRange({ start, end });
+        }}
+      />
 
       {error && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
