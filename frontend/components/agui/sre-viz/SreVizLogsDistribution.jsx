@@ -3,6 +3,7 @@
  */
 
 import { useMemo } from "react";
+import { prepareLogsDistributionView } from "../../../lib/sreLogsDistributionPrep.js";
 import { Shell } from "./SreVizShell.jsx";
 
 const DEFAULT_LOG_LEVEL_COLORS = {
@@ -85,7 +86,10 @@ function TopErrorsPanel({ items, colors }) {
           const lv = String(e.level || "INFO").toUpperCase();
           const chip = colors[lv] || colors.INFO;
           return (
-            <div key={`${e.rank}-${e.trace_id || e.msg}`} className="rounded-lg border border-gray-100 bg-white/90 px-2.5 py-2 text-[11px] dark:border-gray-700 dark:bg-gray-950/40">
+            <div
+              key={`${e.rank}-${e.trace_id || e.msg || Math.random()}`}
+              className="rounded-lg border border-gray-100 bg-white/90 px-2.5 py-2 text-[11px] dark:border-gray-700 dark:bg-gray-950/40"
+            >
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="font-mono text-[10px] text-gray-400">#{e.rank}</span>
                 {e.time && <span className="font-mono text-[10px] text-gray-500">{e.time}</span>}
@@ -106,12 +110,33 @@ function TopErrorsPanel({ items, colors }) {
   );
 }
 
+function CountSummary({ title, rows, colors }) {
+  if (!rows?.length) return null;
+  return (
+    <div className="mb-3">
+      <p className="mb-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400">{title}</p>
+      <div className="flex flex-wrap gap-2">
+        {rows.map((r) => (
+          <span
+            key={r.key}
+            className="rounded-md border border-gray-200 bg-white px-2 py-1 font-mono text-[10px] text-gray-800 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            style={{ borderLeftWidth: 3, borderLeftColor: colors[r.key] || colors.INFO }}
+          >
+            {r.key}: {r.count}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SreVizLogsDistribution({ panel }) {
-  const model = panel.payload;
-  const colors = useMemo(() => mergeLogLevelColors(model.chart_config), [model.chart_config]);
-  const rows = model.distribution || [];
-  const heatmap = model.heatmap;
-  const topErrors = model.top_errors || [];
+  const raw = panel?.payload && typeof panel.payload === "object" ? panel.payload : {};
+  const view = useMemo(() => prepareLogsDistributionView(raw), [raw]);
+  const colors = useMemo(() => mergeLogLevelColors(view.chartConfig), [view.chartConfig]);
+  const rows = view.distributionRows || [];
+  const heatmap = view.heatmap;
+  const topErrors = view.topErrors || [];
 
   const maxVal = Math.max(
     1,
@@ -123,7 +148,16 @@ export function SreVizLogsDistribution({ panel }) {
   const hasHeatmap = Array.isArray(heatmap?.rows) && heatmap.rows.length > 0 && Array.isArray(heatmap?.columns) && heatmap.columns.length > 0;
 
   return (
-    <Shell title={model.title || "日志分布"} accent="amber">
+    <Shell title={view.title} accent="amber">
+      {view.description ? <p className="mb-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">{view.description}</p> : null}
+
+      {view.levelSummary.length > 0 && view.chartConfig.show_pie_by_level !== false ? (
+        <CountSummary title="按级别" rows={view.levelSummary} colors={colors} />
+      ) : null}
+      {view.serviceSummary.length > 0 && view.chartConfig.show_bar_by_source !== false ? (
+        <CountSummary title="按来源 / 服务" rows={view.serviceSummary} colors={colors} />
+      ) : null}
+
       {hasHeatmap && (
         <div className="mb-4">
           <p className="mb-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400">服务 × 时间 (热力)</p>
@@ -218,9 +252,9 @@ export function SreVizLogsDistribution({ panel }) {
         </span>
       </div>
 
-      <TopErrorsPanel items={topErrors} colors={colors} />
+      {view.chartConfig.show_top_errors !== false ? <TopErrorsPanel items={topErrors} colors={colors} /> : null}
 
-      {!hasHeatmap && rows.length === 0 && (
+      {!hasHeatmap && !rows.length && !view.levelSummary.length && !topErrors.length && (
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">暂无 distribution / heatmap 数据</p>
       )}
     </Shell>

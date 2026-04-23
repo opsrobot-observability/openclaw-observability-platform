@@ -9,17 +9,21 @@ export function mergeTopologyNodeColors(chartConfig) {
     degraded: n.degraded ?? "#FF9800",
     slow: n.slow ?? "#FFC107",
     normal: n.normal ?? "#4CAF50",
+    recovered: n.recovered ?? "#4CAF50",
+    recovering: n.recovering ?? "#2196F3",
     external: n.external ?? "#2196F3",
     fallback: n.fallback ?? "#9E9E9E",
   };
 }
 
 export function topologyNodeAccent(colors, node) {
-  const st = String(node?.status || "").toLowerCase();
+  const st = String(node?.status || node?.health_status || "").toLowerCase();
   if (st === "anomaly") return colors.anomaly;
   if (st === "degraded") return colors.degraded;
   if (st === "slow") return colors.slow;
   if (st === "normal") return colors.normal;
+  if (st === "recovered") return colors.recovered ?? colors.normal;
+  if (st === "recovering") return colors.recovering ?? colors.external;
   const ty = String(node?.type || "").toLowerCase();
   if (ty === "external") return colors.external;
   return colors.fallback;
@@ -27,14 +31,16 @@ export function topologyNodeAccent(colors, node) {
 
 /** 与 TopologyMapLegend 文案一致（紧急 / 严重 / 重要 / 警告 / 正常 / 其它） */
 export function topologyDisplayStatusLabel(node) {
-  const st = String(node?.status || "").toLowerCase();
+  const st = String(node?.status || node?.health_status || "").toLowerCase();
   if (st === "anomaly") return "紧急";
   if (st === "degraded") return "严重";
   if (st === "slow") return "重要";
   if (st === "normal") return "正常";
+  if (st === "recovered") return "已恢复";
+  if (st === "recovering") return "恢复中";
   const ty = String(node?.type || "").toLowerCase();
   if (ty === "external") return "警告";
-  if (st) return `其它（${node.status}）`;
+  if (st) return `其它（${node.status || node.health_status}）`;
   return "其它";
 }
 
@@ -74,18 +80,63 @@ export function buildFaultPropagationEdgeKeySet(pathSegments, edges, nodes) {
   return out;
 }
 
+/**
+ * 从 fault_propagation 多种形态得到有序节点 id（用于路径条与边高亮）。
+ * @param {object|Array|null} fp
+ * @param {{ id: string, name?: string }[]} nodes
+ */
+export function faultPropagationPathSegments(fp, nodes) {
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
+  const pushResolved = (arr, raw) => {
+    const s = String(raw ?? "").trim();
+    if (!s) return;
+    const id = resolveTopologyPathSegmentToNodeId(s, safeNodes) || s;
+    if (!id) return;
+    if (arr.length && arr[arr.length - 1] === id) return;
+    arr.push(id);
+  };
+
+  if (!fp) return [];
+  if (typeof fp.path !== "undefined" && fp.path != null) {
+    return parseFaultPathSegments(fp.path);
+  }
+  if (Array.isArray(fp)) {
+    const sorted = [...fp].sort((a, b) => (Number(a?.step) || 0) - (Number(b?.step) || 0));
+    const out = [];
+    for (const s of sorted) {
+      if (!s || typeof s !== "object") continue;
+      pushResolved(out, s.from);
+      pushResolved(out, s.to);
+    }
+    return out;
+  }
+  if (fp && typeof fp === "object" && Array.isArray(fp.propagation_path)) {
+    const sorted = [...fp.propagation_path].sort((a, b) => (Number(a?.step) || 0) - (Number(b?.step) || 0));
+    const out = [];
+    for (const s of sorted) {
+      if (!s || typeof s !== "object") continue;
+      pushResolved(out, s.from_node);
+      pushResolved(out, s.to_node);
+    }
+    return out;
+  }
+  return [];
+}
+
 export function formatTopologyNodeTooltipLines(n) {
-  const lines = [`${n.name}`, `id: ${n.id}`];
+  const nm = n?.name != null && String(n.name).trim() ? String(n.name) : String(n?.id ?? "");
+  const lines = [nm, `id: ${n.id}`];
   if (n.type) lines.push(`类型: ${n.type}`);
   if (n.role) lines.push(`角色: ${n.role}`);
   const ty = String(n?.type || "").toLowerCase();
-  if (n.status || ty === "external") {
+  if (n.status || n.health_status || ty === "external") {
     lines.push(`状态: ${topologyDisplayStatusLabel(n)}`);
   }
-  if (n.properties && typeof n.properties === "object") {
-    for (const [k, v] of Object.entries(n.properties)) {
-      lines.push(`${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
-    }
+  const meta = n.metadata && typeof n.metadata === "object" ? n.metadata : null;
+  const props = n.properties && typeof n.properties === "object" ? n.properties : null;
+  const ext = { ...(props || {}), ...(meta || {}) };
+  for (const [k, v] of Object.entries(ext)) {
+    lines.push(`${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
   }
   if (n.anomaly_details) lines.push(typeof n.anomaly_details === "string" ? n.anomaly_details : JSON.stringify(n.anomaly_details));
   return lines;

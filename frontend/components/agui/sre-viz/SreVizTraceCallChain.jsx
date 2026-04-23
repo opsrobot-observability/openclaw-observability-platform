@@ -7,9 +7,10 @@ import { Shell } from "./SreVizShell.jsx";
 import { SpanSummaryBox } from "./SpanSummaryBox.jsx";
 import { TraceCallChainWaterfall } from "./TraceCallChainWaterfall.jsx";
 import { mergeTraceChartColors, prepareTraceWaterfall } from "./sreVizTraceWaterfallCore.js";
+import { normalizeTraceCallChainModel } from "./sreTraceCallChainNormalize.js";
 
 export function SreVizTraceCallChain({ panel }) {
-  const model = panel.payload;
+  const model = useMemo(() => normalizeTraceCallChainModel(panel.payload), [panel.payload]);
   const chartColors = useMemo(() => mergeTraceChartColors(model.chart_config), [model.chart_config]);
   const wfFlame = useMemo(() => prepareTraceWaterfall(model, "flame"), [model]);
   const wfSeq = useMemo(() => prepareTraceWaterfall(model, "seq"), [model]);

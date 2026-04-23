@@ -10,10 +10,11 @@ import {
   ANOMALY_SEV_LABEL,
   anomalyPatternSeverityKey,
   mergeAnomalyPatternChartColors,
+  normalizeAnomalyPatternModel,
 } from "./sreVizAnomalyPatternModel.js";
 
 export function SreVizAnomalyPattern({ panel }) {
-  const model = panel.payload;
+  const model = useMemo(() => normalizeAnomalyPatternModel(panel.payload), [panel.payload]);
   const patterns = model.detected_patterns || [];
   const rels = Array.isArray(model.pattern_relationship) ? model.pattern_relationship : [];
   const rcc = model.root_cause_chain && typeof model.root_cause_chain === "object" ? model.root_cause_chain : null;

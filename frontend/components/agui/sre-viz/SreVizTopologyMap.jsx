@@ -5,32 +5,48 @@
 import { Fragment, useMemo } from "react";
 import { Shell } from "./SreVizShell.jsx";
 import { TopologySvgGraph } from "./TopologySvgGraph.jsx";
+import { normalizeTopologyMapModel } from "./sreTopologyMapNormalize.js";
 import {
   buildFaultPropagationEdgeKeySet,
+  faultPropagationPathSegments,
   mergeTopologyNodeColors,
-  parseFaultPathSegments,
   topologyNodeAccent,
 } from "./sreVizTopologyCore.js";
 
+const DEFAULT_TOPO_CHART_CONFIG = {
+  direction: "LR",
+  layout: "directed",
+};
+
+function mergeTopologyChartConfig(cc) {
+  const c = cc && typeof cc === "object" ? cc : {};
+  return { ...DEFAULT_TOPO_CHART_CONFIG, ...c };
+}
+
 export function SreVizTopologyMap({ panel }) {
-  const model = panel.payload;
-  const topo = model.static_topology || {};
-  const nodes = topo.nodes || model.nodes || [];
-  const edges = topo.edges || [];
+  const raw = panel?.payload && typeof panel.payload === "object" ? panel.payload : {};
+  const { model, nodes, edges } = useMemo(() => normalizeTopologyMapModel(raw), [raw]);
   const fp = model.fault_propagation;
-  const cc = model.chart_config || {};
+  const cc = useMemo(() => mergeTopologyChartConfig(model.chart_config), [model.chart_config]);
   const colors = useMemo(() => mergeTopologyNodeColors(cc), [cc]);
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const direction = String(cc.direction || "LR").toUpperCase();
-  const pathSegments = useMemo(() => parseFaultPathSegments(fp?.path), [fp?.path]);
+  const pathSegments = useMemo(() => faultPropagationPathSegments(fp, nodes), [fp, nodes]);
   const faultPathEdgeKeys = useMemo(
     () => buildFaultPropagationEdgeKeySet(pathSegments, edges, nodes),
     [pathSegments, edges, nodes],
   );
   const faultPathMappedToEdges = faultPathEdgeKeys.size > 0;
 
+  const title = String(model.title || model.incident_id || "拓扑").trim() || "拓扑";
+  const description = String(model.description || "").trim();
+
   return (
-    <Shell title={model.title || "拓扑"} accent="rose">
+    <Shell title={title} accent="rose">
+      {description ? (
+        <p className="mb-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">{description}</p>
+      ) : null}
+
       {pathSegments.length > 0 && faultPathMappedToEdges ? (
         <p className="mb-2 text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-400/95">
           故障传播已叠加在拓扑连线：沿<strong className="font-semibold">红色流动虚线</strong>方向为下游影响（箭头指向传播方向）。
@@ -86,16 +102,17 @@ export function SreVizTopologyMap({ panel }) {
               </thead>
               <tbody>
                 {fp.timeline.map((row, i) => {
-                  const nn = nodeById.get(row.node_id);
+                  const nid = row?.node_id != null ? String(row.node_id) : "";
+                  const nn = nid ? nodeById.get(nid) : null;
                   return (
                     <tr key={i} className="border-b border-gray-100 last:border-0 dark:border-gray-800">
-                      <td className="px-2 py-1.5 font-mono font-medium text-gray-800 dark:text-gray-100">{nn?.name || row.node_id}</td>
-                      <td className="px-2 py-1.5 font-mono text-gray-600 dark:text-gray-300">{row.anomaly_start ?? "—"}</td>
-                      <td className="px-2 py-1.5 font-mono text-gray-600 dark:text-gray-300">{row.anomaly_end ?? "—"}</td>
+                      <td className="px-2 py-1.5 font-mono font-medium text-gray-800 dark:text-gray-100">{nn?.name || nid || "—"}</td>
+                      <td className="px-2 py-1.5 font-mono text-gray-600 dark:text-gray-300">{row?.anomaly_start ?? "—"}</td>
+                      <td className="px-2 py-1.5 font-mono text-gray-600 dark:text-gray-300">{row?.anomaly_end ?? "—"}</td>
                       <td className="px-2 py-1.5 text-gray-600 dark:text-gray-300">
-                        {row.duration_seconds != null ? `${row.duration_seconds}s` : "—"}
+                        {row?.duration_seconds != null ? `${row.duration_seconds}s` : "—"}
                       </td>
-                      <td className="max-w-[280px] px-2 py-1.5 text-gray-700 dark:text-gray-200">{row.description ?? "—"}</td>
+                      <td className="max-w-[280px] px-2 py-1.5 text-gray-700 dark:text-gray-200">{row?.description ?? "—"}</td>
                     </tr>
                   );
                 })}
@@ -104,6 +121,22 @@ export function SreVizTopologyMap({ panel }) {
           </div>
         </div>
       )}
+
+      {fp?.recovery_timeline && typeof fp.recovery_timeline === "object" && !fp.healing ? (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-[11px] dark:border-emerald-900/50 dark:bg-emerald-950/30">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">恢复时间线</p>
+          <ul className="mt-1 space-y-0.5 font-mono text-[10px] text-emerald-900/95 dark:text-emerald-100/90">
+            {Object.entries(fp.recovery_timeline)
+              .filter(([k]) => k !== "note" && fp.recovery_timeline[k] != null && String(fp.recovery_timeline[k]).trim())
+              .map(([k, v]) => (
+                <li key={k}>
+                  {k}: {String(v)}
+                </li>
+              ))}
+          </ul>
+          {fp.recovery_timeline.note ? <p className="mt-1.5 text-[10px] text-emerald-800 dark:text-emerald-200">{fp.recovery_timeline.note}</p> : null}
+        </div>
+      ) : null}
 
       {fp?.healing && typeof fp.healing === "object" && (fp.healing.trigger || fp.healing.start) && (
         <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-[11px] dark:border-emerald-900/50 dark:bg-emerald-950/30">
@@ -117,7 +150,7 @@ export function SreVizTopologyMap({ panel }) {
         </div>
       )}
 
-      {!nodes.length && !edges.length && !pathSegments.length && !(fp?.timeline || []).length && (
+      {!nodes.length && !edges.length && !pathSegments.length && !(Array.isArray(fp?.timeline) && fp.timeline.length) && (
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">暂无拓扑数据</p>
       )}
     </Shell>

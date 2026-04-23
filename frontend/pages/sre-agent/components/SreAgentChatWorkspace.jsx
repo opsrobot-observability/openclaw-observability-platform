@@ -15,6 +15,7 @@ export default function SreAgentChatWorkspace({
   isRunning,
   selectedAgentMeta,
   selectedAgentId,
+  sessionThreadId,
   activeOpenClawSessionKey,
   steps,
   messages,
@@ -67,17 +68,6 @@ export default function SreAgentChatWorkspace({
               </button>
               <RobotIcon className="h-5 w-5 shrink-0 text-primary" />
               <span className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">SRE Agent</span>
-              <div className="mx-auto min-w-0 max-w-[58%] flex-1 text-center">
-                <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
-                  {latestStep ? `任务：${latestStep.name}` : "任务：暂无"}
-                </span>
-              </div>
-              {isRunning && (
-                <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  执行中
-                </span>
-              )}
             </div>
             {!USE_MOCK && (
               <p className="truncate text-[10px] text-gray-400 dark:text-gray-500" title={selectedAgentId}>
@@ -114,6 +104,7 @@ export default function SreAgentChatWorkspace({
           steps={steps}
           error={error}
           chatEndRef={chatEndRef}
+          conversationResetKey={activeOpenClawSessionKey ?? sessionThreadId}
           handleSend={handleSend}
           setInput={setInput}
           inputRef={inputRef}

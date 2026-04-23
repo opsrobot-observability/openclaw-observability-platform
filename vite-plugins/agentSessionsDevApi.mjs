@@ -10,7 +10,12 @@ import {
   handleOpenClawSessionsMiddleware,
   isOpenClawSessionsPath,
 } from "../backend/sre-agent/sre-agent-handler.mjs";
-import { handleSreVizFileMiddleware, isSreVizJsonPath } from "../backend/sre-agent/sre-viz-file-handler.mjs";
+import {
+  handleSreVizFileMiddleware,
+  isSreVizJsonPath,
+  handleSreReportMdMiddleware,
+  isSreReportMdPath,
+} from "../backend/sre-agent/sre-viz-file-handler.mjs";
 import { attachSreAgentWebSocket } from "../backend/sre-agent/sre-agent-ws.mjs";
 import { queryAuditDashboardMetrics } from "../backend/security-audit/audit-dashboard-query.mjs";
 import { queryCostOverviewSnapshot } from "../backend/cost-analysis/cost-overview-query.mjs";
@@ -107,6 +112,14 @@ export function agentSessionsDevApi() {
         }
         if (path === "/api/sre-agent/action" && req.method === "POST") {
           return handleSreAgentActionMiddleware(req, res);
+        }
+        if (isSreReportMdPath(path) && req.method === "GET") {
+          void handleSreReportMdMiddleware(req, res).catch((e) => {
+            if (!res.headersSent && !res.writableEnded) {
+              sendJson(res, 500, { error: String(e?.message || e) });
+            }
+          });
+          return;
         }
         if (isSreVizJsonPath(path) && req.method === "GET") {
           void handleSreVizFileMiddleware(req, res).catch((e) => {

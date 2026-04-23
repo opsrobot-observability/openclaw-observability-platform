@@ -26,10 +26,10 @@ const SreVizWorkspaceOpenButton = memo(function SreVizWorkspaceOpenButton({ item
       disabled={busy}
       title={hint}
       onClick={run}
-      className="flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border bg-gray-50 px-3 py-2.5 text-left shadow-sm transition hover:bg-primary/12 disabled:opacity-60 dark:border-primary/35 dark:bg-primary/10 dark:hover:bg-primary/18 hover:text-primary dark:hover:text-primary"
+      className="flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-gray-200/90 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-primary/35 hover:bg-primary/5 disabled:opacity-60 dark:border-gray-600/90 dark:bg-gray-950/50 dark:hover:border-primary/40 dark:hover:bg-primary/10"
     >
       <span className="min-w-0 flex-1 truncate text-[13px] text-gray-900 dark:text-gray-100">{leftTitle}</span>
-      <span className="shrink-0 text-[12px]">查看</span>
+      <span className="shrink-0 text-[12px] text-gray-500 dark:text-gray-400">查看</span>
     </button>
   );
 });

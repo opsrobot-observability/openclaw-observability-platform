@@ -12,7 +12,7 @@ export function SreMessageMarkdownPanel({ panel }) {
       <div className="max-h-[70vh] overflow-y-auto rounded-lg border border-gray-100 bg-white px-3 py-2 text-[13px] dark:border-gray-700 dark:bg-gray-950/50">
         <div className="sre-markdown prose prose-sm max-w-none dark:prose-invert">
           <XMarkdown
-            content={panel.markdown || ""}
+            content={normalizeMarkdownForDisplay(panel.markdown || "")}
             streaming={{ hasNextChunk: false }}
           />
         </div>

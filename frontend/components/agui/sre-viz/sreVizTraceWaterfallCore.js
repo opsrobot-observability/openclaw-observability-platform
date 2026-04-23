@@ -8,17 +8,21 @@ export function mergeTraceChartColors(chartConfig) {
   const c = chartConfig?.colors || {};
   return {
     normal: c.normal ?? "#4CAF50",
-    slow: c.slow ?? "#FFC107",
-    anomaly: c.anomaly ?? "#F44336",
+    slow: c.slow ?? c.degraded ?? "#FFC107",
+    anomaly: c.anomaly ?? c.error ?? "#F44336",
+    degraded: c.degraded ?? c.slow ?? "#FF9800",
+    error: c.error ?? c.anomaly ?? "#B71C1C",
+    recovering: c.recovering ?? "#2196F3",
     fallback: c.fallback ?? "#9E9E9E",
   };
 }
 
 export function traceStatusAccentColor(colors, status) {
   const s = String(status || "").toLowerCase();
-  if (s === "anomaly") return colors.anomaly;
-  if (s === "degraded") return colors.slow;
-  if (s === "normal") return colors.normal;
+  if (s === "anomaly" || s === "error") return colors.anomaly || colors.error;
+  if (s === "degraded") return colors.degraded || colors.slow;
+  if (s === "normal" || s === "recovered") return colors.normal;
+  if (s === "recovering") return colors.recovering || colors.normal;
   return colors.fallback;
 }
 

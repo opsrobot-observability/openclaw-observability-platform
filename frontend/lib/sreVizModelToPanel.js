@@ -6,7 +6,7 @@ import { SRE_VIZ_TYPES } from "./sreMessageVizExtract.js";
  * @returns {object | null}
  */
 export function sreVizModelToPanel(model) {
-  if (!model || typeof model !== "object") return null;
+  if (!model || typeof model !== "object" || Array.isArray(model)) return null;
   const t = model.type;
   if (typeof t !== "string" || !SRE_VIZ_TYPES.has(t)) return null;
   return {

@@ -237,33 +237,6 @@ export default function SreAgent() {
     sendMessage(`[用户操作] ${action.type}: ${action.action || action.label || action.actionId || JSON.stringify(action)}`);
   }, [sendMessage]);
 
-  // 等下一帧再滚动，避免 DOM 还未挂载时执行（首次发消息/流式更新均适用）
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [messages, steps, toolCalls, confirm]);
-
-  // 从会话列表进入已有会话时，等 DOM 渲染完毕后立刻滚动到底部
-  const prevSessionKeyRef = useRef(null);
-  useEffect(() => {
-    if (!activeOpenClawSessionKey) {
-      prevSessionKeyRef.current = null;
-      return;
-    }
-    if (activeOpenClawSessionKey === prevSessionKeyRef.current) return;
-    prevSessionKeyRef.current = activeOpenClawSessionKey;
-    // 两帧后执行，确保列表已完整渲染
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "instant" });
-      });
-      return () => cancelAnimationFrame(raf2);
-    });
-    return () => cancelAnimationFrame(raf1);
-  }, [activeOpenClawSessionKey]);
-
   const handleSend = useCallback(
     (maybeText) => {
       const raw = typeof maybeText === "string" ? maybeText : input;
@@ -329,6 +302,7 @@ export default function SreAgent() {
       isRunning={isRunning}
       selectedAgentMeta={selectedAgentMeta}
       selectedAgentId={selectedAgentId}
+      sessionThreadId={sessionThreadId}
       activeOpenClawSessionKey={activeOpenClawSessionKey}
       steps={steps}
       messages={messages}

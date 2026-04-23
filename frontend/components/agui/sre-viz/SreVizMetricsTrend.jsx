@@ -17,20 +17,26 @@ function formatMetricValue(v, unit) {
 }
 
 export function SreVizMetricsTrend({ panel }) {
-  const model = panel.payload;
+  const model = panel?.payload && typeof panel.payload === "object" ? panel.payload : {};
   const prep = useMemo(() => prepareMetricsTrendChart(model), [model]);
-  const cc = model?.chart_config || {};
+  const cc = prep.chartConfig || {};
 
   if (!prep.n) {
     return (
       <Shell title={prep.title} accent="blue">
-        <p className="text-xs text-gray-500 dark:text-gray-400">无可绘制的时间点（请检查 series[].data）</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          无可绘制的时间点（请检查 series[].data 或 series[].data_points）
+        </p>
       </Shell>
     );
   }
 
   return (
     <Shell title={prep.title} accent="blue">
+      {prep.description ? (
+        <p className="mb-3 text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">{prep.description}</p>
+      ) : null}
+
       <div className="space-y-3">
         {prep.rows.map((row) => (
           <div
@@ -38,24 +44,29 @@ export function SreVizMetricsTrend({ panel }) {
             className="rounded-lg border border-gray-100 bg-gray-50/50 p-2.5 dark:border-gray-700 dark:bg-gray-900/45"
           >
             <div className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="truncate text-[12px] font-semibold text-gray-800 dark:text-gray-100" title={row.name}>
-                  {row.name}
-                </span>
-                {Array.isArray(cc.yAxes) && cc.yAxes.length > 0 && (
-                  <span className="shrink-0 rounded-md bg-gray-200/90 px-1.5 py-0.5 text-[9px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                    {axisLabelForSeries(row.name, row.unit, cc.yAxes)}
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="truncate text-[12px] font-semibold text-gray-800 dark:text-gray-100" title={row.name}>
+                    {row.name}
                   </span>
-                )}
+                  {Array.isArray(cc.yAxes) && cc.yAxes.length > 0 && (
+                    <span className="shrink-0 rounded-md bg-gray-200/90 px-1.5 py-0.5 text-[9px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      {axisLabelForSeries(row.name, row.unit, cc.yAxes)}
+                    </span>
+                  )}
+                </div>
+                {row.subtitle ? (
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{row.subtitle}</span>
+                ) : null}
               </div>
               <div className="max-w-full shrink-0 text-right font-mono text-[10px] leading-snug text-gray-500 dark:text-gray-400">
-                {row.baseline != null && (
+                {row.baseline != null && row.showBaseline !== false && (
                   <span>
                     基线 {formatMetricValue(row.baseline, row.unit)}
                     {row.unit ? ` ${row.unit}` : ""}
                   </span>
                 )}
-                {row.baseline != null && row.peak != null && <span className="mx-1">·</span>}
+                {row.baseline != null && row.showBaseline !== false && row.peak != null && <span className="mx-1">·</span>}
                 {row.peak != null && (
                   <span>
                     峰值 {formatMetricValue(row.peak, row.unit)}
@@ -78,12 +89,13 @@ export function SreVizMetricsTrend({ panel }) {
                 yMax={row.yMax}
                 yMin={0}
                 yLabel={row.unit || ""}
-                horizontalBands={prep.horizontalBands}
-                referenceLines={
-                  row.baseline != null
+                horizontalBands={row.horizontalBands || []}
+                referenceLines={[
+                  ...(row.showBaseline !== false && row.baseline != null
                     ? [{ y: row.baseline, color: "rgba(33,150,243,0.78)", dash: [6, 4], lineWidth: 1.25 }]
-                    : []
-                }
+                    : []),
+                  ...(Array.isArray(row.refThreshold) ? row.refThreshold : []),
+                ]}
                 verticalMarkers={
                   row.peakIdx != null ? [{ index: row.peakIdx, color: "rgba(220,38,38,0.82)", lineWidth: 1 }] : []
                 }

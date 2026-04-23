@@ -414,13 +414,35 @@ export default function useAgui(agent, options = {}) {
 
   const stripMsgVizPanels = (prev) => prev.filter((p) => !String(p.id).startsWith("msg-viz-"));
 
+  const resolveFinalReportPathToPanel = useCallback(async (filePath) => {
+    const p = String(filePath || "").trim();
+    if (!p) return null;
+    try {
+      const r = await fetch(`/api/sre-agent/report-md?path=${encodeURIComponent(p)}`);
+      if (!r.ok) return null;
+      const data = await r.json();
+      if (!data || typeof data !== "object" || typeof data.markdown !== "string") return null;
+      const title = typeof data.title === "string" && data.title.trim() ? data.title.trim() : "最终报告";
+      return {
+        id: `msg-report-${uid("p")}`,
+        type: "sre_message_markdown",
+        title,
+        markdown: data.markdown,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+
   const resolveSreVizQueueItemToPanel = useCallback(async (item) => {
     let model = item.kind === "inline" ? item.model : null;
     if (item.kind === "path") {
       try {
         const r = await fetch(`/api/sre-agent/viz-json?path=${encodeURIComponent(item.path)}`);
         if (!r.ok) return null;
-        model = await r.json();
+        const data = await r.json();
+        if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+        model = data;
       } catch {
         return null;
       }
@@ -428,14 +450,20 @@ export default function useAgui(agent, options = {}) {
     return model ? sreVizModelToPanel(model) : null;
   }, []);
 
-  /** 打开单条 viz（内联 model 或 ~/.openclaw 路径拉取 JSON），仅用于 metrics_trend 等五种 AGUI 面板 */
+  /** 打开单条 viz（内联 model 或 ~/.openclaw 路径拉取 JSON），或 final_report.md 报告预览面板 */
   const openSreVizQueueItem = useCallback(
     async (item) => {
+      if (item?.kind === "final_report") {
+        const p = await resolveFinalReportPathToPanel(item.path);
+        if (!p) return;
+        setWorkspacePanels((prev) => [...stripMsgVizPanels(prev), p]);
+        return;
+      }
       const p = await resolveSreVizQueueItemToPanel(item);
       if (!p) return;
       setWorkspacePanels((prev) => [...stripMsgVizPanels(prev), p]);
     },
-    [resolveSreVizQueueItemToPanel],
+    [resolveFinalReportPathToPanel, resolveSreVizQueueItemToPanel],
   );
 
   /** 一次打开消息中全部 viz（批量追加，避免 strip 互相覆盖） */
