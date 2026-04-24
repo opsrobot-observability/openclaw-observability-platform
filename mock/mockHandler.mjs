@@ -24,6 +24,10 @@ import {
   mockMonitorSessionRiskSessions,
   mockMonitorSessionTrend,
 } from "./data/monitor-session.mjs";
+import {
+  mockHostMonitorData,
+  mockHostMonitorOverviewData,
+} from "./data/host-monitor.mjs";
 import { DIGITAL_EMPLOYEE_OVERVIEW_DEFAULT_DAYS } from "../frontend/lib/digitalEmployeeRows.js";
 
 function sendJson(res, status, body) {
@@ -201,6 +205,18 @@ export function handleMockRequest(url, res) {
         topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
       }),
     );
+    return true;
+  }
+  
+  // --- 主机监控总览 ---
+  if (url.startsWith("/api/host-monitor/overview")) {
+    sendJson(res, 200, mockHostMonitorOverviewData());
+    return true;
+  }
+
+  // --- 主机监控详情 ---
+  if (url.startsWith("/api/host-monitor")) {
+    sendJson(res, 200, mockHostMonitorData());
     return true;
   }
 

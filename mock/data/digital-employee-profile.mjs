@@ -460,8 +460,8 @@ export function mockDigitalEmployeeProfile(agentName, days, hours, sessionScopeR
             { name: "output", value: outputTokens },
           ],
           modelTokenPie: [
-            { name: agent.models?.[0]?.name || "anthropic/claude-3-5-sonnet", value: Math.round((inputTokens + outputTokens) * 0.62) },
-            { name: "openai/gpt-4o", value: Math.round((inputTokens + outputTokens) * 0.28) },
+            { name: agent.models?.[0]?.name || "anthropic/Opus 4.6", value: Math.round((inputTokens + outputTokens) * 0.62) },
+            { name: "google/Gemini 3.1 Pro", value: Math.round((inputTokens + outputTokens) * 0.28) },
             { name: "__other__", value: Math.round((inputTokens + outputTokens) * 0.1) },
           ],
           userTokenTop10: [

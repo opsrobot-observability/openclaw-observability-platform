@@ -225,6 +225,14 @@ export default function CostAnalysis() {
     );
   };
 
+  const handleStatusClick = (status) => {
+    window.dispatchEvent(
+      new CustomEvent("openclaw-nav", {
+        detail: { id: "cost-overview-2", params: { status } },
+      })
+    );
+  };
+
   if (loading && !snapshot) {
     return (
       <div className="space-y-3">
@@ -318,7 +326,10 @@ export default function CostAnalysis() {
       {abnormalities && (
         <section className="grid gap-3 sm:grid-cols-3">
           {/* 网关无效损耗 */}
-          <div className="app-card overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900">
+          <div 
+            onClick={() => handleStatusClick("interruption")}
+            className="app-card cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900"
+          >
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-500 dark:bg-rose-950/30">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,7 +356,10 @@ export default function CostAnalysis() {
           </div>
 
           {/* 实例死循环损耗 */}
-          <div className="app-card overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900">
+          <div 
+            onClick={() => handleStatusClick("loop")}
+            className="app-card cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900"
+          >
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-950/30">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -371,7 +385,10 @@ export default function CostAnalysis() {
           </div>
 
           {/* 模型异常报错 */}
-          <div className="app-card overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900">
+          <div 
+            onClick={() => handleStatusClick("error")}
+            className="app-card cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md dark:bg-gray-900"
+          >
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 dark:bg-indigo-950/30">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

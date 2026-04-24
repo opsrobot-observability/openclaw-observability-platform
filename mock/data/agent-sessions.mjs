@@ -15,8 +15,8 @@ export function mockAgentSessions() {
       session_key: "kefu-zhangsan-20260330",
       agent_name: "客服助手·小智",
       log_attributes: JSON.stringify({
-        model: "gpt-4o-mini",
-        modelProvider: "openai",
+        model: "Gemini 3.1 Flash",
+        modelProvider: "google",
         originProvider: "webchat",
         sessionFile: "sessions/sess_a1b2c3d4e5f67890.jsonl",
         totalTokens: 12840,
@@ -58,7 +58,7 @@ export function mockAgentSessions() {
       session_key: "ops-bot-runner-20260330",
       agent_name: "运维巡检员",
       log_attributes: JSON.stringify({
-        model: "claude-3-5-sonnet",
+        model: "Opus 4.6",
         modelProvider: "anthropic",
         originProvider: "internal",
         totalTokens: 6420,
@@ -99,8 +99,8 @@ export function mockAgentSessions() {
       session_key: "data-analyst-api-20260330",
       agent_name: "数据分析员",
       log_attributes: JSON.stringify({
-        model: "gpt-4o",
-        modelProvider: "openai",
+        model: "Gemini 3.1 Pro",
+        modelProvider: "google",
         originProvider: "api",
         totalTokens: 22100,
       }),
@@ -140,7 +140,7 @@ export function mockAgentSessions() {
       session_key: "hr-interview-20260330",
       agent_name: "HR 面试助手",
       log_attributes: JSON.stringify({
-        model: "MiniMax-M2.5",
+        model: "MiniMax-M2.7",
         modelProvider: "minimax-cn",
         originProvider: "feishu",
         totalTokens: 8500,
@@ -181,8 +181,8 @@ export function mockAgentSessions() {
       session_key: "compliance-review-20260330",
       agent_name: "合规审查官",
       log_attributes: JSON.stringify({
-        model: "deepseek-r1",
-        modelProvider: "deepseek",
+        model: "Gemini 3.1 Pro",
+        modelProvider: "google",
         originProvider: "internal",
         totalTokens: 15200,
       }),
@@ -221,7 +221,7 @@ export function mockAgentSessions() {
       session_key: "scm-shrimp-20260414",
       agent_name: "供应链协同 · 员工虾",
       log_attributes: JSON.stringify({
-        model: "claude-3-opus",
+        model: "Opus 4.6",
         modelProvider: "anthropic",
         originProvider: "event-bus",
         totalTokens: 34500,

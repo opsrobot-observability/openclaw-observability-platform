@@ -395,7 +395,7 @@ export default function Dashboard() {
           {!sidebarCollapsed && (
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">opsRobot</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("common.platformName")}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">{intl.get("common.platformName")}</p>
             </div>
           )}
         </div>

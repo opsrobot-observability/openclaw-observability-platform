@@ -8,14 +8,60 @@ function dayStr(offsetDays = 0) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function mockLlmCostDetail(startDay, endDay) {
+export function mockLlmCostDetail(startDay, endDay, isSummary = false) {
   const models = [
-    { model: "gpt-4o-mini", provider: "openai" },
-    { model: "claude-3-5-sonnet", provider: "anthropic" },
-    { model: "MiniMax-M2.5", provider: "minimax-cn" },
-    { model: "deepseek-r1", provider: "deepseek" },
-    { model: "qwen-turbo", provider: "alibaba" },
+    { model: "Gemini 3.1 Flash", provider: "google" },
+    { model: "Opus 4.6", provider: "anthropic" },
+    { model: "MiniMax-M2.7", provider: "minimax-cn" },
+    { model: "Gemini 3.1 Pro", provider: "google" },
+    { model: "GLM 5.1", provider: "zhipuai" },
   ];
+
+  if (isSummary) {
+    const rows = models.map((m, i) => {
+      const total = 500_000 + Math.floor(Math.random() * 2_000_000);
+      const inp = Math.floor(total * (0.55 + Math.random() * 0.15));
+      const outp = total - inp;
+      const io = inp + outp;
+      const calls = 5000 + Math.floor(Math.random() * 15000);
+      const errRate = (i === 3 ? 4.2 : Math.random() * 1).toFixed(1);
+
+      // 7-day trend
+      const trend = Array.from({ length: 7 }, () => Math.floor(Math.random() * 100));
+
+      return {
+        model: m.model,
+        provider: m.provider,
+        totalTokens: total,
+        totalTokensFmt: total >= 1e6 ? `${(total / 1e6).toFixed(1)}M` : `${(total / 1e3).toFixed(1)}K`,
+        inputTokens: inp,
+        outputTokens: outp,
+        ioStructure: `${Math.round((inp / io) * 100)}/${Math.round((outp / io) * 100)}`,
+        callCount: calls,
+        errorRate: errRate,
+        trend: trend,
+        topApps: [
+          { name: "客服助手·小智", pct: 45 },
+          { name: "运维巡检员", pct: 32 },
+          { name: "内部知识库", pct: 18 },
+        ],
+        stability: {
+          avgLatency: (1.0 + Math.random() * 0.5).toFixed(2),
+          errorDist: [
+            { code: "503 Service Overloaded", count: 8 },
+            { code: "429 Rate Limit", count: 2 },
+          ],
+        },
+        efficiency: {
+          avgTokensPerSession: 400 + Math.floor(Math.random() * 200),
+          effectiveOutputRate: (95 + Math.random() * 4).toFixed(1),
+          estMonthlyCost: (total / 1e6 * 4).toFixed(1) + "M",
+        }
+      };
+    });
+
+    return { source: "mock-summary", startDay, endDay, rows };
+  }
 
   const rows = [];
   for (let dayOff = 0; dayOff >= -6; dayOff--) {

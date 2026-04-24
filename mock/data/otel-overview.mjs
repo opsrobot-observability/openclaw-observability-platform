@@ -133,10 +133,10 @@ export function mockOtelOverview(opts = {}) {
       { name: "output", value: 829000 },
     ],
     byModel: [
-      { name: "gpt-4o", value: 1200000 },
-      { name: "claude-3.5-sonnet", value: 850000 },
-      { name: "gpt-4-turbo", value: 320000 },
-      { name: "gemini-pro", value: 109000 },
+      { name: "Gemini 3.1 Pro", value: 1200000 },
+      { name: "Opus 4.6", value: 850000 },
+      { name: "GLM 5.1", value: 320000 },
+      { name: "Gemini 1.5 Pro", value: 109000 },
     ],
     byChannel: [
       { name: "api", value: 1450000 },
@@ -144,9 +144,9 @@ export function mockOtelOverview(opts = {}) {
       { name: "cli", value: 349000 },
     ],
     byProvider: [
-      { name: "openai", value: 1520000 },
+      { name: "google", value: 1520000 },
       { name: "anthropic", value: 850000 },
-      { name: "google", value: 109000 },
+      { name: "google-pro", value: 109000 },
     ],
     topInstances: [
       { name: "openclaw-gateway-1", value: 1200000 },
@@ -157,10 +157,10 @@ export function mockOtelOverview(opts = {}) {
 
   const costAnalytics = {
     byModel: [
-      { name: "gpt-4o", value: 18.56 },
-      { name: "claude-3.5-sonnet", value: 12.34 },
-      { name: "gpt-4-turbo", value: 5.67 },
-      { name: "gemini-pro", value: 0.87 },
+      { name: "Gemini 3.1 Pro", value: 18.56 },
+      { name: "Opus 4.6", value: 12.34 },
+      { name: "GLM 5.1", value: 5.67 },
+      { name: "Gemini 1.5 Pro", value: 0.87 },
     ],
     byChannel: [
       { name: "api", value: 22.45 },
@@ -168,9 +168,9 @@ export function mockOtelOverview(opts = {}) {
       { name: "cli", value: 4.76 },
     ],
     byProvider: [
-      { name: "openai", value: 24.23 },
+      { name: "google", value: 24.23 },
       { name: "anthropic", value: 12.34 },
-      { name: "google", value: 0.87 },
+      { name: "google-pro", value: 0.87 },
     ],
     topInstances: [
       { name: "openclaw-gateway-1", value: 15.32 },

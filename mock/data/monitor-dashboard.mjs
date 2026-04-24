@@ -84,9 +84,9 @@ export function mockMonitorDashboard({ trendDays = 14, topLimit = 10 } = {}) {
     instanceList: buildInstanceList(),
     tokenDistribution: {
       byModel: [
-        { name: "deepseek-r1", value: 23_600_000 },
+        { name: "Gemini 3.1 Pro", value: 23_600_000 },
         { name: "delivery-mirror", value: 19_200_000 },
-        { name: "MiniMax-M2.5", value: 8_700_000 },
+        { name: "Opus 4.6", value: 8_700_000 },
         { name: "MiniMax-M2.7", value: 4_300_000 },
       ],
       byType: [
