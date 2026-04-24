@@ -15,7 +15,7 @@ export default function SortableTableTh({
       <button
         type="button"
         onClick={() => onSort(columnKey)}
-        className="group inline-flex max-w-full min-w-0 items-center gap-1 rounded font-semibold text-gray-700 transition hover:text-primary"
+        className="group inline-flex max-w-full min-w-0 items-center gap-1 rounded font-semibold text-gray-700 dark:text-gray-200 transition hover:text-primary"
       >
         <span className="truncate">{label}</span>
         <span

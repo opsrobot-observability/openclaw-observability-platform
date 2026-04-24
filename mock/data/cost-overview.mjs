@@ -96,10 +96,10 @@ export function mockCostOverview(params = {}) {
 
   // 大模型占比
   const modelShare = [
-    { name: "gpt-4o", tokens: Math.round(3_500_000 * multiplier), value: 46.9, fill: "#4f46e5" },
-    { name: "claude-3-5-sonnet", tokens: Math.round(2_100_000 * multiplier), value: 28.1, fill: "#7c3aed" },
-    { name: "deepseek-v3", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: "#2563eb" },
-    { name: "qwen-max", tokens: Math.round(662_100 * multiplier), value: 8.9, fill: "#3b82f6" },
+    { name: "Gemini 3.1 Pro", tokens: Math.round(3_500_000 * multiplier), value: 46.9, fill: "#4f46e5" },
+    { name: "Opus 4.6", tokens: Math.round(2_100_000 * multiplier), value: 28.1, fill: "#7c3aed" },
+    { name: "GLM 5.1", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: "#2563eb" },
+    { name: "MiniMax-M2.7", tokens: Math.round(662_100 * multiplier), value: 8.9, fill: "#3b82f6" },
   ];
 
   // Top10 会话消耗 (tokens 单位为 M)
@@ -117,7 +117,7 @@ export function mockCostOverview(params = {}) {
   ];
 
   // 每日按模型拆分
-  const modelsForTrend = ["gpt-4o", "claude-3-5-sonnet", "deepseek-v3", "qwen-max"];
+  const modelsForTrend = ["Gemini 3.1 Pro", "Opus 4.6", "GLM 5.1", "MiniMax-M2.7"];
   const modelSeriesData = modelsForTrend.map((name, i) => ({
     dataKey: `m${i}`,
     name,
@@ -157,7 +157,7 @@ export function mockCostOverview(params = {}) {
         tokens: Math.round(45_000 * multiplier),
       },
       modelErrors: {
-        modelName: "gpt-4o",
+        modelName: "Gemini 3.1 Pro",
         errorCalls: Math.round(120 * multiplier),
         totalCalls: Math.round(1000 * multiplier),
         errorRate: 12,

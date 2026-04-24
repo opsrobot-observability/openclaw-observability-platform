@@ -41,7 +41,7 @@ export default {
   "nav.auditOverview": "Audit Overview",
   "nav.sessionAudit": "Session Traceability",
   "nav.logSearch": "Log search",
-  "nav.costAnalysis": "Productivity",
+  "nav.costAnalysis": "Manageable Costs",
   "nav.costOverview": "Cost Overview",
   "nav.costOverview2": "Session Cost Detail",
   "nav.agentCostDetail": "Agent Cost Detail",

@@ -22,35 +22,35 @@ export default function TablePagination({
       className={`flex flex-wrap items-center justify-between gap-4 ${className}`}
     >
       {loading ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{intl.get("common.loadingList")}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("common.loadingList")}</p>
       ) : (
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           {intl.get("common.pageInfo", { start, end, total })}
           {!trailingControls && (
-            <span className="text-gray-400 dark:text-gray-500"> · {intl.get("common.pageSize", { size: pageSize })}</span>
+            <span> · {intl.get("common.pageSize", { size: pageSize })}</span>
           )}
         </p>
       )}
       <div
-        className={`flex flex-wrap items-center gap-2 ${loading ? "pointer-events-none opacity-50" : ""}`}
+        className={`flex flex-wrap items-center gap-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
         aria-hidden={loading || undefined}
       >
         <button
           type="button"
           disabled={!canPrev}
           onClick={() => onPageChange(page - 1)}
-          className="app-btn-outline"
+          className="rounded-lg border border-gray-100 bg-white px-3 py-1.5 text-xs font-medium text-gray-400 shadow-sm transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-30 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500"
         >
           {intl.get("common.prevPage")}
         </button>
-        <span className="min-w-[4.5rem] text-center text-sm tabular-nums text-gray-600 dark:text-gray-400">
+        <span className="min-w-[3rem] text-center text-xs font-bold tabular-nums text-gray-700 dark:text-gray-300">
           {totalPages === 0 ? "—" : `${page} / ${totalPages}`}
         </span>
         <button
           type="button"
           disabled={!canNext}
           onClick={() => onPageChange(page + 1)}
-          className="app-btn-outline"
+          className="rounded-lg border border-gray-100 bg-white px-3 py-1.5 text-xs font-medium text-gray-400 shadow-sm transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-30 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500"
         >
           {intl.get("common.nextPage")}
         </button>

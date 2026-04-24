@@ -64,7 +64,8 @@ export function handleMockRequest(url, res) {
     const u = new URL(url, "http://mock.local");
     const startDay = u.searchParams.get("startDay") || "";
     const endDay = u.searchParams.get("endDay") || "";
-    sendJson(res, 200, mockLlmCostDetail(startDay, endDay));
+    const isSummary = u.searchParams.get("summary") === "true";
+    sendJson(res, 200, mockLlmCostDetail(startDay, endDay, isSummary));
     return true;
   }
 
@@ -75,9 +76,13 @@ export function handleMockRequest(url, res) {
     const users = u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [];
     const gateways = u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [];
     const models = u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [];
+    const statuses = u.searchParams.get("statuses") ? u.searchParams.get("statuses").split(",") : [];
     const page = Number(u.searchParams.get("page") ?? "1");
     const pageSize = Number(u.searchParams.get("pageSize") ?? "20");
-    sendJson(res, 200, mockSessionCostDetail({ agents, users, gateways, models, page, pageSize }));
+    const sessionId = u.searchParams.get("sessionId") || "";
+    const startDay = u.searchParams.get("startDay") || "";
+    const endDay = u.searchParams.get("endDay") || "";
+    sendJson(res, 200, mockSessionCostDetail({ agents, users, gateways, models, statuses, sessionId, page, pageSize, startDay, endDay }));
     return true;
   }
 

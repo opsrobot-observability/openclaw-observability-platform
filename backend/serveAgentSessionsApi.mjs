@@ -148,11 +148,14 @@ const server = http.createServer(async (req, res) => {
       const u = new URL(url, "http://127.0.0.1");
       const startDay = u.searchParams.get("startDay");
       const endDay = u.searchParams.get("endDay");
+      const isSummary = u.searchParams.get("summary") === "true";
       if (!startDay || !endDay) {
         sendJson(res, 400, { error: "missing startDay or endDay (YYYY-MM-DD)" });
         return;
       }
-      const data = await queryLlmCostDetail(startDay, endDay);
+      const data = isSummary
+        ? await import("./cost-analysis/agent-llm-cost-tables-query.mjs").then(m => m.queryLlmCostSummary(startDay, endDay))
+        : await import("./cost-analysis/agent-llm-cost-tables-query.mjs").then(m => m.queryLlmCostDetail(startDay, endDay));
       sendJson(res, 200, data);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -323,6 +326,7 @@ const server = http.createServer(async (req, res) => {
         users: u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [],
         gateways: u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [],
         models: u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [],
+        sessionId: u.searchParams.get("sessionId") || "",
         page: Number(u.searchParams.get("page") ?? "1"),
         pageSize: Number(u.searchParams.get("pageSize") ?? "20"),
         sortKey: u.searchParams.get("sortKey") ?? "totalTokens",
