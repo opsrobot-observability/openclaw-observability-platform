@@ -11,6 +11,7 @@ import fullChainTraceability from "./fullChainTraceability.js";
 import digitalEmployee from "./digitalEmployee.js";
 import otelOverview from "./otelOverview.js";
 import instanceMonitoring from "./instanceMonitoring.js";
+import hostMonitor from "./hostMonitor.js";
 
 export default {
   ...common,
@@ -26,4 +27,5 @@ export default {
   ...digitalEmployee,
   ...otelOverview,
   ...instanceMonitoring,
+  ...hostMonitor,
 };

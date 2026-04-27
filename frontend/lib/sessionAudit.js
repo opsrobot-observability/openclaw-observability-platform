@@ -3,6 +3,8 @@
  * @param {Record<string, object>} index
  * @returns {object[]}
  */
+import intl from "react-intl-universal";
+
 export function parseSessionsIndex(index) {
   if (!index || typeof index !== "object") return [];
   return Object.entries(index).map(([sessionKey, v]) => ({
@@ -476,20 +478,20 @@ export function summarizeJsonlLine(line) {
       : "";
 
   if (line.type === "parse_error") {
-    return { kind: "error", title: "解析失败", subtitle: line.raw || "", timeLabel };
+    return { kind: "error", title: intl.get("sessionAudit.badge.parseError") || "解析失败", subtitle: line.raw || "", timeLabel };
   }
   if (line.type === "session") {
     return {
       kind: "session",
-      title: "会话头",
-      subtitle: `id ${line.id ?? "—"} · 版本 ${line.version ?? "—"} · cwd`,
+      title: intl.get("sessionAudit.badge.sessionHead") || "会话头",
+      subtitle: `id ${line.id ?? "—"} · ${intl.get("sessionAudit.badge.version") || "版本"} ${line.version ?? "—"} · cwd`,
       timeLabel: line.timestamp || timeLabel,
     };
   }
   if (line.type === "model_change") {
     return {
       kind: "model_change",
-      title: "模型切换",
+      title: intl.get("sessionAudit.badge.modelSwitch") || "模型切换",
       subtitle: `${line.provider ?? "—"} · ${line.modelId ?? "—"}`,
       timeLabel: line.timestamp || timeLabel,
     };
@@ -497,7 +499,7 @@ export function summarizeJsonlLine(line) {
   if (line.type === "thinking_level_change") {
     return {
       kind: "thinking_level_change",
-      title: "思考档位",
+      title: intl.get("sessionAudit.badge.thinkingLevel") || "思考档位",
       subtitle: line.thinkingLevel ?? "—",
       timeLabel: line.timestamp || timeLabel,
     };
@@ -506,7 +508,7 @@ export function summarizeJsonlLine(line) {
     const d = line.data || {};
     return {
       kind: "snapshot",
-      title: "模型快照",
+      title: intl.get("sessionAudit.badge.modelSnapshot") || "模型快照",
       subtitle: `${d.provider ?? "—"} · ${d.modelId ?? "—"} · ${d.modelApi ?? "—"}`,
       timeLabel: line.timestamp || timeLabel,
     };
@@ -514,7 +516,7 @@ export function summarizeJsonlLine(line) {
   if (line.type === "custom") {
     return {
       kind: "custom",
-      title: `自定义 · ${line.customType ?? "?"}`,
+      title: `${intl.get("sessionAudit.badge.custom") || "自定义"} · ${line.customType ?? "?"}`,
       subtitle: trunc(JSON.stringify(line.data), 120),
       timeLabel: line.timestamp || timeLabel,
     };
@@ -530,7 +532,7 @@ export function summarizeJsonlLine(line) {
         : "";
       return {
         kind: "user",
-        title: "用户",
+        title: intl.get("sessionAudit.badge.user") || "用户",
         subtitle: trunc(text, T_MAX),
         timeLabel: line.timestamp || timeLabel,
       };
@@ -540,16 +542,16 @@ export function summarizeJsonlLine(line) {
       const content = Array.isArray(m.content) ? m.content : [];
       for (const c of content) {
         if (!c || !c.type) continue;
-        if (c.type === "thinking") parts.push("思考");
-        else if (c.type === "toolCall") parts.push(`工具 ${c.name || "?"}`);
-        else if (c.type === "text") parts.push("文本");
+        if (c.type === "thinking") parts.push(intl.get("sessionAudit.badge.thinking") || "思考");
+        else if (c.type === "toolCall") parts.push(`${intl.get("sessionAudit.badge.tool") || "工具"} ${c.name || "?"}`);
+        else if (c.type === "text") parts.push(intl.get("sessionAudit.badge.text") || "文本");
       }
       const stop = m.stopReason ? ` · ${m.stopReason}` : "";
       const usage = m.usage?.totalTokens != null ? ` · ${m.usage.totalTokens} tok` : "";
       return {
         kind: "assistant",
-        title: "助手",
-        subtitle: (parts.length ? parts.join(" · ") : "（无片段）") + stop + usage,
+        title: intl.get("sessionAudit.badge.assistant") || "助手",
+        subtitle: (parts.length ? parts.join(" · ") : (intl.get("sessionAudit.badge.noSegment") || "（无片段）")) + stop + usage,
         timeLabel: line.timestamp || timeLabel,
       };
     }
@@ -560,10 +562,10 @@ export function summarizeJsonlLine(line) {
             .map((c) => c.text)
             .join("\n")
         : "";
-      const err = m.isError ? " · 错误语义" : "";
+      const err = m.isError ? ` · ${intl.get("sessionAudit.badge.errorSemantic") || "错误语义"}` : "";
       return {
         kind: "toolResult",
-        title: `工具结果 · ${m.toolName ?? "—"}`,
+        title: `${intl.get("sessionAudit.badge.toolResult") || "工具结果"} · ${m.toolName ?? "—"}`,
         subtitle: trunc(text, T_MAX) + err,
         timeLabel: line.timestamp || timeLabel,
       };
@@ -577,7 +579,7 @@ export function summarizeJsonlLine(line) {
   }
   return {
     kind: "unknown",
-    title: line.type || "未知",
+    title: line.type || (intl.get("sessionAudit.badge.unknown") || "未知"),
     subtitle: trunc(JSON.stringify(line).slice(0, 300), T_MAX),
     timeLabel,
   };

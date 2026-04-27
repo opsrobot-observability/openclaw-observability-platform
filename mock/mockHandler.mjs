@@ -15,6 +15,7 @@ import { mockConfigAuditStats } from "./data/config-audit-stats.mjs";
 import { mockSessionCostDetail } from "./data/session-cost-detail.mjs";
 import { mockSessionCostOptions } from "./data/session-cost-options.mjs";
 import { mockOtelOverview } from "./data/otel-overview.mjs";
+import { mockHostMonitorData, mockHostMonitorOverviewData } from "./data/host-monitor.mjs";
 import { mockDigitalEmployeeOverview } from "./data/digital-employee-overview.mjs";
 import { mockDigitalEmployeeProfile } from "./data/digital-employee-profile.mjs";
 import { mockMonitorDashboard } from "./data/monitor-dashboard.mjs";
@@ -44,7 +45,11 @@ function sendJson(res, status, body) {
 export function handleMockRequest(url, res) {
   // --- 成本概览 ---
   if (url.startsWith("/api/cost-overview")) {
-    sendJson(res, 200, mockCostOverview());
+    const u = new URL(url, "http://mock.local");
+    const trendDays = u.searchParams.get("trendDays");
+    const start = u.searchParams.get("start");
+    const end = u.searchParams.get("end");
+    sendJson(res, 200, mockCostOverview({ trendDays, start, end }));
     return true;
   }
 
@@ -62,7 +67,8 @@ export function handleMockRequest(url, res) {
     const u = new URL(url, "http://mock.local");
     const startDay = u.searchParams.get("startDay") || "";
     const endDay = u.searchParams.get("endDay") || "";
-    sendJson(res, 200, mockLlmCostDetail(startDay, endDay));
+    const isSummary = u.searchParams.get("summary") === "true";
+    sendJson(res, 200, mockLlmCostDetail(startDay, endDay, isSummary));
     return true;
   }
 
@@ -73,9 +79,13 @@ export function handleMockRequest(url, res) {
     const users = u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [];
     const gateways = u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [];
     const models = u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [];
+    const statuses = u.searchParams.get("statuses") ? u.searchParams.get("statuses").split(",") : [];
     const page = Number(u.searchParams.get("page") ?? "1");
     const pageSize = Number(u.searchParams.get("pageSize") ?? "20");
-    sendJson(res, 200, mockSessionCostDetail({ agents, users, gateways, models, page, pageSize }));
+    const sessionId = u.searchParams.get("sessionId") || "";
+    const startDay = u.searchParams.get("startDay") || "";
+    const endDay = u.searchParams.get("endDay") || "";
+    sendJson(res, 200, mockSessionCostDetail({ agents, users, gateways, models, statuses, sessionId, page, pageSize, startDay, endDay }));
     return true;
   }
 
@@ -174,6 +184,24 @@ export function handleMockRequest(url, res) {
   // --- 会话列表 ---
   if (url.startsWith("/api/agent-sessions")) {
     sendJson(res, 200, mockAgentSessions());
+    return true;
+  }
+
+  // --- 主机监控（总览须先于 /api/host-monitor 匹配） ---
+  if (url.startsWith("/api/host-monitor/overview")) {
+    const u = new URL(url, "http://mock.local");
+    const hours = Math.min(Math.max(Number(u.searchParams.get("hours") ?? "24") || 24, 1), 168);
+    sendJson(res, 200, mockHostMonitorOverviewData({ hours }));
+    return true;
+  }
+
+  if (url.startsWith("/api/host-monitor")) {
+    const u = new URL(url, "http://mock.local");
+    const hostname = u.searchParams.get("hostname") || "";
+    const startIso = u.searchParams.get("startIso") || "";
+    const endIso = u.searchParams.get("endIso") || "";
+    const hours = u.searchParams.get("hours") || "";
+    sendJson(res, 200, mockHostMonitorData({ hostname, startIso, endIso, hours }));
     return true;
   }
 

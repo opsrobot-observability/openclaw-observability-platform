@@ -102,6 +102,11 @@
     width: 6px;
     height: 6px;
   }
+  .scrollbar-ui::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
   .scrollbar-ui::-webkit-scrollbar-track {
     background: transparent;
     border-radius: 999px;

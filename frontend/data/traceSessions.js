@@ -3,6 +3,8 @@
  * 可通过会话 ID 串联网关 → Agent → 工具 → MCP → 下游 API
  */
 
+import intl from "react-intl-universal";
+
 export const TRACE_SESSION_SAMPLES = [
   {
     session_id: "sess_a1b2c3d4e5f67890",
@@ -263,6 +265,118 @@ export const TRACE_SESSION_SAMPLES = [
       },
     ],
   },
+  {
+    session_id: "sess_shrimpx9y8z7w6v5",
+    get title() { return intl.get("fullChain.shrimp.title") || "加急订单处理与供应商物料录入（检出高危行为）"; },
+    channel: "event-bus",
+    user: "system-scheduler",
+    tenant: "scm-core",
+    get agentName() { return intl.get("fullChain.shrimp.agent") || "供应链协同 · 员工虾"; },
+    startedAt: "2026-04-14T02:15:00.000Z",
+    endedAt: "2026-04-14T02:15:12.800Z",
+    outcome: "error",
+    totalTokens: 34500,
+    get steps() {
+      return [
+        {
+          id: "st-s1",
+          ts: "2026-04-14T02:15:00.000Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.access") || "接入"; },
+          component: "API 网关 / Event Bus",
+          service: "openclaw-gateway",
+          get action() { return intl.get("fullChain.shrimp.action1") || "监听到高利润加急订单异动"; },
+          status: "ok",
+          latencyMs: 15,
+          get detail() { return intl.get("fullChain.shrimp.detail1") || "从 Kafka topic: scm.orders 侧消费插单事件"; },
+          meta: { topic: "scm.orders", partition: 2 }
+        },
+        {
+          id: "st-s2",
+          ts: "2026-04-14T02:15:00.320Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.reasoning") || "推理"; },
+          component: "数字员工",
+          service: "openclaw-agent",
+          get action() { return intl.get("fullChain.shrimp.action2") || "分析异常，规划 ERP 与 WMS 跨系统调用"; },
+          status: "ok",
+          latencyMs: 820,
+          get detail() { return intl.get("fullChain.shrimp.detail2") || "确认账期、库存水位后调整排产与物料计划"; },
+          meta: { model: "claude-3-opus" }
+        },
+        {
+          id: "st-s3",
+          ts: "2026-04-14T02:15:01.500Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.tool") || "工具"; },
+          component: "工具执行器",
+          service: "openclaw-tool-runner",
+          get action() { return intl.get("fullChain.shrimp.action3") || "erp.query_period & wms.check_inventory"; },
+          status: "ok",
+          latencyMs: 32,
+          get detail() { return intl.get("fullChain.shrimp.detail3") || "并发核对供应商物料齐套状态，耗时 32ms"; },
+          meta: { tools: ["erp.query_period", "wms.check_inventory"] }
+        },
+        {
+          id: "st-s4",
+          ts: "2026-04-14T02:15:02.100Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.tool") || "工具"; },
+          component: "工具执行器",
+          service: "openclaw-tool-runner",
+          get action() { return intl.get("fullChain.shrimp.action4") || "mes.adjust_schedule"; },
+          status: "ok",
+          latencyMs: 115,
+          get detail() { return intl.get("fullChain.shrimp.detail4") || "底层排产计划重构完成，更新指令已下发"; },
+          meta: { command: "update_schedule", target: "mes_core" }
+        },
+        {
+          id: "st-s5",
+          ts: "2026-04-14T02:15:03.500Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.reasoning") || "推理"; },
+          component: "数字员工",
+          service: "openclaw-agent",
+          get action() { return intl.get("fullChain.shrimp.action5") || "获取业务指示，需核实新引入供应商的合规证明与质检单"; },
+          status: "ok",
+          latencyMs: 1540,
+          get detail() { return intl.get("fullChain.shrimp.detail5") || "由于内部库无记录，决定从供应商外部门户/邮件自动拉取文件"; },
+          meta: { model: "claude-3-opus" }
+        },
+        {
+          id: "st-s6",
+          ts: "2026-04-14T02:15:06.100Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.tool") || "工具"; },
+          component: "工具执行器",
+          service: "openclaw-tool-runner",
+          get action() { return intl.get("fullChain.shrimp.action6") || "email.download_attachment"; },
+          status: "ok",
+          latencyMs: 3450,
+          get detail() { return intl.get("fullChain.shrimp.detail6") || "下载：最新物料合规证明与质检单.pdf.scr (绕过边界防毒)"; },
+          meta: { attachment_url: "supplier-portal.evil/Latest_Material_Compliance_QACert.pdf.scr" }
+        },
+        {
+          id: "st-s7",
+          ts: "2026-04-14T02:15:10.200Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.tool") || "工具"; },
+          component: "工具执行器",
+          service: "openclaw-tool-runner",
+          get action() { return intl.get("fullChain.shrimp.action7") || "local_parser.extract_text"; },
+          status: "error",
+          latencyMs: 250,
+          get detail() { return intl.get("fullChain.shrimp.detail7") || "拖入内网并调用本地组件盲目解析。触发恶性代码执行"; },
+          meta: { file: "Latest_Material_Compliance_QACert.pdf.scr", risk_level: "critical" }
+        },
+        {
+          id: "st-s8",
+          ts: "2026-04-14T02:15:12.800Z",
+          get phase() { return intl.get("fullChain.shrimp.phase.audit") || "审计"; },
+          component: "策略引擎",
+          service: "openclaw-policy",
+          get action() { return intl.get("fullChain.shrimp.action8") || "告警阻断：高危衍生进程与可疑外联"; },
+          status: "warn",
+          latencyMs: 18,
+          get detail() { return intl.get("fullChain.shrimp.detail8") || "策略引擎精准捕捉黑盒违规调用栈，阻断勒索行为并定责追溯"; },
+          meta: { action: "blocked", alert_id: "sec_9994" }
+        }
+      ];
+    }
+  }
 ];
 
 /** 按会话 ID 查找（支持完整 ID 或前缀匹配，演示） */

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import intl from "react-intl-universal";
 import Icon from "../components/Icon.jsx";
+import HostMonitor from "./host-monitor/HostMonitor.jsx";
+import HostMonitorOverview from "./host-monitor/HostMonitorOverview.jsx";
 
 function formatValue(val) {
   if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
@@ -29,6 +31,11 @@ export default function InstanceMonitoring() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  const [activeTab, setActiveTab] = useState("instances"); // "instances" | "host-monitor"
+  
+  // 主机监控子视图状态
+  const [monitorView, setMonitorView] = useState("overview"); // "overview" | "detail"
+  const [selectedHost, setSelectedHost] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -215,6 +222,94 @@ export default function InstanceMonitoring() {
 
   return (
     <div className="space-y-6">
+      {/* Tab 导航栏 */}
+      <div className="border-b border-gray-200 dark:border-gray-700/60">
+        <nav className="-mb-px flex items-center space-x-1" aria-label="Tabs">
+          {[
+            { id: "instances", label: intl.get("instanceMonitoring.tabInstances"), icon: "server" },
+            { id: "host-monitor", label: intl.get("instanceMonitoring.tabHostMonitor"), icon: "monitor" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === "host-monitor") {
+                  setMonitorView("overview");
+                  setSelectedHost(null);
+                }
+              }}
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "border-primary text-primary dark:border-blue-400 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400"
+              }`}
+            >
+              <Icon name={tab.icon} className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+          
+          {/* 主机监控子导航（面包屑式） */}
+          {activeTab === "host-monitor" && (
+            <>
+              <div className="ml-auto flex items-center gap-2 pl-4 border-l border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setMonitorView("overview")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    monitorView === "overview"
+                      ? "bg-primary/10 text-primary"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Icon name="layout-dashboard" className="h-3.5 w-3.5" />
+                  {intl.get("hostMonitor.overviewNav")}
+                </button>
+                
+                {selectedHost && (
+                  <>
+                    <span className="text-gray-300">›</span>
+                    <button
+                      onClick={() => {}}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-white"
+                    >
+                      <Icon name="server" className="h-3.5 w-3.5" />
+                      {selectedHost.hostname || selectedHost}
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMonitorView("overview");
+                          setSelectedHost(null);
+                        }}
+                        className="ml-1 opacity-70 hover:opacity-100 cursor-pointer"
+                      >
+                        ✕
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </nav>
+      </div>
+
+      {/* Tab 内容区域 */}
+      {activeTab === "host-monitor" ? (
+        monitorView === "detail" ? (
+          <HostMonitor 
+            hostname={selectedHost?.hostname} 
+            onBack={() => { setMonitorView("overview"); setSelectedHost(null); }}
+          />
+        ) : (
+          <HostMonitorOverview 
+            onHostClick={(host) => {
+              setSelectedHost(host);
+              setMonitorView("detail");
+            }}
+          />
+        )
+      ) : (
+      <>
       <div className="flex items-center justify-between">
         <div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{intl.get("instanceMonitoring.subtitle")}</p>
@@ -478,6 +573,8 @@ export default function InstanceMonitoring() {
       )}
 
       {renderDetailModal()}
+      </>
+      )}
     </div>
   );
 }

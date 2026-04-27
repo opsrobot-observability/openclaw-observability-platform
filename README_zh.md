@@ -17,7 +17,7 @@
 - **核心能力**：建立坚固的安全防线，涵盖实时控制（越权管控、合规校验、风暴拦截）与闭环审计（审计溯源）两大核心机制。
 - **业务价值 (赋能 CIO)**：坚守系统底线，消除越权调用与数据安全隐患，实现业务执行与安全合规的完美闭环。
 
-### 生产力评估：让每一分算力投资都清清楚楚
+### 可管理的成本：让每一分算力投资都清清楚楚
 - **核心能力**：依托多维业务核算模型，精准拆解并追踪基础算力、员工个体及业务部门维度的费用消耗情况。
 - **业务价值 (赋能 CEO / CFO)**：驱动精细化运营，拒绝算力“糊涂账”，将抽象的大模型 Token 直观转化为清晰的业务 ROI。
 
@@ -77,7 +77,7 @@
 
 立即体验！
 
-- **地址**: http://hw2784.vicp.net:3000/
+- **地址**: https://opsrobot-demo.aishu.cn:3000/
 
 
 ## 快速开始
@@ -186,6 +186,21 @@ sources:
     - "sh"
     - "-c"
     - 'for f in ~/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+
+  cron_jobs_config_file:
+    type: exec
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in ~/.openclaw/cron/jobs.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+
+  cron_runs_config_file:
+    type: file
+    include:
+    - "~/.openclaw/cron/runs/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
 ```
 
 #### 启动 Vector 采集器服务：

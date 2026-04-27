@@ -63,6 +63,7 @@ export default function CostTimeRangeFilter({
   onPreset,
   rangeStart,
   rangeEnd,
+  onRangeChange,
   className = "",
   /** 为 true 时开始/结束为可编辑的 `datetime-local`（`YYYY-MM-DDTHH:mm`），须传入受控的 rangeStartLocal / rangeEndLocal 与 onRangeLocalChange */
   allowCustomRange = false,
@@ -80,14 +81,26 @@ export default function CostTimeRangeFilter({
     return { start, end };
   }, [activeDays]);
 
-  const fmtDate = (d) => {
+  const toInputVal = (d) => {
     const dt = typeof d === "string" ? new Date(d) : d;
     if (!dt || Number.isNaN(dt.getTime())) return "";
-    return `${dt.getFullYear()}/${pad2(dt.getMonth() + 1)}/${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+    return toDatetimeLocalValue(dt);
   };
 
-  const startDisplay = rangeStart ? fmtDate(rangeStart) : fmtDate(computed.start);
-  const endDisplay = rangeEnd ? fmtDate(rangeEnd) : fmtDate(computed.end);
+  const startValue = rangeStart ? toInputVal(rangeStart) : toInputVal(computed.start);
+  const endValue = rangeEnd ? toInputVal(rangeEnd) : toInputVal(computed.end);
+
+  const handleStartChange = (e) => {
+    if (onRangeChange) {
+      onRangeChange(e.target.value, endValue);
+    }
+  };
+
+  const handleEndChange = (e) => {
+    if (onRangeChange) {
+      onRangeChange(startValue, e.target.value);
+    }
+  };
 
   return (
     <div
@@ -171,6 +184,7 @@ export default function CostTimeRangeFilter({
     </div>
   );
 }
+
 
 export function rowInTimeRange(statDateStr, startMs, endMs) {
   const parts = statDateStr.split("-").map(Number);

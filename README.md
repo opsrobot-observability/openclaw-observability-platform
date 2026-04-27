@@ -77,7 +77,7 @@
 
 Try it out now!
 
-- **URL**: http://hw2784.vicp.net:3000/
+- **URL**: https://opsrobot-demo.aishu.cn:3000/
 
 
 
@@ -187,6 +187,21 @@ sources:
     - "sh"
     - "-c"
     - 'for f in ~/.openclaw/agents/*/agent/models.json; do if [ -f "$$f" ]; then agent=$$(basename "$$(dirname "$$(dirname "$$f")")"); [ -z "$$agent" ] && continue; j=$$(tr -d "\n" < "$$f"); printf "{\"source_path\":\"%s\",\"agent_name\":\"%s\",\"models_root\":%s}\n" "$$f" "$$agent" "$$j"; fi; done'
+
+  cron_jobs_config_file:
+    type: exec
+    command: 
+      - "sh"
+      - "-c"
+      - 'for f in ~/.openclaw/cron/jobs.json; do if [ -f "$$f" ]; then tr -d "\n" < "$$f"; echo ""; fi; done'
+
+  cron_runs_config_file:
+    type: file
+    include:
+    - "~/.openclaw/cron/runs/*.jsonl"
+    read_from: beginning
+    fingerprint:
+      strategy: device_and_inode
 ```
 
 #### Start Vector Collector Service:

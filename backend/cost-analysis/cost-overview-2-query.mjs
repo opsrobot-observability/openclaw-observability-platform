@@ -101,7 +101,25 @@ function buildWhere(startDay, endDay, filters) {
     params.push(...filters.models);
   }
 
-  return { conditions, params };
+  if (filters.statuses && filters.statuses.length > 0) {
+    const statusConds = [];
+    for (const s of filters.statuses) {
+      if (s === "loop") statusConds.push("COALESCE(SUM(l.`message_usage_total_tokens`), 0) > 50000");
+      else if (s === "interruption") statusConds.push("MAX(CASE WHEN l.message_stop_reason IN ('gateway_timeout', 'timeout', 'overloaded') THEN 1 ELSE 0 END) = 1");
+      else if (s === "error") statusConds.push("MAX(CASE WHEN l.message_is_error = 1 THEN 1 ELSE 0 END) = 1");
+      else if (s === "normal") statusConds.push("(MAX(CASE WHEN l.message_is_error = 1 THEN 1 ELSE 0 END) = 0 AND MAX(CASE WHEN l.message_stop_reason IN ('gateway_timeout', 'timeout', 'overloaded') THEN 1 ELSE 0 END) = 0 AND COALESCE(SUM(l.`message_usage_total_tokens`), 0) <= 50000)");
+    }
+    if (statusConds.length > 0) {
+      return { conditions, params, havingConditions: [`(${statusConds.join(" OR ")})`] };
+    }
+  }
+
+  if (filters.sessionId && filters.sessionId.trim()) {
+    conditions.push("l.`session_id` LIKE ?");
+    params.push(`%${filters.sessionId.trim()}%`);
+  }
+
+  return { conditions, params, havingConditions: [] };
 }
 
 function validSortKey(k) {
@@ -137,21 +155,31 @@ function sortKeyToOrderExpr(k) {
  */
 export async function querySessionCostDetail({
   startDay, endDay,
-  agents = [], users = [], gateways = [], models = [],
+  agents = [], users = [], gateways = [], models = [], statuses = [],
+  sessionId = "",
   page = 1, pageSize = 20,
   sortKey = "totalTokens", sortOrder = "desc",
 } = {}) {
   return withConn(async (conn) => {
-    const { conditions, params } = buildWhere(startDay, endDay, { agents, users, gateways, models });
+    const { conditions, params, havingConditions } = buildWhere(startDay, endDay, { agents, users, gateways, models, statuses, sessionId });
     const safeKey = validSortKey(sortKey);
     const orderExpr = sortKeyToOrderExpr(safeKey);
     const safeOrder = sortOrder === "asc" ? "ASC" : "DESC";
     const offset = (Math.max(1, Number(page)) - 1) * Number(pageSize);
 
     const whereClause = conditions.join("\n      AND ");
+    const havingClause = havingConditions.length > 0 ? `HAVING ${havingConditions.join(" AND ")}` : "";
 
     const [countResult, rowsResult] = await Promise.all([
-      conn.query(`SELECT COUNT(DISTINCT l.\`session_id\`) AS total FROM agent_sessions_logs l LEFT JOIN agent_sessions s ON s.session_id = l.\`session_id\` WHERE ${whereClause}`, params),
+      conn.query(`
+SELECT COUNT(*) AS total FROM (
+  SELECT l.\`session_id\` 
+  FROM agent_sessions_logs l 
+  LEFT JOIN agent_sessions s ON s.session_id = l.\`session_id\` 
+  WHERE ${whereClause}
+  GROUP BY l.\`session_id\`
+  ${havingClause}
+) t`, params),
       conn.query(`
 SELECT
   l.\`session_id\` AS session_id,
@@ -162,11 +190,17 @@ SELECT
   COALESCE(SUM(l.\`message_usage_total_tokens\`), 0) AS total_tokens,
   COALESCE(SUM(l.\`message_usage_input\`), 0) AS input_tokens,
   COALESCE(SUM(l.\`message_usage_output\`), 0) AS output_tokens,
-  MIN(l.\`timestamp\`) AS create_time
+  MIN(l.\`timestamp\`) AS create_time,
+  MAX(l.\`message_stop_reason\`) AS stop_reason,
+  COUNT(*) AS step_count,
+  MAX(CASE WHEN l.message_is_error = 1 THEN 1 ELSE 0 END) AS has_error,
+  MAX(CASE WHEN l.message_stop_reason IN ('gateway_timeout', 'timeout', 'overloaded') THEN 1 ELSE 0 END) AS has_gateway_err,
+  UNIX_TIMESTAMP(MAX(l.\`timestamp\`)) - UNIX_TIMESTAMP(MIN(l.\`timestamp\`)) AS duration_sec
 FROM agent_sessions_logs l
 LEFT JOIN agent_sessions s ON s.session_id = l.\`session_id\`
 WHERE ${whereClause}
 GROUP BY l.\`session_id\`, agent_name, user_name, gateway, model
+${havingClause}
 ORDER BY ${orderExpr} ${safeOrder}
 LIMIT ? OFFSET ?
 `, [...params, Number(pageSize), offset]),
@@ -180,6 +214,12 @@ LIMIT ? OFFSET ?
       const inputTokens = Number(r.input_tokens) || 0;
       const outputTokens = Number(r.output_tokens) || 0;
       const costYuan = Math.round((totalTokens / 1_000_000) * COST_YUAN_PER_M_TOKEN * 10000) / 10000;
+      
+      let status = "normal";
+      if (r.has_error === 1) status = "error";
+      else if (r.has_gateway_err === 1) status = "interruption";
+      else if (totalTokens > 50000) status = "loop";
+
       return {
         session_id: String(r.session_id || ""),
         agentName: r.agent_name,
@@ -190,6 +230,10 @@ LIMIT ? OFFSET ?
         inputTokens,
         outputTokens,
         costYuan,
+        status,
+        stopReason: r.stop_reason || "—",
+        stepCount: Number(r.step_count) || 0,
+        duration: Math.max(0, Number(r.duration_sec) || 0),
         createTime: String(r.create_time || "").slice(0, 16).replace("T", " "),
       };
     });

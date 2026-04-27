@@ -424,6 +424,47 @@ export async function queryCostOverviewSnapshot(opts = {}) {
       };
     });
 
+    // 异常分析：基于 trendWindowDays
+    const abnSql = `
+SELECT 
+  COUNT(DISTINCT CASE WHEN s_agg.total_tokens > 50000 THEN s_agg.session_id ELSE NULL END) AS loop_sessions,
+  SUM(CASE WHEN s_agg.total_tokens > 50000 THEN s_agg.total_tokens ELSE 0 END) AS loop_tokens,
+  COUNT(DISTINCT CASE WHEN s_agg.has_gateway_err = 1 THEN s_agg.session_id ELSE NULL END) AS gateway_sessions,
+  SUM(CASE WHEN s_agg.has_gateway_err = 1 THEN s_agg.total_tokens ELSE 0 END) AS gateway_tokens,
+  SUM(s_agg.err_calls) AS total_err_calls,
+  SUM(s_agg.total_calls) AS total_calls
+FROM (
+  SELECT 
+    l.session_id,
+    SUM(l.message_usage_total_tokens) AS total_tokens,
+    MAX(CASE WHEN l.message_stop_reason IN ('gateway_timeout', 'timeout', 'overloaded') THEN 1 ELSE 0 END) AS has_gateway_err,
+    SUM(CASE WHEN l.message_is_error = 1 THEN 1 ELSE 0 END) AS err_calls,
+    COUNT(*) AS total_calls
+  FROM agent_sessions_logs l
+  WHERE SUBSTR(l.timestamp, 1, 10) >= ? AND SUBSTR(l.timestamp, 1, 10) <= ?
+  GROUP BY l.session_id
+) s_agg
+`;
+    const [[abnRow]] = await conn.query(abnSql, [trendStartStr, todayStr]);
+    const abn = normalizeAggRow(abnRow);
+    const totalPeriodTokens = await sumTokensRange(conn, trendStartStr, todayStr);
+    
+    const abnormalities = {
+      gatewayLoss: {
+        tokens: Number(abn.gateway_tokens) || 0,
+        sessions: Number(abn.gateway_sessions) || 0,
+        percentage: totalPeriodTokens > 0 ? ((Number(abn.gateway_tokens) || 0) / totalPeriodTokens * 100).toFixed(1) : "0.0"
+      },
+      loopLoss: {
+        tokens: Number(abn.loop_tokens) || 0,
+        sessions: Number(abn.loop_sessions) || 0
+      },
+      modelErrors: {
+        errorRate: abn.total_calls > 0 ? (abn.total_err_calls / abn.total_calls * 100).toFixed(1) : "0.0",
+        errorCalls: Number(abn.total_err_calls) || 0
+      }
+    };
+
     return {
       source: "otel.agent_sessions_logs + otel.agent_sessions",
       generatedAt: now,
@@ -450,6 +491,7 @@ export async function queryCostOverviewSnapshot(opts = {}) {
           peakTokens: peak.tokens,
         },
       },
+      abnormalities,
       agentShare,
       inOut: {
         inputTokens: inSum,
@@ -472,7 +514,7 @@ export async function queryCostOverviewSnapshot(opts = {}) {
         callCount: Number(r.call_count) || 0,
       })),
       legend:
-        "按日志行 `timestamp` 前 10 位（YYYY-MM-DD）汇总 `message_usage_*`；与 `agent_sessions.session_id` 左连接取 `agent_name`。无人民币字段时以 Token 为成本代理指标。",
+        "按日志行 `timestamp` 前 10 位（YYYY-MM-DD）汇总 `message_usage_*`；与 `agent_sessions.session_id` 左连接取 `agent_name`。异常损耗包含：死循环(单会话>50k Tokens)、网关损耗(超时/过载)、模型报错(message_is_error)。",
     };
   } finally {
     await conn.end();

@@ -12,6 +12,7 @@ import LlmCost from "./LlmCost.jsx";
 import FullChainTraceability from "./FullChainTraceability.jsx";
 import OpenClawInstance from "./OpenClawInstance.jsx";
 import InstanceMonitoring from "./InstanceMonitoring.jsx";
+import HostMonitorPage from "./HostMonitorPage.jsx";
 import SessionAudit from "./SessionAudit.jsx";
 import AuditOverview from "./AuditOverview.jsx";
 import LogSearch from "./LogSearch.jsx";
@@ -36,6 +37,7 @@ const PAGE_META_KEYS = {
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
   "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
   "scheduled-tasks": { title: "page.scheduledTasks.title", subtitle: "page.scheduledTasks.subtitle" },
+  "host-monitor": { title: "page.hostMonitor.title", subtitle: "page.hostMonitor.subtitle" },
 };
 
 const NAV_KEYS = [
@@ -46,6 +48,8 @@ const NAV_KEYS = [
     children: [
       { id: "monitor-dashboard", labelKey: "nav.monitorDashboard" },
       { id: "openclaw-instance", labelKey: "nav.openclawInstance" },
+      { id: "host-monitor", labelKey: "nav.hostMonitor" },
+      // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
       // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
       { id: "digital-employee-list", labelKey: "nav.digitalEmployeeList" },
       { id: "scheduled-tasks", labelKey: "nav.scheduledTasks" },
@@ -283,14 +287,16 @@ export default function Dashboard() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [navParams, setNavParams] = useState(null);
   const [headerExtra, setHeaderExtra] = useState(null);
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("dashboard.regionAll");
   const [status, setStatus] = useState("dashboard.statusAll");
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersPageSize, setOrdersPageSize] = useState(10);
-  const setActiveNav = (id) => {
+  const setActiveNav = (id, params = null) => {
     setActiveNavRaw(id);
+    setNavParams(params);
     localStorage.setItem("nav-active", id);
     if (id === "log-search") setSidebarCollapsed(true);
   };
@@ -298,11 +304,11 @@ export default function Dashboard() {
   useEffect(() => {
     const onNav = (e) => {
       let id = e?.detail?.id;
+      let params = e?.detail?.params ?? null;
       if (!id || typeof id !== "string") return;
       if (id === "digital-employee-overview") id = "digital-employee-list";
       if (id === "otel-overview" || id === "config-change") id = "openclaw-instance";
-      setActiveNavRaw(id);
-      localStorage.setItem("nav-active", id);
+      setActiveNav(id, params);
       setSidebarOpen(false);
     };
     window.addEventListener("openclaw-nav", onNav);
@@ -392,7 +398,7 @@ export default function Dashboard() {
           {!sidebarCollapsed && (
             <div>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">opsRobot</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{intl.get("common.platformName")}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">{intl.get("common.platformName")}</p>
             </div>
           )}
         </div>
@@ -608,16 +614,18 @@ export default function Dashboard() {
             <OpenClawInstance />
           ) : activeNav === "monitor-dashboard" ? (
             <MonitorDashboard />
+          ) : activeNav === "host-monitor" ? (
+            <HostMonitorPage />
           ) : activeNav === "instance-monitoring" ? (
             <InstanceMonitoring />
           ) : activeNav === "cost-overview" ? (
             <CostAnalysis />
           ) : activeNav === "cost-overview-2" ? (
-            <CostOverview2 />
+            <CostOverview2 params={navParams} />
           ) : activeNav === "agent-cost-detail" ? (
-            <AgentCostDetail />
+            <AgentCostDetail params={navParams} />
           ) : activeNav === "llm-cost" ? (
-            <LlmCost />
+            <LlmCost params={navParams} />
           ) : activeNav === "digital-employee-list" ? (
             <DigitalEmployeePortrait />
           ) : activeNav === "scheduled-tasks" ? (

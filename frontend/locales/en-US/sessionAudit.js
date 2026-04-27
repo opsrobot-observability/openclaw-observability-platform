@@ -131,4 +131,21 @@ export default {
   "sessionAudit.miniBarDotTitle": "Line {line} · {time} · Risk {riskLevel}",
   "sessionAudit.spanPercent100": "100% span",
   "sessionAudit.sortByRiskHighCount": "Sort by high-risk count",
+
+  "sessionAudit.badge.parseError": "Parse Error",
+  "sessionAudit.badge.sessionHead": "Session Head",
+  "sessionAudit.badge.version": "Version",
+  "sessionAudit.badge.modelSwitch": "Model Switch",
+  "sessionAudit.badge.thinkingLevel": "Thinking Level",
+  "sessionAudit.badge.modelSnapshot": "Model Snapshot",
+  "sessionAudit.badge.custom": "Custom",
+  "sessionAudit.badge.user": "User",
+  "sessionAudit.badge.assistant": "Assistant",
+  "sessionAudit.badge.thinking": "Thinking",
+  "sessionAudit.badge.toolResult": "Tool Result",
+  "sessionAudit.badge.tool": "Tool",
+  "sessionAudit.badge.text": "Text",
+  "sessionAudit.badge.unknown": "Unknown",
+  "sessionAudit.badge.noSegment": "(No segments)",
+  "sessionAudit.badge.errorSemantic": "Error semantics"
 };

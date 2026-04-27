@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
   queryAgentSessionsLogsRaw,
   queryAgentSessionsRawWithLogTokens,
@@ -40,6 +42,41 @@ import {
 } from "../backend/cron-jobs/cron-runs-query.mjs";
 import { attachListRunSummariesToJobs } from "../backend/cron-jobs/job-list-run-summary.mjs";
 import { readJobRunEvents, readLocalJobsDocument } from "../backend/cron-jobs/local-jobs-data.mjs";
+import { queryHostMonitor, queryHostMonitorOverview } from "../backend/host-monitor/host-monitor-query.mjs";
+
+function loadEnvFile() {
+  const envPaths = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "../.env"),
+  ];
+
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf-8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx === -1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        let value = trimmed.slice(eqIdx + 1).trim();
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+      console.log(`[dev-api:env] ✅ Loaded: ${path.basename(envPath)}`);
+      return;
+    }
+  }
+  console.warn("[dev-api:env] ⚠️ .env file not found");
+}
+loadEnvFile();
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -124,11 +161,14 @@ export function agentSessionsDevApi() {
             const u = new URL(url, "http://vite.local");
             const startDay = u.searchParams.get("startDay");
             const endDay = u.searchParams.get("endDay");
+            const isSummary = u.searchParams.get("summary") === "true";
             if (!startDay || !endDay) {
               sendJson(res, 400, { error: "missing startDay or endDay (YYYY-MM-DD)" });
               return;
             }
-            const data = await queryLlmCostDetail(startDay, endDay);
+            const data = isSummary
+              ? await import("../backend/cost-analysis/agent-llm-cost-tables-query.mjs").then(m => m.queryLlmCostSummary(startDay, endDay))
+              : await import("../backend/cost-analysis/agent-llm-cost-tables-query.mjs").then(m => m.queryLlmCostDetail(startDay, endDay));
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -153,6 +193,7 @@ export function agentSessionsDevApi() {
               users: u.searchParams.get("users") ? u.searchParams.get("users").split(",") : [],
               gateways: u.searchParams.get("gateways") ? u.searchParams.get("gateways").split(",") : [],
               models: u.searchParams.get("models") ? u.searchParams.get("models").split(",") : [],
+              sessionId: u.searchParams.get("sessionId") || "",
               page: Number(u.searchParams.get("page") ?? "1"),
               pageSize: Number(u.searchParams.get("pageSize") ?? "20"),
               sortKey: u.searchParams.get("sortKey") ?? "totalTokens",
@@ -545,6 +586,23 @@ export function agentSessionsDevApi() {
           return;
         }
 
+        if (url.startsWith("/api/host-monitor/overview")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryHostMonitorOverview({
+              hours: Number(u.searchParams.get("hours") ?? "24"),
+              topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+            });
+            console.log("[host-monitor:overview] ✅ Success, hosts:", data.hostList?.length || 0);
+            sendJson(res, 200, data);
+          } catch (e) {
+            console.error("[host-monitor:overview] ❌ Error:", e);
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
         if (url.startsWith("/api/cron-runs-run-overview")) {
           try {
             const u = new URL(url, "http://vite.local");
@@ -577,6 +635,25 @@ export function agentSessionsDevApi() {
             sendJson(res, 200, data);
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/host-monitor")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const data = await queryHostMonitor({
+              hostname: u.searchParams.get("hostname") || undefined,
+              hours: Number(u.searchParams.get("hours") ?? "24"),
+              startIso: u.searchParams.get("startIso") || undefined,
+              endIso: u.searchParams.get("endIso") || undefined,
+            });
+            console.log("[host-monitor] ✅ Success for host:", data.hostname || "all");
+            sendJson(res, 200, data);
+          } catch (e) {
+            console.error("[host-monitor] ❌ Error:", e);
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
             sendJson(res, 500, { error: msg });
           }
           return;

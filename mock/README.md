@@ -31,6 +31,8 @@ npm run dev:mock
 | `/api/agent-sessions-logs-search` | `mock/data/log-search.mjs` |
 | `/api/config-audit-logs` | `mock/data/config-audit-logs.mjs` |
 | `/api/config-audit-stats` | `mock/data/config-audit-stats.mjs` |
+| `/api/host-monitor/overview` | `mock/data/host-monitor.mjs`（10 台主机） |
+| `/api/host-monitor` | `mock/data/host-monitor.mjs`（单机详情，`hostname` 与总览一致） |
 | `/api/monitor-dashboard` | `mock/data/monitor-dashboard.mjs` |
 | `/api/monitor-session` | `mock/data/monitor-session.mjs` |
 | `/api/monitor-session-overview` | `mock/data/monitor-session.mjs` |

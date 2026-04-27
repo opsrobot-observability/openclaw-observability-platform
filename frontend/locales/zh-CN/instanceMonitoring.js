@@ -3,6 +3,8 @@ export default {
   "instanceMonitoring.lastUpdated": "最后更新: {time}",
   "instanceMonitoring.refresh": "刷新",
   "instanceMonitoring.retry": "重试",
+  "instanceMonitoring.tabInstances": "实例监控",
+  "instanceMonitoring.tabHostMonitor": "主机监控",
   "instanceMonitoring.sectionSessionMetrics": "会话指标",
   "instanceMonitoring.sectionTokenMetrics": "Token指标",
   "instanceMonitoring.sectionMessageProcessing": "消息处理",

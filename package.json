@@ -10,6 +10,8 @@
     "dump:cron-runs-columns": "node scripts/dump-cron-runs-columns.mjs",
     "introspect:cron-runs-log-attributes": "node scripts/introspect-cron-runs-log-attributes.mjs",
     "write:cron-jobs-md": "node scripts/write-cron-jobs-md.mjs",
+    "test:api": "node tests/api_validation.test.mjs && node tests/llm_cost_api.test.mjs",
+    "test:ui": "playwright test -c tests/playwright.config.js",
     "build": "vite build",
     "preview": "vite preview"
   },

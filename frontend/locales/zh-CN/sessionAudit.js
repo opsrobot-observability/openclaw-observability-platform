@@ -128,7 +128,24 @@ export default {
   "sessionAudit.riskHoverReason": "风险·{label} — 原因：{reason}",
   "sessionAudit.riskHoverNoRule": "风险·{label} — 本行未命中风险感知规则（无具体原因）",
 
-  "sessionAudit.miniBarDotTitle": "行 {line} · {time} · 风险 {riskLevel}",
+  "sessionAudit.miniBarDotTitle": "第 {line} 行 · {time} · 风险 {riskLevel}",
   "sessionAudit.spanPercent100": "100% 跨度",
-  "sessionAudit.sortByRiskHighCount": "按「高」风险条数排序",
+  "sessionAudit.sortByRiskHighCount": "按高危风险次数排序",
+
+  "sessionAudit.badge.parseError": "解析失败",
+  "sessionAudit.badge.sessionHead": "会话头",
+  "sessionAudit.badge.version": "版本",
+  "sessionAudit.badge.modelSwitch": "模型切换",
+  "sessionAudit.badge.thinkingLevel": "思考档位",
+  "sessionAudit.badge.modelSnapshot": "模型快照",
+  "sessionAudit.badge.custom": "自定义",
+  "sessionAudit.badge.user": "用户",
+  "sessionAudit.badge.assistant": "助手",
+  "sessionAudit.badge.thinking": "思考",
+  "sessionAudit.badge.toolResult": "工具结果",
+  "sessionAudit.badge.tool": "工具",
+  "sessionAudit.badge.text": "文本",
+  "sessionAudit.badge.unknown": "未知",
+  "sessionAudit.badge.noSegment": "（无片段）",
+  "sessionAudit.badge.errorSemantic": "错误语义"
 };
