@@ -16,7 +16,7 @@
 
 ### 1.部署总览
 部署总览：
-![部署总览](./pictures/deploy.png)
+![部署总览](../pictures/deploy.png)
 
 ### 1.环境要求
 
