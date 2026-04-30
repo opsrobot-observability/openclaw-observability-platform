@@ -147,6 +147,9 @@ export default {
   "sessionAudit.noRiskFound": "No risks found.",
   "sessionAudit.viewLog": "Click to view log",
   "sessionAudit.lineNumber": "Line {line}",
+  "sessionAudit.severity": "Severity",
+  "sessionAudit.category": "Category",
+  "sessionAudit.detailText": "Detail",
 
   "sessionAudit.riskCategory.parseError": "Parse Error",
   "sessionAudit.riskCategory.customError": "Custom Error",
@@ -161,18 +164,14 @@ export default {
   "sessionAudit.tooltip.high": "High Risk",
   "sessionAudit.tooltip.medium": "Medium Risk",
   "sessionAudit.tooltip.low": "Low Risk",
-  "sessionAudit.tooltip.tool": "Tool Calls",
+  "sessionAudit.tooltip.tool": "Tool Invocation",
   "sessionAudit.tooltip.network": "Network Access",
-  "sessionAudit.tooltip.file": "File Operations",
-  "sessionAudit.tooltip.exec": "System Executions",
+  "sessionAudit.tooltip.file": "File Operation",
+  "sessionAudit.tooltip.exec": "System Execution",
 
-  "sessionAudit.riskPrefix": "Risk · ",
-  "sessionAudit.riskHoverReason": "Risk · {label} — Reason: {reason}",
-  "sessionAudit.riskHoverNoRule": "Risk · {label} — No risk rule matched on this line (no detail)",
-
-  "sessionAudit.miniBarDotTitle": "Line {line} · {time} · Risk {riskLevel}",
-  "sessionAudit.spanPercent100": "100% span",
-  "sessionAudit.sortByRiskHighCount": "Sort by high-risk count",
+  "sessionAudit.riskPrefix": "Risk·",
+  "sessionAudit.riskHoverReason": "Risk·{label} — Reason: {reason}",
+  "sessionAudit.riskHoverNoRule": "Risk·{label}",
 
   "sessionAudit.badge.parseError": "Parse Error",
   "sessionAudit.badge.sessionHead": "Session Head",
@@ -189,5 +188,32 @@ export default {
   "sessionAudit.badge.text": "Text",
   "sessionAudit.badge.unknown": "Unknown",
   "sessionAudit.badge.noSegment": "(No segments)",
-  "sessionAudit.badge.errorSemantic": "Error semantics"
+  "sessionAudit.badge.errorSemantic": "Error semantics",
+
+  "sessionAudit.unit.second": "s",
+  "sessionAudit.unit.minute": "min",
+  "sessionAudit.unit.hour": "h",
+  "sessionAudit.unit.ms": "ms",
+
+  "sessionAudit.riskLevel.high": "High",
+  "sessionAudit.riskLevel.medium": "Medium",
+  "sessionAudit.riskLevel.low": "Low",
+  "sessionAudit.riskLevel.healthy": "Healthy",
+
+  "sessionAudit.badge.userMessage": "User Message",
+  "sessionAudit.badge.execCommand": "exec Command",
+  "sessionAudit.badge.auditRuleHit": "Audit Rule Hit",
+  "sessionAudit.badge.logMarkedRisk": "Log line marked with risk level",
+  "sessionAudit.badge.parseFailed": "JSONL Parse Failed",
+  "sessionAudit.badge.cannotParseJson": "Cannot parse as JSON",
+  "sessionAudit.badge.customEvent": "Custom Event",
+  "sessionAudit.badge.noTextContent": "(No text content)",
+  "sessionAudit.badge.nonZeroExitCode": "Non-zero Exit Code",
+  "sessionAudit.badge.processStatus": "Process Status",
+  "sessionAudit.badge.abnormalStop": "Abnormal Stop Reason",
+  "sessionAudit.badge.sensitiveCommand": "Sensitive Command/Args",
+  "sessionAudit.badge.timelineGap": "Timeline Gap Exception",
+
+  "sessionAudit.detail.stopReason": "Model did not complete its output as expected",
+  "sessionAudit.detail.sensitiveCommand": "Sensitive parameters should be redacted during audit and export"
 };

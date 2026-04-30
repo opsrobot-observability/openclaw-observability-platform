@@ -140,7 +140,6 @@ function strArgs(obj) {
 const DETAIL_TABS = [
   { id: "trace", labelKey: "sessionAudit.tabTimeline" },
   { id: "chat", labelKey: "sessionAudit.tabConversation" },
-  { id: "risk", labelKey: "sessionAudit.tabFindings" },
   { id: "tools", labelKey: "sessionAudit.keyEvidence" },
   { id: "model", labelKey: "sessionAudit.tabModel" },
 ];
@@ -444,6 +443,17 @@ function SessionAuditDetail({ row }) {
   const chatMessages = useMemo(() => extractMessageLines(jsonlLines), [jsonlLines]);
   const chatRiskMaps = useMemo(() => computeSessionRiskMaps(jsonlLines), [jsonlLines]);
   const riskItems = useMemo(() => extractSessionRisks(jsonlLines), [jsonlLines]);
+  const riskMapByLine = useMemo(() => {
+    const map = new Map();
+    const score = { high: 3, medium: 2, low: 1 };
+    riskItems.forEach((r) => {
+      const prev = map.get(r.lineIndex);
+      if (!prev || (score[r.severity] || 0) > (score[prev.severity] || 0)) {
+        map.set(r.lineIndex, r);
+      }
+    });
+    return map;
+  }, [riskItems]);
   const modelInvocations = useMemo(() => extractModelInvocationRecords(jsonlLines), [jsonlLines]);
   const rowAudit = useMemo(() => auditRowView(row), [row]);
 
@@ -621,33 +631,35 @@ function SessionAuditDetail({ row }) {
           <div className="mt-4 grid shrink-0 gap-3 sm:grid-cols-2 lg:mt-0 lg:flex lg:items-center lg:pl-6">
             <button
               type="button"
-              onClick={() => setDetailTab("risk")}
+              onClick={() => setDetailTab("tools")}
+              title={`${intl.get("sessionAudit.tooltip.high")}: H / ${intl.get("sessionAudit.tooltip.medium")}: M / ${intl.get("sessionAudit.tooltip.low")}: L`}
               className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-red-50 bg-red-50/30 p-3 text-center transition-all hover:bg-red-50 dark:border-red-900/20 dark:bg-red-950/10"
             >
               <p className="text-[10px] font-bold uppercase tracking-wider text-red-400">{intl.get("sessionAudit.findingCounts")}</p>
               <p className="mt-1 text-sm font-bold">
-                <span className="cursor-help text-red-600" title={intl.get("sessionAudit.tooltip.high")}>H{rowAudit.high}</span>
+                <span className="text-red-600">H{rowAudit.high}</span>
                 <span className="mx-1 text-gray-300">/</span>
-                <span className="cursor-help text-amber-500" title={intl.get("sessionAudit.tooltip.medium")}>M{rowAudit.medium}</span>
+                <span className="text-amber-500">M{rowAudit.medium}</span>
                 <span className="mx-1 text-gray-300">/</span>
-                <span className="cursor-help text-sky-600" title={intl.get("sessionAudit.tooltip.low")}>L{rowAudit.low}</span>
+                <span className="text-sky-600">L{rowAudit.low}</span>
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => setDetailTab("tools")}
+              title={`${intl.get("sessionAudit.tooltip.tool")}: T / ${intl.get("sessionAudit.tooltip.network")}: N / ${intl.get("sessionAudit.tooltip.file")}: F / ${intl.get("sessionAudit.tooltip.exec")}: E`}
               className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-gray-100 bg-gray-50/30 p-3 text-center transition-all hover:bg-white dark:border-gray-800 dark:bg-gray-900/50"
             >
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{intl.get("sessionAudit.keyEvidence")}</p>
               <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-gray-100">
-                <span className="cursor-help" title={intl.get("sessionAudit.tooltip.tool")}>T{rowAudit.tool}</span>
+                <span>T{rowAudit.tool}</span>
                 <span className="text-gray-300">·</span>
-                <span className="cursor-help" title={intl.get("sessionAudit.tooltip.network")}>N{rowAudit.network}</span>
+                <span>N{rowAudit.network}</span>
                 <span className="text-gray-300">·</span>
-                <span className="cursor-help" title={intl.get("sessionAudit.tooltip.file")}>F{rowAudit.file}</span>
+                <span>F{rowAudit.file}</span>
                 <span className="text-gray-300">·</span>
-                <span className="cursor-help" title={intl.get("sessionAudit.tooltip.exec")}>E{rowAudit.exec}</span>
+                <span>E{rowAudit.exec}</span>
               </p>
             </button>
 
@@ -670,71 +682,75 @@ function SessionAuditDetail({ row }) {
         </div>
 
         {/* Bottom Property Row */}
-        <div className="border-t border-gray-50 bg-gray-50/20 px-4 py-2 dark:border-gray-800 dark:bg-gray-900/30">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
+        <div className="border-t border-gray-50 bg-gray-50/20 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/30">
+          <div className="flex flex-wrap items-center justify-between gap-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400 dark:text-gray-500">
                 <Icons.Agent />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.agentName")}</dt>
-                <dd className="mt-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.agentName ?? "—"}</dd>
+                <dd className="mt-1 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.agentName ?? "—"}</dd>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-indigo-500">
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400">
                 <Icons.Model />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.model")}</dt>
-                <dd className="mt-0.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate leading-tight">{row.model ?? "—"}</dd>
+                <dd className="mt-1 text-xs font-bold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.model ?? "—"}</dd>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-sky-500">
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400">
                 <Icons.Database />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.provider")}</dt>
-                <dd className="mt-0.5 text-xs font-semibold text-sky-600 dark:text-sky-400 truncate leading-tight">{row.modelProvider ?? "—"}</dd>
+                <dd className="mt-1 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.modelProvider ?? "—"}</dd>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-amber-500">
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400">
                 <Icons.Coins />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.totalToken")}</dt>
-                <dd className="mt-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">{num(row.totalTokens)}</dd>
+                <dd className="mt-1 text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight">{num(row.totalTokens)}</dd>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400 dark:text-gray-500">
                 <Icons.Zap />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.channel")}</dt>
-                <dd className="mt-0.5 text-xs font-semibold text-gray-700 dark:text-gray-200 truncate leading-tight">{row.channel ?? row.lastChannel ?? "—"}</dd>
+                <dd className="mt-1 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.channel ?? row.lastChannel ?? "—"}</dd>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-emerald-500">
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center text-gray-400">
                 <Icons.Calendar />
               </div>
               <div className="min-w-0">
                 <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.updateTime")}</dt>
-                <dd className="mt-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">{formatMs(row.updatedAt)}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
-                <Icons.File />
-              </div>
-              <div className="min-w-0">
-                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.sessionFile")}</dt>
-                <dd className="mt-0.5 text-xs font-mono text-gray-500 leading-tight">
-                  {row.sessionFile != null && row.sessionFile !== "" ? "..." : "—"}
-                </dd>
+                <dd className="mt-1 text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight">{formatMs(row.updatedAt)}</dd>
               </div>
             </div>
           </div>
@@ -1262,7 +1278,96 @@ function SessionAuditDetail({ row }) {
 
             {detailTab === "tools" && (
               <div className="mt-4 space-y-8">
-                {/* 1. 工具调用 */}
+
+                {/* 1. 风险发现 — 展示所有风险项，与顶部 H/M/L 计数一致 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-red-500" />
+                    {intl.get("sessionAudit.tabRisk")}
+                    {riskItems.length > 0 && (
+                      <span className="ml-1 text-xs font-normal text-gray-500">
+                        {intl.get("sessionAudit.riskTotal", { count: riskItems.length })}
+                      </span>
+                    )}
+                  </h4>
+                  {riskItems.length === 0 ? (
+                    <p className="rounded-lg border border-gray-100 bg-gray-50/70 p-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-400">
+                      {intl.get("sessionAudit.noRiskFound")}
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead className="bg-gray-50/80">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.severity")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.category")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.detailText")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
+                          {riskItems.map((r, i) => {
+                            const sevBadge = traceRiskBadgeClass(r.severity);
+                            const sevLabel = r.severity === "high"
+                              ? intl.get("sessionAudit.riskLevel.high")
+                              : r.severity === "medium"
+                                ? intl.get("sessionAudit.riskLevel.medium")
+                                : intl.get("sessionAudit.riskLevel.low");
+                            const catLabel = RISK_CATEGORY_LABEL[r.category]
+                              ? intl.get(RISK_CATEGORY_LABEL[r.category])
+                              : r.category;
+                            return (
+                              <tr
+                                key={`risk-${r.lineIndex}-${i}`}
+                                className={[
+                                  "hover:bg-gray-50/50 transition-colors cursor-pointer",
+                                  riskSeverityPanelClass(r.severity),
+                                ].join(" ")}
+                                onClick={() => openRiskSourceLine(r.lineIndex)}
+                                title={intl.get("sessionAudit.viewLog")}
+                              >
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">
+                                  <button
+                                    type="button"
+                                    className="underline decoration-gray-300 underline-offset-2 hover:text-primary hover:decoration-primary"
+                                    onClick={(e) => { e.stopPropagation(); openRiskSourceLine(r.lineIndex); }}
+                                  >
+                                    {intl.get("sessionAudit.lineNumber", { line: r.lineIndex + 1 })}
+                                  </button>
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                  {r.tMs != null ? formatMs(r.tMs) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className={[
+                                    "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset uppercase",
+                                    sevBadge,
+                                  ].join(" ")}>
+                                    {sevLabel}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                    {catLabel}
+                                  </span>
+                                </td>
+                                <td className="max-w-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
+                                  <div className="truncate" title={r.detail}>
+                                    {r.title}
+                                    {r.detail ? ` — ${r.detail}` : ""}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. 工具调用 */}
                 <div className="space-y-4">
                   <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <span className="h-4 w-1 rounded-full bg-primary" />
@@ -1299,23 +1404,48 @@ function SessionAuditDetail({ row }) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
-                          {toolData.calls.map((call, i) => (
-                            <tr key={`${call.lineIndex}-${i}`} className="hover:bg-gray-50/50">
-                              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{call.lineIndex + 1}</td>
-                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
-                                {call.tMs != null ? formatMs(call.tMs) : "—"}
-                              </td>
-                              <td className="px-3 py-2 font-medium text-gray-900">{call.name}</td>
-                              <td className="max-w-md px-3 py-2 font-mono text-xs text-gray-700 break-all">{strArgs(call.arguments)}</td>
-                            </tr>
-                          ))}
+                          {toolData.calls.map((call, i) => {
+                            const risk = riskMapByLine.get(call.lineIndex);
+                            const isHigh = risk?.severity === "high";
+                            return (
+                              <tr
+                                key={`${call.lineIndex}-${i}`}
+                                className={[
+                                  "hover:bg-gray-50/50 transition-colors",
+                                  isHigh ? "bg-red-50/40 dark:bg-red-900/10" : "",
+                                ].join(" ")}
+                              >
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{call.lineIndex + 1}</td>
+                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                  {call.tMs != null ? formatMs(call.tMs) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-gray-900">{call.name}</span>
+                                    {risk && (
+                                      <span
+                                        className={[
+                                          "inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ring-1 ring-inset uppercase",
+                                          traceRiskBadgeClass(risk.severity),
+                                        ].join(" ")}
+                                        title={risk.detail}
+                                      >
+                                        {traceRiskLevelLabel(risk.severity)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="max-w-md px-3 py-2 font-mono text-xs text-gray-700 break-all">{strArgs(call.arguments)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   )}
                 </div>
 
-                {/* 2. 网络访问 */}
+                {/* 3. 网络访问 */}
                 <div className="space-y-4">
                   <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <span className="h-4 w-1 rounded-full bg-sky-500" />
@@ -1334,33 +1464,56 @@ function SessionAuditDetail({ row }) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
-                          {netFileData.urls.map((row, i) => (
-                            <tr key={`${row.lineIndex}-${i}`} className="hover:bg-gray-50/50">
-                              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{row.lineIndex + 1}</td>
-                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
-                                {row.tMs != null ? formatMs(row.tMs) : "—"}
-                              </td>
-                              <td className="px-3 py-2 font-mono text-xs">
-                                <div className="flex flex-col gap-1">
-                                  <NetUrlHighlight url={row.url} />
-                                  {row.source && (
-                                    <div>
-                                      <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 ring-1 ring-violet-200/80">
-                                        Source: {row.source}
-                                      </span>
+                          {netFileData.urls.map((row, i) => {
+                            const risk = riskMapByLine.get(row.lineIndex);
+                            const isHigh = risk?.severity === "high";
+                            return (
+                              <tr
+                                key={`${row.lineIndex}-${i}`}
+                                className={[
+                                  "hover:bg-gray-50/50 transition-colors",
+                                  isHigh ? "bg-red-50/40 dark:bg-red-900/10" : "",
+                                ].join(" ")}
+                              >
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{row.lineIndex + 1}</td>
+                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                  {row.tMs != null ? formatMs(row.tMs) : "—"}
+                                </td>
+                                <td className="px-3 py-2 font-mono text-xs">
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <NetUrlHighlight url={row.url} />
+                                      {risk && (
+                                        <span
+                                          className={[
+                                            "inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ring-1 ring-inset uppercase",
+                                            traceRiskBadgeClass(risk.severity),
+                                          ].join(" ")}
+                                          title={risk.detail}
+                                        >
+                                          {traceRiskLevelLabel(risk.severity)}
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                    {row.source && (
+                                      <div>
+                                        <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 ring-1 ring-violet-200/80">
+                                          Source: {row.source}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   )}
                 </div>
 
-                {/* 3. 文件操作 */}
+                {/* 4. 文件操作 */}
                 <div className="space-y-4">
                   <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <span className="h-4 w-1 rounded-full bg-emerald-500" />
@@ -1385,34 +1538,57 @@ function SessionAuditDetail({ row }) {
                             ...netFileData.fileWrites,
                           ]
                             .sort((a, b) => a.tMs - b.tMs)
-                            .map((fr, i) => (
-                              <tr key={`${fr.lineIndex}-${i}`} className="hover:bg-gray-50/50">
-                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{fr.lineIndex + 1}</td>
-                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
-                                  {fr.tMs != null ? formatMs(fr.tMs) : "—"}
-                                </td>
-                                <td className="px-3 py-2">
-                                  <span
-                                    className={[
-                                      "inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset",
-                                      netFileOpBadgeClass(fr.op),
-                                    ].join(" ")}
-                                  >
-                                    {fr.op ?? "write"}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2 font-mono text-xs break-all">
-                                  <NetPathHighlight path={fr.path} />
-                                </td>
-                              </tr>
-                            ))}
+                            .map((fr, i) => {
+                              const risk = riskMapByLine.get(fr.lineIndex);
+                              const isHigh = risk?.severity === "high";
+                              return (
+                                <tr
+                                  key={`${fr.lineIndex}-${i}`}
+                                  className={[
+                                    "hover:bg-gray-50/50 transition-colors",
+                                    isHigh ? "bg-red-50/40 dark:bg-red-900/10" : "",
+                                  ].join(" ")}
+                                >
+                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{fr.lineIndex + 1}</td>
+                                  <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                    {fr.tMs != null ? formatMs(fr.tMs) : "—"}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span
+                                      className={[
+                                        "inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset",
+                                        netFileOpBadgeClass(fr.op),
+                                      ].join(" ")}
+                                    >
+                                      {fr.op ?? "write"}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-xs break-all">
+                                    <div className="flex items-center gap-1.5">
+                                      <NetPathHighlight path={fr.path} />
+                                      {risk && (
+                                        <span
+                                          className={[
+                                            "shrink-0 inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ring-1 ring-inset uppercase",
+                                            traceRiskBadgeClass(risk.severity),
+                                          ].join(" ")}
+                                          title={risk.detail}
+                                        >
+                                          {traceRiskLevelLabel(risk.severity)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
                   )}
                 </div>
 
-                {/* 4. 执行与进程 */}
+                {/* 5. 执行与进程 */}
                 {(netFileData.execs.length > 0 || netFileData.processOps.length > 0) && (
                   <div className="space-y-4">
                     <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
@@ -1434,34 +1610,70 @@ function SessionAuditDetail({ row }) {
                             ...netFileData.processOps.map((p) => ({ ...p, type: "process" })),
                           ]
                             .sort((a, b) => a.tMs - b.tMs)
-                            .map((op, i) => (
-                              <tr key={`${op.lineIndex}-${i}`} className="hover:bg-gray-50/50">
-                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{op.lineIndex + 1}</td>
-                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
-                                  {op.tMs != null ? formatMs(op.tMs) : "—"}
-                                </td>
-                                <td className="px-3 py-2 text-xs">
-                                  {op.type === "exec" ? (
+                            .map((op, i) => {
+                              const risk = riskMapByLine.get(op.lineIndex);
+                              const isHigh = risk?.severity === "high";
+                              return (
+                                <tr
+                                  key={`${op.lineIndex}-${i}`}
+                                  className={[
+                                    "hover:bg-gray-50/50 transition-colors",
+                                    isHigh ? "bg-red-50/40 dark:bg-red-900/10" : "",
+                                  ].join(" ")}
+                                >
+                                  <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{op.lineIndex + 1}</td>
+                                  <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                    {op.tMs != null ? formatMs(op.tMs) : "—"}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs relative">
                                     <div className="flex flex-col gap-1">
-                                      <span className="font-bold text-amber-700">EXEC</span>
-                                      <NetCommandHighlight command={op.command} />
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-bold text-primary">PROCESS</span>
-                                        <span className="rounded-md bg-primary-soft px-1.5 py-0.5 font-semibold text-primary ring-1 ring-primary/15">
-                                          {op.action}
-                                        </span>
-                                      </div>
-                                      {op.session_id != null && (
-                                        <span className="text-gray-500 font-mono text-[10px]">sessionId: {op.session_id}</span>
+                                      {op.type === "exec" ? (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-bold text-amber-700">EXEC</span>
+                                            {risk && (
+                                              <span
+                                                className={[
+                                                  "inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ring-1 ring-inset uppercase",
+                                                  traceRiskBadgeClass(risk.severity),
+                                                ].join(" ")}
+                                                title={risk.detail}
+                                              >
+                                                {traceRiskLevelLabel(risk.severity)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <NetCommandHighlight command={op.command} />
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-bold text-primary">PROCESS</span>
+                                            <span className="rounded-md bg-primary-soft px-1.5 py-0.5 font-semibold text-primary ring-1 ring-primary/15">
+                                              {op.action}
+                                            </span>
+                                            {risk && (
+                                              <span
+                                                className={[
+                                                  "inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ring-1 ring-inset uppercase",
+                                                  traceRiskBadgeClass(risk.severity),
+                                                ].join(" ")}
+                                                title={risk.detail}
+                                              >
+                                                {traceRiskLevelLabel(risk.severity)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {op.session_id != null && (
+                                            <span className="text-gray-500 font-mono text-[10px]">sessionId: {op.session_id}</span>
+                                          )}
+                                        </>
                                       )}
                                     </div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
@@ -1470,78 +1682,6 @@ function SessionAuditDetail({ row }) {
               </div>
             )}
 
-            {detailTab === "risk" && (
-              <div className="mt-4 space-y-4">
-                {riskItems.length === 0 ? (
-                  <p className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-900">
-                    {intl.get("sessionAudit.noRiskFound")}
-                  </p>
-                ) : (
-                  <ul className="space-y-3">
-                    {riskItems.map((r, idx) => {
-                      const isHigh = r.severity === "high";
-                      const isMed = r.severity === "medium";
-                      const isLow = r.severity === "low";
-                      // 只保留基础背景色或去除，这里根据用户“去除左侧高亮颜色条”的反馈，去除特定等级的面板样式类，仅保留圆角和边框
-                      return (
-                        <li
-                          key={`${r.category}-${r.lineIndex}-${idx}`}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`查看第 ${r.lineIndex + 1} 行日志：${r.title}`}
-                          className="rounded-lg border border-gray-100 p-3 shadow-sm transition hover:ring-2 hover:ring-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-gray-700 bg-white dark:bg-gray-900/40"
-                          onClick={() => openRiskSourceLine(r.lineIndex)}
-                          onKeyDown={(ev) => {
-                            if (ev.key === "Enter" || ev.key === " ") {
-                              ev.preventDefault();
-                              openRiskSourceLine(r.lineIndex);
-                            }
-                          }}
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={[
-                                    "inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
-                                    riskSeverityBadgeClass(r.severity),
-                                  ].join(" ")}
-                                >
-                                  {r.severity === "high"
-                                    ? intl.get("sessionAudit.riskHigh")
-                                    : r.severity === "medium"
-                                      ? intl.get("sessionAudit.riskMedium")
-                                      : intl.get("sessionAudit.riskLow")}
-                                </span>
-                                <span className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 ring-1 ring-gray-200/80 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700">
-                                  {RISK_CATEGORY_LABEL[r.category] ? intl.get(RISK_CATEGORY_LABEL[r.category]) : r.category}
-                                </span>
-                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{r.title}</span>
-                              </div>
-                              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800 dark:text-gray-200">{r.detail}</p>
-                            </div>
-                            <div className="shrink-0 text-right text-[10px] text-gray-500 dark:text-gray-400">
-                              <div className="font-mono">{intl.get("sessionAudit.lineNumber", { line: r.lineIndex + 1 })}</div>
-                              <div className="tabular-nums">{r.tMs != null ? formatMs(r.tMs) : "—"}</div>
-                              <button
-                                type="button"
-                                className="mt-1 font-sans text-primary hover:underline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openRiskSourceLine(r.lineIndex);
-                                }}
-                              >
-                                {intl.get("sessionAudit.viewLog")} →
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            )}
           </>
         )}
       </section>

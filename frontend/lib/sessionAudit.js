@@ -613,14 +613,14 @@ export function getJsonlLineTimeMs(line) {
  */
 export function formatDurationMs(ms) {
   if (ms == null || Number.isNaN(ms) || ms < 0) return "—";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)} 秒`;
+  if (ms < 1000) return `${Math.round(ms)} ${intl.get("sessionAudit.unit.ms") || "ms"}`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)} ${intl.get("sessionAudit.unit.second") || "s"}`;
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
-  if (m < 60) return `${m} 分 ${s} 秒`;
+  if (m < 60) return `${m} ${intl.get("sessionAudit.unit.minute") || "min"} ${s} ${intl.get("sessionAudit.unit.second") || "s"}`;
   const h = Math.floor(ms / 3600000);
   const m2 = Math.floor((ms % 3600000) / 60000);
-  return `${h} 小时 ${m2} 分`;
+  return `${h} ${intl.get("sessionAudit.unit.hour") || "h"} ${m2} ${intl.get("sessionAudit.unit.minute") || "min"}`;
 }
 
 /**
@@ -831,10 +831,10 @@ export function extractNetworkAndFileOps(lines) {
       }
     }
     if (msg.role === "toolResult") {
-      pushUrls(messageTextContent(msg), tMs, i, `工具结果 · ${msg.toolName || "?"}`);
+      pushUrls(messageTextContent(msg), tMs, i, `${intl.get("sessionAudit.badge.toolResult") || "Tool Result"} · ${msg.toolName || "?"}`);
     }
     if (msg.role === "user") {
-      pushUrls(messageTextContent(msg), tMs, i, "用户消息");
+      pushUrls(messageTextContent(msg), tMs, i, intl.get("sessionAudit.badge.userMessage") || "User Message");
     }
   }
 
@@ -882,8 +882,8 @@ export function extractSessionRisks(lines) {
       push({
         severity: /** @type {"high"|"medium"|"low"} */ (explicitRisk),
         category: "explicit_risk",
-        title: "审计规则命中",
-        detail: line.riskReasonText != null ? String(line.riskReasonText) : "日志行已标记风险等级",
+        title: intl.get("sessionAudit.badge.auditRuleHit") || "Audit Rule Hit",
+        detail: line.riskReasonText != null ? String(line.riskReasonText) : (intl.get("sessionAudit.badge.logMarkedRisk") || "Log line marked with risk level"),
         lineIndex: i,
         tMs,
       });
@@ -893,8 +893,8 @@ export function extractSessionRisks(lines) {
       push({
         severity: "high",
         category: "parse_error",
-        title: "JSONL 行解析失败",
-        detail: line.raw ? String(line.raw) : "无法解析为 JSON",
+        title: intl.get("sessionAudit.badge.parseFailed") || "JSONL Parse Failed",
+        detail: line.raw ? String(line.raw) : (intl.get("sessionAudit.badge.cannotParseJson") || "Cannot parse as JSON"),
         lineIndex: i,
         tMs,
       });
@@ -914,7 +914,7 @@ export function extractSessionRisks(lines) {
       push({
         severity: "high",
         category: "custom_error",
-        title: `扩展事件 · ${line.customType}`,
+        title: `${intl.get("sessionAudit.badge.customEvent") || "Custom Event"} · ${line.customType}`,
         detail: trunc(errDetail, 500),
         lineIndex: i,
         tMs,
@@ -929,8 +929,8 @@ export function extractSessionRisks(lines) {
       push({
         severity: "high",
         category: "tool_error",
-        title: `工具结果标记为错误 · ${msg.toolName ?? "?"}`,
-        detail: preview || "（无文本内容）",
+        title: `${intl.get("sessionAudit.badge.toolResult") || "Tool Result"} ${intl.get("sessionAudit.error") || "Error"} · ${msg.toolName ?? "?"}`,
+        detail: preview || (intl.get("sessionAudit.badge.noTextContent") || "(No text content)"),
         lineIndex: i,
         tMs,
       });
@@ -942,7 +942,7 @@ export function extractSessionRisks(lines) {
         push({
           severity: "medium",
           category: "exit_code",
-          title: `非零退出码 · ${msg.toolName ?? "?"}`,
+          title: `${intl.get("sessionAudit.badge.nonZeroExitCode") || "Non-zero Exit Code"} · ${msg.toolName ?? "?"}`,
           detail: `exitCode = ${det.exitCode}`,
           lineIndex: i,
           tMs,
@@ -953,7 +953,7 @@ export function extractSessionRisks(lines) {
         push({
           severity: "medium",
           category: "process_status",
-          title: `进程状态异常 · ${msg.toolName ?? "?"}`,
+          title: `${intl.get("sessionAudit.badge.processStatus") || "Process Status"} · ${msg.toolName ?? "?"}`,
           detail: `status = ${det.status}`,
           lineIndex: i,
           tMs,
@@ -966,8 +966,8 @@ export function extractSessionRisks(lines) {
         push({
           severity: "medium",
           category: "stop_reason",
-          title: `助手停止原因 · ${msg.stopReason}`,
-          detail: "模型未按常规完成本轮输出",
+          title: `${intl.get("sessionAudit.badge.stopReason") || "Stop Reason"} · ${msg.stopReason}`,
+          detail: intl.get("sessionAudit.detail.stopReason") || "模型未按常规完成本轮输出",
           lineIndex: i,
           tMs,
         });
@@ -980,8 +980,8 @@ export function extractSessionRisks(lines) {
               push({
                 severity: "low",
                 category: "sensitive_command",
-                title: "命令行疑似含明文凭证",
-                detail: "建议在审计与导出中对敏感参数脱敏",
+                title: intl.get("sessionAudit.badge.sensitiveCommand") || "命令行疑似含明文凭证",
+                detail: intl.get("sessionAudit.detail.sensitiveCommand") || "建议在审计与导出中对敏感参数脱敏",
                 lineIndex: i,
                 tMs,
               });
@@ -1014,8 +1014,8 @@ export function extractSessionRisks(lines) {
     push({
       severity: "low",
       category: "timeline_gap",
-      title: "会话时间线异常间隔",
-      detail: `相邻可解析时间戳最大间隔 ${formatDurationMs(maxGap)}（约第 ${maxGapAfter + 1} 行之后）`,
+      title: intl.get("sessionAudit.badge.timelineGap") || "Timeline Gap Exception",
+      detail: `${intl.get("sessionAudit.duration") || "Duration"}: ${formatDurationMs(maxGap)}`,
       lineIndex: maxGapAfter,
       tMs: getJsonlLineTimeMs(lines[maxGapAfter]),
     });
@@ -1087,14 +1087,14 @@ export function worstRiskSeverityByLineIndex(lines) {
 export function traceRiskLevelLabel(level) {
   switch (level) {
     case "high":
-      return "高";
+      return intl.get("sessionAudit.riskLevel.high") || "H";
     case "medium":
-      return "中";
+      return intl.get("sessionAudit.riskLevel.medium") || "M";
     case "low":
-      return "低";
+      return intl.get("sessionAudit.riskLevel.low") || "L";
     case "healthy":
     default:
-      return "健康";
+      return intl.get("sessionAudit.riskLevel.healthy") || "Healthy";
   }
 }
 
