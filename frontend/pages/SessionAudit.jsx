@@ -138,13 +138,11 @@ function strArgs(obj) {
 }
 
 const DETAIL_TABS = [
-  { id: "trace", labelKey: "sessionAudit.tabTrace" },
-  { id: "chat", labelKey: "sessionAudit.tabChat" },
-  { id: "intent", labelKey: "sessionAudit.tabIntent" },
+  { id: "trace", labelKey: "sessionAudit.tabTimeline" },
+  { id: "chat", labelKey: "sessionAudit.tabConversation" },
+  { id: "risk", labelKey: "sessionAudit.tabFindings" },
+  { id: "tools", labelKey: "sessionAudit.keyEvidence" },
   { id: "model", labelKey: "sessionAudit.tabModel" },
-  { id: "tools", labelKey: "sessionAudit.tabTools" },
-  { id: "network", labelKey: "sessionAudit.tabNetwork" },
-  { id: "risk", labelKey: "sessionAudit.tabRisk" },
 ];
 
 function summaryStrip(row) {
@@ -212,6 +210,7 @@ const RISK_CATEGORY_LABEL = {
   stop_reason: "sessionAudit.riskCategory.stopReason",
   sensitive_command: "sessionAudit.riskCategory.sensitiveCommand",
   timeline_gap: "sessionAudit.riskCategory.timelineGap",
+  explicit_risk: "sessionAudit.riskCategory.explicitRisk",
 };
 
 function riskSeverityPanelClass(sev) {
@@ -234,6 +233,69 @@ function riskSeverityBadgeClass(sev) {
     default:
       return "bg-slate-100 text-slate-700 ring-slate-200/80";
   }
+}
+
+function auditRowView(row) {
+  const high = Number(row.riskHigh) || 0;
+  const medium = Number(row.riskMedium) || 0;
+  const low = Number(row.riskLow) || 0;
+  const network = Number(row.networkAccessCount) || 0;
+  const file = Number(row.fileOpCount) || 0;
+  const exec = Number(row.execCount) || 0;
+  const tool = Number(row.toolUseCount) || 0;
+  const aborted = Boolean(row.abortedLastRun);
+  const worstRiskLevel = high > 0 ? "high" : medium > 0 ? "medium" : low > 0 ? "low" : "clean";
+  return {
+    high,
+    medium,
+    low,
+    network,
+    file,
+    exec,
+    tool,
+    aborted,
+    worstRiskLevel,
+    riskScore: high * 1000 + medium * 100 + low * 10 + (aborted ? 5 : 0),
+    hasNetworkEvidence: network > 0,
+    hasFileEvidence: file > 0,
+    hasExecEvidence: exec > 0,
+    hasToolEvidence: tool > 0,
+    hasAbortedSignal: aborted,
+  };
+}
+
+function auditRiskLabel(level) {
+  switch (level) {
+    case "high":
+      return intl.get("sessionAudit.riskHigh");
+    case "medium":
+      return intl.get("sessionAudit.riskMedium");
+    case "low":
+      return intl.get("sessionAudit.riskLow");
+    case "clean":
+    default:
+      return intl.get("sessionAudit.riskClean");
+  }
+}
+
+function auditRiskBadgeClass(level) {
+  switch (level) {
+    case "high":
+      return "bg-red-50 text-red-800 ring-red-200 dark:bg-red-950/50 dark:text-red-200 dark:ring-red-400/40";
+    case "medium":
+      return "bg-amber-50 text-amber-900 ring-amber-200 dark:bg-amber-950/45 dark:text-amber-200 dark:ring-amber-500/30";
+    case "low":
+      return "bg-sky-50 text-sky-900 ring-sky-200 dark:bg-sky-950/45 dark:text-sky-200 dark:ring-sky-500/30";
+    case "clean":
+    default:
+      return "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-500/25";
+  }
+}
+
+function evidenceBadgeClass(active) {
+  return active
+    ? "bg-slate-900 text-white ring-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:ring-slate-100"
+    : "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-900/60 dark:text-slate-400 dark:ring-slate-700";
 }
 
 function kindBadgeClass(kind) {
@@ -301,6 +363,67 @@ function ChatAssistantMessageBody({ msg, strArgs }) {
 }
 
 /**
+ * 图标库 (Inline SVGs for high performance and no dependencies)
+ */
+const Icons = {
+  Risk: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  ),
+  Evidence: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Terminal: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  Agent: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  Model: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+  Database: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+    </svg>
+  ),
+  Coins: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Calendar: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  Zap: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+  File: () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>
+  ),
+};
+
+/**
  * 单会话下钻：索引元数据 + 拉取 `public/sessions/{session_id}.jsonl` 时间线
  */
 function SessionAuditDetail({ row }) {
@@ -321,8 +444,8 @@ function SessionAuditDetail({ row }) {
   const chatMessages = useMemo(() => extractMessageLines(jsonlLines), [jsonlLines]);
   const chatRiskMaps = useMemo(() => computeSessionRiskMaps(jsonlLines), [jsonlLines]);
   const riskItems = useMemo(() => extractSessionRisks(jsonlLines), [jsonlLines]);
-  const intentDetail = useMemo(() => extractIntentRecognitionDetails(jsonlLines), [jsonlLines]);
   const modelInvocations = useMemo(() => extractModelInvocationRecords(jsonlLines), [jsonlLines]);
+  const rowAudit = useMemo(() => auditRowView(row), [row]);
 
   useEffect(() => {
     const sid = row.session_id;
@@ -451,88 +574,176 @@ function SessionAuditDetail({ row }) {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="app-card p-4 sm:p-6">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{intl.get("sessionAudit.indexMeta")}</h3>
-        <p className="mt-2 rounded-lg border border-primary/20 bg-primary-soft/50 px-2.5 py-2 font-mono text-[11px] leading-relaxed text-primary break-all ring-1 ring-primary/10">
-          {row.sessionKey}
-        </p>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.sessionId")}</dt>
-            <dd className="mt-0.5 flex items-start gap-1.5">
-              <span className="break-all font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">{row.session_id ?? "—"}</span>
-              {row.session_id && (
-                <button
-                  type="button"
-                  title={intl.get("sessionAudit.copySessionId")}
-                  onClick={() => {
-                    navigator.clipboard?.writeText(row.session_id).then(() => {
-                      setIdCopied(true);
-                      setTimeout(() => setIdCopied(false), 1500);
-                    }).catch(() => {});
-                  }}
-                  className="mt-0.5 shrink-0 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition"
-                >
-                  {idCopied ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L8 12.586 4.707 9.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8a1 1 0 000-1.414z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                      <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                    </svg>
+    <div className="space-y-4">
+      <section className="app-card overflow-hidden">
+        {/* Compact Integrated Header */}
+        <div className="flex flex-col border-b border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 lg:flex-row lg:items-stretch">
+          {/* Left Side: Info & Tags */}
+          <div className="flex flex-1 flex-col justify-between border-gray-100 dark:border-gray-800 lg:border-r lg:pr-6">
+            <div className="flex items-start gap-4">
+              <div className={["flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-sm ring-4 ring-white dark:ring-gray-800",
+                rowAudit.worstRiskLevel === "high" ? "bg-red-50 text-red-600" :
+                  rowAudit.worstRiskLevel === "medium" ? "bg-amber-50 text-amber-600" :
+                    "bg-emerald-50 text-emerald-600"].join(" ")}>
+                <Icons.Risk />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {row.label || intl.get("sessionAudit.investigationSummary")}
+                  </h3>
+                  <span
+                    className={[
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset",
+                      auditRiskBadgeClass(rowAudit.worstRiskLevel),
+                    ].join(" ")}
+                  >
+                    <Icons.Risk />
+                    {intl.get("sessionAudit.worstRisk")}: {auditRiskLabel(rowAudit.worstRiskLevel)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  {intl.get("sessionAudit.caseConclusion", {
+                    high: rowAudit.high,
+                    medium: rowAudit.medium,
+                    low: rowAudit.low,
+                    tool: rowAudit.tool,
+                    network: rowAudit.network,
+                    file: rowAudit.file,
+                    exec: rowAudit.exec,
+                  })}
+                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary-soft/30 px-2 py-1 font-mono text-[10px] font-semibold text-primary">
+                    <Icons.Zap />
+                    {row.sessionKey || "—"}
+                  </div>
+                  {row.session_id && (
+                    <div className="flex items-center rounded-md border border-gray-100 bg-gray-50/50 px-2 py-1 font-mono text-[10px] text-gray-500 dark:border-gray-800 dark:bg-gray-900/50">
+                      {row.session_id}
+                    </div>
                   )}
-                </button>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.updateTime")}</dt>
-            <dd className="mt-0.5 tabular-nums text-sm font-medium text-emerald-800 dark:text-emerald-300">{formatMs(row.updatedAt)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.model")}</dt>
-            <dd className="mt-0.5 font-semibold text-indigo-800 dark:text-indigo-300">{row.model ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.provider")}</dt>
-            <dd className="mt-0.5 font-medium text-sky-800 dark:text-sky-300">{row.modelProvider ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.totalToken")}</dt>
-            <dd className="mt-0.5 tabular-nums text-sm font-semibold text-amber-800 dark:text-amber-300">{num(row.totalTokens)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.sessionFile")}</dt>
-            <dd className="mt-0.5 font-mono text-xs">
-              {row.sessionFile != null && row.sessionFile !== "" ? (
-                <NetPathHighlight path={row.sessionFile} />
-              ) : (
-                <span className="text-gray-400">—</span>
-              )}
-            </dd>
-          </div>
-          {row.label && (
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.label")}</dt>
-              <dd className="inline-block mt-2 rounded-lg border-2 border-amber-400 bg-amber-50/90 px-3 py-2 text-sm font-medium text-amber-950 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-100">
-                {row.label}
-              </dd>
+                </div>
+              </div>
             </div>
-          )}
-        </dl>
-        <details className="mt-4 rounded-lg border border-gray-100 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-900/50">
-          <summary className="cursor-pointer text-xs font-medium text-indigo-800 hover:text-indigo-950 dark:text-indigo-300 dark:hover:text-indigo-200">
-            {intl.get("sessionAudit.fullIndexJson")}
-          </summary>
-          <div className="relative pr-8">
-            <CodeBlock text={summaryStrip(row)} variant="dark" height="lg" font="mono" className="max-h-64">
-              {summaryStrip(row)}
-            </CodeBlock>
           </div>
-        </details>
+
+          {/* Right Side: 4 Horizontal Cards */}
+          <div className="mt-4 grid shrink-0 gap-3 sm:grid-cols-2 lg:mt-0 lg:flex lg:items-center lg:pl-6">
+            <button
+              type="button"
+              onClick={() => setDetailTab("risk")}
+              className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-red-50 bg-red-50/30 p-3 text-center transition-all hover:bg-red-50 dark:border-red-900/20 dark:bg-red-950/10"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-red-400">{intl.get("sessionAudit.findingCounts")}</p>
+              <p className="mt-1 text-sm font-bold">
+                <span className="text-red-600">H{rowAudit.high}</span>
+                <span className="mx-1 text-gray-300">/</span>
+                <span className="text-amber-500">M{rowAudit.medium}</span>
+                <span className="mx-1 text-gray-300">/</span>
+                <span className="text-sky-600">L{rowAudit.low}</span>
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDetailTab("tools")}
+              className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-gray-100 bg-gray-50/30 p-3 text-center transition-all hover:bg-white dark:border-gray-800 dark:bg-gray-900/50"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{intl.get("sessionAudit.keyEvidence")}</p>
+              <p className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100">
+                T{rowAudit.tool} · N{rowAudit.network} · F{rowAudit.file} · E{rowAudit.exec}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDetailTab("trace")}
+              className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-gray-100 bg-gray-50/30 p-3 text-center transition-all hover:bg-white dark:border-gray-800 dark:bg-gray-900/50"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{intl.get("sessionAudit.timeSpan")}</p>
+              <p className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100">{formatDurationMs(trace.stats.durationMs ?? row.durationMs)}</p>
+            </button>
+
+            <div className="flex h-full min-w-[120px] flex-col items-center justify-center rounded-xl border border-gray-100 bg-gray-50/30 p-3 text-center dark:border-gray-800 dark:bg-gray-900/50">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{intl.get("sessionAudit.parseableTotal")}</p>
+              <p className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-100">
+                {trace.stats.parseableTime ?? 0} <span className="text-xs font-medium text-gray-300">/ {trace.stats.totalLines ?? jsonlLines.length}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Property Row */}
+        <div className="border-t border-gray-50 bg-gray-50/20 px-4 py-2 dark:border-gray-800 dark:bg-gray-900/30">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
+                <Icons.Agent />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.agentName")}</dt>
+                <dd className="mt-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{row.agentName ?? "—"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-indigo-500">
+                <Icons.Model />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.model")}</dt>
+                <dd className="mt-0.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate leading-tight">{row.model ?? "—"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-sky-500">
+                <Icons.Database />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.provider")}</dt>
+                <dd className="mt-0.5 text-xs font-semibold text-sky-600 dark:text-sky-400 truncate leading-tight">{row.modelProvider ?? "—"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-amber-500">
+                <Icons.Coins />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.totalToken")}</dt>
+                <dd className="mt-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">{num(row.totalTokens)}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
+                <Icons.Zap />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.channel")}</dt>
+                <dd className="mt-0.5 text-xs font-semibold text-gray-700 dark:text-gray-200 truncate leading-tight">{row.channel ?? row.lastChannel ?? "—"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-emerald-500">
+                <Icons.Calendar />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.updateTime")}</dt>
+                <dd className="mt-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">{formatMs(row.updatedAt)}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center text-gray-400 dark:text-gray-500">
+                <Icons.File />
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{intl.get("sessionAudit.sessionFile")}</dt>
+                <dd className="mt-0.5 text-xs font-mono text-gray-500 leading-tight">
+                  {row.sessionFile != null && row.sessionFile !== "" ? "..." : "—"}
+                </dd>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="app-card p-4 sm:p-6">
@@ -576,302 +787,220 @@ function SessionAuditDetail({ row }) {
 
             {detailTab === "trace" && (
               <>
-            <div className="mt-4 grid gap-3 rounded-lg border border-gray-100 bg-gray-50/70 p-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.firstParseTime")}</p>
-                <p className="mt-0.5 tabular-nums text-sm text-gray-900">{trace.stats.tMin != null ? formatMs(trace.stats.tMin) : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.lastParseTime")}</p>
-                <p className="mt-0.5 tabular-nums text-sm text-gray-900">{trace.stats.tMax != null ? formatMs(trace.stats.tMax) : "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.timeSpan")}</p>
-                <p className="mt-0.5 text-sm font-medium text-gray-900">{formatDurationMs(trace.stats.durationMs)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.parseableTotal")}</p>
-                <p className="mt-0.5 tabular-nums text-sm text-gray-900">
-                  {trace.stats.parseableTime} / {trace.stats.totalLines}
-                  {trace.stats.unparseableTime > 0 && (
-                    <span className="ml-1 text-amber-700">{intl.get("sessionAudit.unparseable", { count: trace.stats.unparseableTime })}</span>
-                  )}
-                </p>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-2">
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.maxGap")}</p>
-                <p className="mt-0.5 text-sm text-gray-900">
-                  <span className="font-medium tabular-nums">{formatDurationMs(trace.stats.maxGapMs)}</span>
-                  {trace.stats.maxGapAfterOriginalIndex >= 0 && (
-                    <span className="ml-2 text-xs text-gray-500">
-                      {intl.get("sessionAudit.maxGapLocation", { line: trace.stats.maxGapAfterOriginalIndex + 1 })}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-4">
-                <p className="text-xs font-medium text-gray-500">{intl.get("sessionAudit.eventTypeDistribution")}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {Object.entries(trace.stats.byKind).map(([k, c]) => (
-                    <span
-                      key={k}
-                      className="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600"
-                    >
-                      {k} <span className="ml-1 tabular-nums text-primary">{c}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {trace.stats.tMin != null && trace.stats.tMax != null && trace.stats.durationMs > 0 && (
-              <div className="mt-4">
-                <p className="text-xs font-medium text-gray-600">{intl.get("sessionAudit.relativeTimeDistribution")}</p>
-                <div className="relative mt-2 h-8 rounded-md bg-gray-100">
-                  {trace.enriched
-                    .filter((e) => e.tMs != null)
-                    .map((e) => {
-                      const p = ((e.tMs - trace.stats.tMin) / trace.stats.durationMs) * 100;
-                      const left = Math.min(100, Math.max(0, p));
-                      const rl = e.riskLevel ?? "healthy";
-                      return (
-                        <span
-                          key={`dot-${e.originalIndex}`}
-                          title={intl.get("sessionAudit.miniBarDotTitle", {
-                            line: e.originalIndex + 1,
-                            time: formatMs(e.tMs),
-                            riskLevel: traceRiskLevelLabel(rl),
-                          })}
-                          className={[
-                            "absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm ring-2 ring-white dark:ring-gray-900",
-                            traceMiniBarDotClass(rl),
-                          ].join(" ")}
-                          style={{ left: `${left}%` }}
-                        />
-                      );
-                    })}
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] text-gray-400">
-                  <span>0%</span>
-                  <span>{intl.get("sessionAudit.spanPercent100")}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.eventTimeline")}</h4>
-                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-gray-500 dark:text-gray-400">
-                  <span>{intl.get("sessionAudit.dotColor")}</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 ring-1 ring-red-300/80" />
-                    {intl.get("auditOverview.high")}
-                  </span>
-                  <span className="text-gray-300">·</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500 ring-1 ring-amber-300/80" />
-                    {intl.get("auditOverview.medium")}
-                  </span>
-                  <span className="text-gray-300">·</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500 ring-1 ring-sky-300/80" />
-                    {intl.get("auditOverview.low")}
-                  </span>
-                  <span className="text-gray-300">·</span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 ring-1 ring-emerald-300/80" />
-                    {intl.get("sessionAudit.healthy")}
-                  </span>
-                  <span className="text-gray-400">{intl.get("sessionAudit.riskConsistencyHint")}</span>
-                </p>
-              </div>
-              {trace.enriched.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {replayPlaying && replayStep !== null && (
-                    <span className="rounded-md bg-primary-soft px-2 py-1 text-xs font-medium tabular-nums text-primary ring-1 ring-primary/20">
-                      {intl.get("sessionAudit.replayProgress", { current: replayStep + 1, total: trace.enriched.length })}
-                    </span>
-                  )}
-                  {!replayPlaying && replayStep === null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReplayStep(0);
-                        setReplayPlaying(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-primary-hover"
-                    >
-                      <span aria-hidden>▶</span>
-                      {intl.get("sessionAudit.replay")}
-                    </button>
-                  )}
-                  {!replayPlaying && replayStep !== null && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setReplayPlaying(true)}
-                        className="rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-medium text-primary shadow-sm transition hover:bg-primary-soft dark:bg-gray-900 dark:hover:bg-primary/20"
-                      >
-                        {intl.get("sessionAudit.continue")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplayStep(0);
-                          setReplayPlaying(true);
-                        }}
-                        className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-800"
-                      >
-                        {intl.get("sessionAudit.replayFromStart")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setReplayStep(null)}
-                        className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-600"
-                      >
-                        {intl.get("sessionAudit.stop")}
-                      </button>
-                    </>
-                  )}
-                  {replayPlaying && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setReplayPlaying(false)}
-                        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm transition hover:bg-amber-100"
-                      >
-                        {intl.get("sessionAudit.pause")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReplayPlaying(false);
-                          setReplayStep(null);
-                        }}
-                        className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-700"
-                      >
-                        {intl.get("sessionAudit.stop")}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <ul className="mt-3 space-y-0">
-              {trace.enriched.map((item, enrichedIdx) => {
-                const { line, originalIndex, tMs, deltaMs } = item;
-                const riskLevel = item.riskLevel ?? "healthy";
-                const riskReasonText = item.riskReasonText ?? "";
-                const sum = summarizeJsonlLine(line);
-                const raw = rawOpen.has(originalIndex);
-                const gapWarn = deltaMs != null && deltaMs >= 300000;
-                const gapMid = deltaMs != null && deltaMs >= 60000 && deltaMs < 300000;
-                const idStr = line.id != null ? String(line.id) : null;
-                const parentStr = line.parentId != null ? String(line.parentId) : null;
-                const isReplayActive = replayStep === enrichedIdx && replayStep !== null;
-                return (
-                  <li
-                    id={`trace-replay-${enrichedIdx}`}
-                    key={`trace-${originalIndex}-${sum.kind}`}
-                    className="relative flex scroll-mt-24 gap-0"
-                  >
-                    {/* 时间轴左侧：线上时间 */}
-                    <div className="w-full max-w-[7.25rem] shrink-0 select-none pr-2 pt-2.5 text-right sm:max-w-[8.5rem] sm:pr-3">
-                      {tMs != null ? (
-                        <span className="inline-block text-[11px] font-semibold leading-snug tabular-nums text-gray-800 dark:text-gray-200 sm:text-xs">
-                          {formatMs(tMs)}
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.eventTimeline")}</h4>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                      <span>{intl.get("sessionAudit.dotColor")}</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 ring-1 ring-red-300/80" />
+                        {intl.get("auditOverview.high")}
+                      </span>
+                      <span className="text-gray-300">·</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500 ring-1 ring-amber-300/80" />
+                        {intl.get("auditOverview.medium")}
+                      </span>
+                      <span className="text-gray-300">·</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500 ring-1 ring-sky-300/80" />
+                        {intl.get("auditOverview.low")}
+                      </span>
+                      <span className="text-gray-300">·</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 ring-1 ring-emerald-300/80" />
+                        {intl.get("sessionAudit.healthy")}
+                      </span>
+                      <span className="text-gray-400">{intl.get("sessionAudit.riskConsistencyHint")}</span>
+                    </p>
+                  </div>
+                  {trace.enriched.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {replayPlaying && replayStep !== null && (
+                        <span className="rounded-md bg-primary-soft px-2 py-1 text-xs font-medium tabular-nums text-primary ring-1 ring-primary/20">
+                          {intl.get("sessionAudit.replayProgress", { current: replayStep + 1, total: trace.enriched.length })}
                         </span>
-                      ) : (
-                        <span className="text-[11px] text-amber-700 dark:text-amber-400">{intl.get("sessionAudit.noTimestamp")}</span>
                       )}
-                      <span className="mt-0.5 block text-[10px] tabular-nums text-gray-400 dark:text-gray-500">#{originalIndex + 1}</span>
-                    </div>
-                    <div className="relative min-w-0 flex-1 border-l-2 border-gray-200 pb-4 pl-4 dark:border-gray-700">
-                      <span
-                        className={[
-                          "absolute -left-[5px] top-3 h-3 w-3 rounded-full border-2 border-white transition-transform dark:border-gray-950",
-                          isReplayActive
-                            ? "scale-125 ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-gray-950"
-                            : "ring-1",
-                          traceTimelineDotClass(item.riskLevel ?? "healthy"),
-                        ].join(" ")}
-                        title={traceRiskHoverTitle(riskLevel, riskReasonText)}
-                      />
-                    <div
-                      className={[
-                        "rounded-lg border p-3 shadow-sm transition-shadow",
-                        isReplayActive
-                          ? "border-primary bg-primary-soft/60 ring-2 ring-primary/25 ring-offset-2 ring-offset-white dark:ring-offset-gray-950"
-                          : "border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/40",
-                      ].join(" ")}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={[
-                                "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                                kindBadgeClass(sum.kind),
-                              ].join(" ")}
-                            >
-                              {sum.title}
-                            </span>
-                            <span
-                              className={[
-                                "inline-flex cursor-help rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
-                                traceRiskBadgeClass(riskLevel),
-                              ].join(" ")}
-                              title={traceRiskHoverTitle(riskLevel, riskReasonText)}
-                            >
-                              {intl.get("sessionAudit.riskPrefix")}
-                              {traceRiskLevelLabel(riskLevel)}
-                            </span>
-                            {deltaMs != null && (
-                              <span
-                                className={[
-                                  "rounded px-1.5 py-0.5 text-xs tabular-nums ring-1 ring-inset",
-                                  gapWarn
-                                    ? "bg-rose-50 text-rose-800 ring-rose-200"
-                                    : gapMid
-                                      ? "bg-amber-50 text-amber-900 ring-amber-200"
-                                      : "bg-gray-100 text-gray-600 ring-gray-200",
-                                ].join(" ")}
-                                title={intl.get("sessionAudit.relativeToLast")}
-                              >
-                                +{formatDurationMs(deltaMs)}
-                              </span>
-                            )}
-                          </div>
-                          {(idStr || parentStr) && (
-                            <p className="mt-1 font-mono text-[10px] text-gray-500">
-                              {parentStr != null ? `parentId ${parentStr}` : "parentId —"}
-                              {" · "}
-                              {idStr != null ? `id ${idStr}` : "id —"}
-                            </p>
-                          )}
-                          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800">{sum.subtitle || "—"}</p>
-                        </div>
+                      {!replayPlaying && replayStep === null && (
                         <button
                           type="button"
-                          onClick={() => toggleRaw(originalIndex)}
-                          className="app-btn-outline shrink-0 px-2 py-1 text-xs"
+                          onClick={() => {
+                            setReplayStep(0);
+                            setReplayPlaying(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-primary-hover"
                         >
-                          {raw ? intl.get("sessionAudit.hideRawLine") : intl.get("sessionAudit.rawJson")}
+                          <span aria-hidden>▶</span>
+                          {intl.get("sessionAudit.replay")}
                         </button>
-                      </div>
-                      {raw && (
-                        <div className="flex items-start justify-between gap-2">
-                          <CodeBlock text={JSON.stringify(line, null, 2)} variant="dark" height="lg" font="mono" className="mt-3 flex-1">
-                            {JSON.stringify(line, null, 2)}
-                          </CodeBlock>
-                        </div>
+                      )}
+                      {!replayPlaying && replayStep !== null && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setReplayPlaying(true)}
+                            className="rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-medium text-primary shadow-sm transition hover:bg-primary-soft dark:bg-gray-900 dark:hover:bg-primary/20"
+                          >
+                            {intl.get("sessionAudit.continue")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplayStep(0);
+                              setReplayPlaying(true);
+                            }}
+                            className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-800"
+                          >
+                            {intl.get("sessionAudit.replayFromStart")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReplayStep(null)}
+                            className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-600"
+                          >
+                            {intl.get("sessionAudit.stop")}
+                          </button>
+                        </>
+                      )}
+                      {replayPlaying && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setReplayPlaying(false)}
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm transition hover:bg-amber-100"
+                          >
+                            {intl.get("sessionAudit.pause")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplayPlaying(false);
+                              setReplayStep(null);
+                            }}
+                            className="app-btn-outline px-3 py-1.5 text-xs font-medium text-gray-700"
+                          >
+                            {intl.get("sessionAudit.stop")}
+                          </button>
+                        </>
                       )}
                     </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                  )}
+                </div>
+                <ul className="mt-3 space-y-0">
+                  {trace.enriched.map((item, enrichedIdx) => {
+                    const { line, originalIndex, tMs, deltaMs } = item;
+                    const riskLevel = item.riskLevel ?? "healthy";
+                    const riskReasonText = item.riskReasonText ?? "";
+                    const sum = summarizeJsonlLine(line);
+                    const raw = rawOpen.has(originalIndex);
+                    const gapWarn = deltaMs != null && deltaMs >= 300000;
+                    const gapMid = deltaMs != null && deltaMs >= 60000 && deltaMs < 300000;
+                    const idStr = line.id != null ? String(line.id) : null;
+                    const parentStr = line.parentId != null ? String(line.parentId) : null;
+                    const isReplayActive = replayStep === enrichedIdx && replayStep !== null;
+                    return (
+                      <li
+                        id={`trace-replay-${enrichedIdx}`}
+                        key={`trace-${originalIndex}-${sum.kind}`}
+                        className="relative flex scroll-mt-24 gap-0"
+                      >
+                        {/* 时间轴左侧：线上时间 */}
+                        <div className="w-full max-w-[7.25rem] shrink-0 select-none pr-2 pt-2.5 text-right sm:max-w-[8.5rem] sm:pr-3">
+                          {tMs != null ? (
+                            <span className="inline-block text-[11px] font-semibold leading-snug tabular-nums text-gray-800 dark:text-gray-200 sm:text-xs">
+                              {formatMs(tMs)}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-amber-700 dark:text-amber-400">{intl.get("sessionAudit.noTimestamp")}</span>
+                          )}
+                          <span className="mt-0.5 block text-[10px] tabular-nums text-gray-400 dark:text-gray-500">#{originalIndex + 1}</span>
+                        </div>
+                        <div className="relative min-w-0 flex-1 border-l-2 border-gray-200 pb-4 pl-4 dark:border-gray-700">
+                          <span
+                            className={[
+                              "absolute -left-[5px] top-3 h-3 w-3 rounded-full border-2 border-white transition-transform dark:border-gray-950",
+                              isReplayActive
+                                ? "scale-125 ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-gray-950"
+                                : "ring-1",
+                              traceTimelineDotClass(item.riskLevel ?? "healthy"),
+                            ].join(" ")}
+                            title={traceRiskHoverTitle(riskLevel, riskReasonText)}
+                          />
+                          <div
+                            className={[
+                              "rounded-lg border p-3 shadow-sm transition-shadow",
+                              isReplayActive
+                                ? "border-primary bg-primary-soft/60 ring-2 ring-primary/25 ring-offset-2 ring-offset-white dark:ring-offset-gray-950"
+                                : "border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/40",
+                            ].join(" ")}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    className={[
+                                      "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                                      kindBadgeClass(sum.kind),
+                                    ].join(" ")}
+                                  >
+                                    {sum.title}
+                                  </span>
+                                  <span
+                                    className={[
+                                      "inline-flex cursor-help rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                                      traceRiskBadgeClass(riskLevel),
+                                    ].join(" ")}
+                                    title={traceRiskHoverTitle(riskLevel, riskReasonText)}
+                                  >
+                                    {intl.get("sessionAudit.riskPrefix")}
+                                    {traceRiskLevelLabel(riskLevel)}
+                                  </span>
+                                  {deltaMs != null && (
+                                    <span
+                                      className={[
+                                        "rounded px-1.5 py-0.5 text-xs tabular-nums ring-1 ring-inset",
+                                        gapWarn
+                                          ? "bg-rose-50 text-rose-800 ring-rose-200"
+                                          : gapMid
+                                            ? "bg-amber-50 text-amber-900 ring-amber-200"
+                                            : "bg-gray-100 text-gray-600 ring-gray-200",
+                                      ].join(" ")}
+                                      title={intl.get("sessionAudit.relativeToLast")}
+                                    >
+                                      +{formatDurationMs(deltaMs)}
+                                    </span>
+                                  )}
+                                </div>
+                                {(idStr || parentStr) && (
+                                  <p className="mt-1 font-mono text-[10px] text-gray-500">
+                                    {parentStr != null ? `parentId ${parentStr}` : "parentId —"}
+                                    {" · "}
+                                    {idStr != null ? `id ${idStr}` : "id —"}
+                                  </p>
+                                )}
+                                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800">{sum.subtitle || "—"}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => toggleRaw(originalIndex)}
+                                className="app-btn-outline shrink-0 px-2 py-1 text-xs"
+                              >
+                                {raw ? intl.get("sessionAudit.hideRawLine") : intl.get("sessionAudit.rawJson")}
+                              </button>
+                            </div>
+                            {raw && (
+                              <div className="flex items-start justify-between gap-2">
+                                <CodeBlock text={JSON.stringify(line, null, 2)} variant="dark" height="lg" font="mono" className="mt-3 flex-1">
+                                  {JSON.stringify(line, null, 2)}
+                                </CodeBlock>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </>
             )}
 
@@ -988,50 +1117,7 @@ function SessionAuditDetail({ row }) {
               </div>
             )}
 
-            {detailTab === "intent" && (
-              <div className="mt-4 space-y-4">
-                {intentDetail.userSummary ? (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                    <p className="text-xs font-medium text-slate-600">{intl.get("sessionAudit.userInput")}</p>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">{intentDetail.userSummary.text}</p>
-                    <p className="mt-2 font-mono text-[10px] text-gray-500">
-                      {intl.get("sessionAudit.lineNumber", { line: intentDetail.userSummary.lineIndex + 1 })}
-                      {intentDetail.userSummary.tMs != null && ` · ${formatMs(intentDetail.userSummary.tMs)}`}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">{intl.get("sessionAudit.noUserMessage")}</p>
-                )}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.thinkingChain")}</h4>
-                  {intentDetail.thinkingBlocks.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noThinkingBlock")}</p>
-                  ) : (
-                    <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm">
-                      {intentDetail.thinkingBlocks.map((tb, idx) => (
-                        <li
-                          key={`think-${tb.lineIndex}-${idx}`}
-                          className="rounded-lg border border-violet-200/80 bg-violet-50/60 px-3 py-2"
-                        >
-                          <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                            <span className="font-mono text-[10px]">{intl.get("sessionAudit.lineNumber", { line: tb.lineIndex + 1 })}</span>
-                            {tb.tMs != null && (
-                              <span className="tabular-nums font-mono text-[10px]">{formatMs(tb.tMs)}</span>
-                            )}
-                            {tb.signature && (
-                              <span className="font-mono text-[10px] text-violet-700" title="thinkingSignature">
-                                {tb.signature.length > 24 ? `${tb.signature.slice(0, 20)}…` : tb.signature}
-                              </span>
-                            )}
-                          </div>
-                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800">{tb.thinking}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             {detailTab === "model" && (
               <div className="mt-4 space-y-4">
@@ -1060,7 +1146,10 @@ function SessionAuditDetail({ row }) {
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.configAndSnapshot")}</h4>
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-indigo-500" />
+                    {intl.get("sessionAudit.configAndSnapshot")}
+                  </h4>
                   {modelInvocations.snapshots.length === 0 ? (
                     <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noModelSnapshot")}</p>
                   ) : (
@@ -1111,7 +1200,10 @@ function SessionAuditDetail({ row }) {
                   )}
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.assistantTurns")}</h4>
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-slate-400" />
+                    {intl.get("sessionAudit.assistantTurns")}
+                  </h4>
                   {modelInvocations.assistantCalls.length === 0 ? (
                     <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noAssistantUsage")}</p>
                   ) : (
@@ -1174,233 +1266,283 @@ function SessionAuditDetail({ row }) {
             )}
 
             {detailTab === "tools" && (
-              <div className="mt-4 space-y-4">
-                {Object.keys(toolData.byName).length > 0 && (
-                  <div className="rounded-lg border border-gray-100 bg-gray-50/70 p-3">
-                    <p className="text-xs font-medium text-gray-600">{intl.get("sessionAudit.toolCountByName")}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {Object.entries(toolData.byName)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([name, c]) => (
-                          <span
-                            key={name}
-                            className="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600"
-                          >
-                            {name} <span className="ml-1 tabular-nums text-primary">{c}</span>
-                          </span>
-                        ))}
+              <div className="mt-4 space-y-8">
+                {/* 1. 工具调用 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-primary" />
+                    {intl.get("sessionAudit.tabTools")}
+                  </h4>
+                  {Object.keys(toolData.byName).length > 0 && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+                      <p className="text-xs font-medium text-gray-600">{intl.get("sessionAudit.toolCountByName")}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {Object.entries(toolData.byName)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([name, c]) => (
+                            <span
+                              key={name}
+                              className="inline-flex items-center rounded-md bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600"
+                            >
+                              {name} <span className="ml-1 tabular-nums text-primary">{c}</span>
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  {toolData.calls.length === 0 ? (
+                    <p className="text-sm text-gray-500">{intl.get("sessionAudit.noToolCall")}</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead className="bg-gray-50/80">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.tool")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.argsSummary")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
+                          {toolData.calls.map((call, i) => (
+                            <tr key={`${call.lineIndex}-${i}`} className="hover:bg-gray-50/50">
+                              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{call.lineIndex + 1}</td>
+                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                {call.tMs != null ? formatMs(call.tMs) : "—"}
+                              </td>
+                              <td className="px-3 py-2 font-medium text-gray-900">{call.name}</td>
+                              <td className="max-w-md px-3 py-2 font-mono text-xs text-gray-700 break-all">{strArgs(call.arguments)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. 网络访问 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-sky-500" />
+                    {intl.get("sessionAudit.urlNetwork")}
+                  </h4>
+                  {netFileData.urls.length === 0 ? (
+                    <p className="text-sm text-gray-500">{intl.get("sessionAudit.noUrl")}</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead className="bg-gray-50/80">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">URL / Source</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
+                          {netFileData.urls.map((row, i) => (
+                            <tr key={`${row.lineIndex}-${i}`} className="hover:bg-gray-50/50">
+                              <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{row.lineIndex + 1}</td>
+                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                {row.tMs != null ? formatMs(row.tMs) : "—"}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-xs">
+                                <div className="flex flex-col gap-1">
+                                  <NetUrlHighlight url={row.url} />
+                                  {row.source && (
+                                    <div>
+                                      <span className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 ring-1 ring-violet-200/80">
+                                        Source: {row.source}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. 文件操作 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span className="h-4 w-1 rounded-full bg-emerald-500" />
+                    {intl.get("sessionAudit.fileOp")}
+                  </h4>
+                  {netFileData.fileReads.length === 0 && netFileData.fileWrites.length === 0 ? (
+                    <p className="text-sm text-gray-500">{intl.get("sessionAudit.noRecord")}</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead className="bg-gray-50/80">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Op</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Path</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
+                          {[
+                            ...netFileData.fileReads.map((r) => ({ ...r, op: "read" })),
+                            ...netFileData.fileWrites,
+                          ]
+                            .sort((a, b) => a.tMs - b.tMs)
+                            .map((fr, i) => (
+                              <tr key={`${fr.lineIndex}-${i}`} className="hover:bg-gray-50/50">
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{fr.lineIndex + 1}</td>
+                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                  {fr.tMs != null ? formatMs(fr.tMs) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span
+                                    className={[
+                                      "inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset",
+                                      netFileOpBadgeClass(fr.op),
+                                    ].join(" ")}
+                                  >
+                                    {fr.op ?? "write"}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 font-mono text-xs break-all">
+                                  <NetPathHighlight path={fr.path} />
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. 执行与进程 */}
+                {(netFileData.execs.length > 0 || netFileData.processOps.length > 0) && (
+                  <div className="space-y-4">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <span className="h-4 w-1 rounded-full bg-amber-500" />
+                      Exec & Process
+                    </h4>
+                    <div className="overflow-x-auto rounded-lg border border-gray-100">
+                      <table className="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead className="bg-gray-50/80">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Operation / Details</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
+                          {[
+                            ...netFileData.execs.map((e) => ({ ...e, type: "exec" })),
+                            ...netFileData.processOps.map((p) => ({ ...p, type: "process" })),
+                          ]
+                            .sort((a, b) => a.tMs - b.tMs)
+                            .map((op, i) => (
+                              <tr key={`${op.lineIndex}-${i}`} className="hover:bg-gray-50/50">
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{op.lineIndex + 1}</td>
+                                <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
+                                  {op.tMs != null ? formatMs(op.tMs) : "—"}
+                                </td>
+                                <td className="px-3 py-2 text-xs">
+                                  {op.type === "exec" ? (
+                                    <div className="flex flex-col gap-1">
+                                      <span className="font-bold text-amber-700">EXEC</span>
+                                      <NetCommandHighlight command={op.command} />
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-primary">PROCESS</span>
+                                        <span className="rounded-md bg-primary-soft px-1.5 py-0.5 font-semibold text-primary ring-1 ring-primary/15">
+                                          {op.action}
+                                        </span>
+                                      </div>
+                                      {op.session_id != null && (
+                                        <span className="text-gray-500 font-mono text-[10px]">sessionId: {op.session_id}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
-                {toolData.calls.length === 0 ? (
-                  <p className="text-sm text-gray-500">{intl.get("sessionAudit.noToolCall")}</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-lg border border-gray-100">
-                    <table className="min-w-full divide-y divide-gray-100 text-sm">
-                      <thead className="bg-gray-50/80">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">#</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.time")}</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.tool")}</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">{intl.get("sessionAudit.argsSummary")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900/40">
-                        {toolData.calls.map((call, i) => (
-                          <tr key={`${call.lineIndex}-${i}`} className="hover:bg-gray-50/50">
-                            <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-500">{call.lineIndex + 1}</td>
-                            <td className="whitespace-nowrap px-3 py-2 tabular-nums text-xs text-gray-800">
-                              {call.tMs != null ? formatMs(call.tMs) : "—"}
-                            </td>
-                            <td className="px-3 py-2 font-medium text-gray-900">{call.name}</td>
-                            <td className="max-w-md px-3 py-2 font-mono text-xs text-gray-700 break-all">{strArgs(call.arguments)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {detailTab === "network" && (
-              <div className="mt-4 space-y-6">
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.urlNetwork")}</h4>
-                  {netFileData.urls.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noUrl")}</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 font-mono text-xs break-all">
-                      {netFileData.urls.map((row, i) => (
-                        <li key={`${row.lineIndex}-${row.url}-${i}`} className="leading-relaxed">
-                          {row.tMs != null && (
-                            <span className="mr-2 tabular-nums text-slate-500">{formatMs(row.tMs)}</span>
-                          )}
-                          <NetUrlHighlight url={row.url} />
-                          {row.source && (
-                            <span className="ml-2 inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-800 ring-1 ring-violet-200/80">
-                              {row.source}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.readFile")}</h4>
-                  {netFileData.fileReads.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noRecord")}</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 font-mono text-xs break-all">
-                      {netFileData.fileReads.map((fr, i) => (
-                        <li key={`r-${i}-${fr.path}`} className="leading-relaxed">
-                          {fr.tMs != null && (
-                            <span className="mr-2 tabular-nums text-slate-500">{formatMs(fr.tMs)}</span>
-                          )}
-                          <NetPathHighlight path={fr.path} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{intl.get("sessionAudit.writeFile")}</h4>
-                  {netFileData.fileWrites.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noRecord")}</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 font-mono text-xs break-all">
-                      {netFileData.fileWrites.map((fw, i) => (
-                        <li key={`w-${i}-${fw.path}`} className="leading-relaxed">
-                          {fw.tMs != null && (
-                            <span className="mr-2 tabular-nums text-slate-500">{formatMs(fw.tMs)}</span>
-                          )}
-                          <span
-                            className={[
-                              "mr-1.5 inline-flex rounded px-1.5 py-0.5 align-middle text-[11px] font-semibold ring-1 ring-inset",
-                              netFileOpBadgeClass(fw.op),
-                            ].join(" ")}
-                          >
-                            {fw.op ?? "write"}
-                          </span>
-                          <NetPathHighlight path={fw.path} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">exec</h4>
-                  {netFileData.execs.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noRecord")}</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 font-mono text-xs break-all">
-                      {netFileData.execs.map((ex, i) => (
-                        <li key={`e-${i}`} className="leading-relaxed">
-                          {ex.tMs != null && (
-                            <span className="mr-2 tabular-nums text-slate-500">{formatMs(ex.tMs)}</span>
-                          )}
-                          <NetCommandHighlight command={ex.command} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">process</h4>
-                  {netFileData.processOps.length === 0 ? (
-                    <p className="mt-2 text-sm text-gray-500">{intl.get("sessionAudit.noRecord")}</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3 font-mono text-xs break-all">
-                      {netFileData.processOps.map((po, i) => (
-                        <li key={`p-${i}`} className="leading-relaxed">
-                          {po.tMs != null && (
-                            <span className="mr-2 tabular-nums text-slate-500">{formatMs(po.tMs)}</span>
-                          )}
-                          <span className="rounded-md bg-primary-soft px-1.5 py-0.5 font-semibold text-primary ring-1 ring-primary/15">
-                            {po.action}
-                          </span>
-                          {po.session_id != null && (
-                            <span className="ml-2 inline-flex rounded-md bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-900 ring-1 ring-emerald-200/80">
-                              sessionId {po.session_id}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
               </div>
             )}
 
             {detailTab === "risk" && (
               <div className="mt-4 space-y-4">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-md bg-red-50 px-2 py-1 font-medium text-red-800 ring-1 ring-red-200/80">
-                    {intl.get("sessionAudit.riskHigh")} {riskItems.filter((x) => x.severity === "high").length}
-                  </span>
-                  <span className="rounded-md bg-amber-50 px-2 py-1 font-medium text-amber-900 ring-1 ring-amber-200/80">
-                    {intl.get("sessionAudit.riskMedium")} {riskItems.filter((x) => x.severity === "medium").length}
-                  </span>
-                  <span className="rounded-md bg-slate-100 px-2 py-1 font-medium text-slate-700 ring-1 ring-slate-200/80">
-                    {intl.get("sessionAudit.riskLow")} {riskItems.filter((x) => x.severity === "low").length}
-                  </span>
-                  <span className="text-gray-500">{intl.get("sessionAudit.riskTotal", { count: riskItems.length })}</span>
-                </div>
                 {riskItems.length === 0 ? (
                   <p className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-900">
                     {intl.get("sessionAudit.noRiskFound")}
                   </p>
                 ) : (
                   <ul className="space-y-3">
-                    {riskItems.map((r, idx) => (
-                      <li
-                        key={`${r.category}-${r.lineIndex}-${idx}`}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`查看第 ${r.lineIndex + 1} 行日志：${r.title}`}
-                        className={[
-                          "rounded-r-lg border border-l-4 border-gray-200 p-3 shadow-sm transition hover:ring-2 hover:ring-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-gray-700",
-                          riskSeverityPanelClass(r.severity),
-                        ].join(" ")}
-                        onClick={() => openRiskSourceLine(r.lineIndex)}
-                        onKeyDown={(ev) => {
-                          if (ev.key === "Enter" || ev.key === " ") {
-                            ev.preventDefault();
-                            openRiskSourceLine(r.lineIndex);
-                          }
-                        }}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={[
-                                  "inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
-                                  riskSeverityBadgeClass(r.severity),
-                                ].join(" ")}
-                              >
-                                {r.severity === "high"
-                                  ? intl.get("sessionAudit.riskHigh")
-                                  : r.severity === "medium"
-                                    ? intl.get("sessionAudit.riskMedium")
-                                    : intl.get("sessionAudit.riskLow")}
-                              </span>
-                              <span className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 ring-1 ring-gray-200/80">
-                                {RISK_CATEGORY_LABEL[r.category] ? intl.get(RISK_CATEGORY_LABEL[r.category]) : r.category}
-                              </span>
-                              <span className="text-sm font-semibold text-gray-900">{r.title}</span>
+                    {riskItems.map((r, idx) => {
+                      const isHigh = r.severity === "high";
+                      const isMed = r.severity === "medium";
+                      const isLow = r.severity === "low";
+                      // 只保留基础背景色或去除，这里根据用户“去除左侧高亮颜色条”的反馈，去除特定等级的面板样式类，仅保留圆角和边框
+                      return (
+                        <li
+                          key={`${r.category}-${r.lineIndex}-${idx}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`查看第 ${r.lineIndex + 1} 行日志：${r.title}`}
+                          className="rounded-lg border border-gray-100 p-3 shadow-sm transition hover:ring-2 hover:ring-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-gray-700 bg-white dark:bg-gray-900/40"
+                          onClick={() => openRiskSourceLine(r.lineIndex)}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter" || ev.key === " ") {
+                              ev.preventDefault();
+                              openRiskSourceLine(r.lineIndex);
+                            }
+                          }}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={[
+                                    "inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                                    riskSeverityBadgeClass(r.severity),
+                                  ].join(" ")}
+                                >
+                                  {r.severity === "high"
+                                    ? intl.get("sessionAudit.riskHigh")
+                                    : r.severity === "medium"
+                                      ? intl.get("sessionAudit.riskMedium")
+                                      : intl.get("sessionAudit.riskLow")}
+                                </span>
+                                <span className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 ring-1 ring-gray-200/80 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700">
+                                  {RISK_CATEGORY_LABEL[r.category] ? intl.get(RISK_CATEGORY_LABEL[r.category]) : r.category}
+                                </span>
+                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{r.title}</span>
+                              </div>
+                              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800 dark:text-gray-200">{r.detail}</p>
                             </div>
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-800">{r.detail}</p>
+                            <div className="shrink-0 text-right text-[10px] text-gray-500 dark:text-gray-400">
+                              <div className="font-mono">{intl.get("sessionAudit.lineNumber", { line: r.lineIndex + 1 })}</div>
+                              <div className="tabular-nums">{r.tMs != null ? formatMs(r.tMs) : "—"}</div>
+                              <button
+                                type="button"
+                                className="mt-1 font-sans text-primary hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRiskSourceLine(r.lineIndex);
+                                }}
+                              >
+                                {intl.get("sessionAudit.viewLog")} →
+                              </button>
+                            </div>
                           </div>
-                          <div className="shrink-0 text-right text-[10px] text-gray-500 dark:text-gray-400">
-                            <div className="font-mono">{intl.get("sessionAudit.lineNumber", { line: r.lineIndex + 1 })}</div>
-                            <div className="tabular-nums">{r.tMs != null ? formatMs(r.tMs) : "—"}</div>
-                            <div className="mt-1 font-sans text-primary">{intl.get("sessionAudit.viewLog")}</div>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -1417,12 +1559,13 @@ export default function SessionAudit({ setHeaderExtra }) {
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [sortKey, setSortKey] = useState("durationMs");
+  const [sortKey, setSortKey] = useState("riskScore");
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE);
   const [query, setQuery] = useState("");
   const [detailRow, setDetailRow] = useState(null);
+  const [riskFilter, setRiskFilter] = useState("all");
 
   // 数字员工下钻：预填搜索（读取一次即清除），版本 1.0.1
   useEffect(() => {
@@ -1478,7 +1621,7 @@ export default function SessionAudit({ setHeaderExtra }) {
           setLoadError(intl.get("sessionAudit.invalidResponseFormatArray"));
           return;
         }
-        setRows(mapAgentSessionRows(data));
+        setRows(mapAgentSessionRows(data).map((row) => ({ ...row, ...auditRowView(row) })));
         setLoadError(null);
       })
       .catch((e) => {
@@ -1504,8 +1647,9 @@ export default function SessionAudit({ setHeaderExtra }) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
     return rows.filter((r) => {
+      if (riskFilter !== "all" && r.worstRiskLevel !== riskFilter) return false;
+      if (!q) return true;
       const hay = [
         r.sessionKey,
         r.session_id,
@@ -1531,7 +1675,7 @@ export default function SessionAudit({ setHeaderExtra }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [rows, query]);
+  }, [rows, query, riskFilter]);
 
   const sorted = useMemo(() => sortSessionRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
 
@@ -1560,7 +1704,7 @@ export default function SessionAudit({ setHeaderExtra }) {
 
   useEffect(() => {
     setPage(1);
-  }, [query, sortKey, sortDir, pageSize]);
+  }, [query, sortKey, sortDir, pageSize, riskFilter]);
 
   const toggleSort = (key) => {
     if (sortKey === key) {
@@ -1577,6 +1721,7 @@ export default function SessionAudit({ setHeaderExtra }) {
           key === "riskHigh" ||
           key === "riskMedium" ||
           key === "riskLow" ||
+          key === "riskScore" ||
           key === "networkAccessCount" ||
           key === "fileOpCount" ||
           key === "execCount"
@@ -1627,94 +1772,91 @@ export default function SessionAudit({ setHeaderExtra }) {
       </section>
 
       <section className="app-card p-4 sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{intl.get("sessionAudit.sessionList")}</h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{intl.get("sessionAudit.securityQueueHint")}</p>
           </div>
-          <div className="min-w-[200px] flex-1 sm:max-w-sm">
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 dark:border-gray-800 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-0 lg:w-[22rem] xl:w-[26rem]">
             <label className="sr-only" htmlFor="session-audit-search">
               {intl.get("common.search")}
             </label>
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-500">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.1-5.4a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
+              </svg>
+            </span>
             <input
               id="session-audit-search"
               type="search"
               placeholder={intl.get("sessionAudit.searchPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="app-input w-full py-2 px-3 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="app-input w-full py-2.5 pl-9 pr-3 placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            <label className="relative inline-flex min-w-[11rem] items-center">
+              <span className="pointer-events-none absolute left-3 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {intl.get("sessionAudit.filterRisk.label")}
+              </span>
+              <select
+                value={riskFilter}
+                onChange={(e) => setRiskFilter(e.target.value)}
+                className="app-input w-full appearance-none py-2.5 pl-[4.75rem] pr-9 text-sm font-semibold text-gray-800 dark:text-gray-100"
+              >
+                {["all", "high", "medium", "low", "clean"].map((level) => (
+                  <option key={level} value={level}>
+                    {intl.get(`sessionAudit.filterRisk.${level}`)}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 text-gray-400 dark:text-gray-500">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </label>
           </div>
         </div>
 
-
         <div className="mt-4 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1880px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-800/80 dark:text-gray-400">
+                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("riskScore")}>
+                    {intl.get("sessionAudit.queue.risk")} {sortKey === "riskScore" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                  </th>
                   <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("session_id")}>
-                    {intl.get("sessionAudit.sessionId")} {sortKey === "session_id" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    {intl.get("sessionAudit.queue.session")} {sortKey === "session_id" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
                   <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("agentName")}>
-                    {intl.get("sessionAudit.agentName")} {sortKey === "agentName" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    {intl.get("sessionAudit.queue.actor")} {sortKey === "agentName" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
                   <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("startedAt")}>
-                    {intl.get("sessionAudit.startTime")} {sortKey === "startedAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    {intl.get("sessionAudit.queue.timeWindow")} {sortKey === "startedAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("endedAt")}>
-                    {intl.get("sessionAudit.endTime")} {sortKey === "endedAt" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("durationMs")}>
-                    {intl.get("sessionAudit.duration")} {sortKey === "durationMs" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("chatType")}>
-                    {intl.get("sessionAudit.chatType")} {sortKey === "chatType" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("channel")}>
-                    {intl.get("sessionAudit.channel")} {sortKey === "channel" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("originProvider")}>
-                    {intl.get("sessionAudit.originProvider")} {sortKey === "originProvider" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer px-3 py-3" onClick={() => toggleSort("model")}>
-                    {intl.get("sessionAudit.model")} {sortKey === "model" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
+                  <th className="px-3 py-3">{intl.get("sessionAudit.queue.evidence")}</th>
                   <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("totalTokens")}>
-                    {intl.get("sessionAudit.totalToken")} {sortKey === "totalTokens" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    {intl.get("sessionAudit.queue.modelCost")} {sortKey === "totalTokens" ? (sortDir === "asc" ? "↑" : "↓") : ""}
                   </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("toolUseCount")}>
-                    {intl.get("sessionAudit.toolUsage")} {sortKey === "toolUseCount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th
-                    className="cursor-pointer whitespace-nowrap px-3 py-3"
-                    onClick={() => toggleSort("riskHigh")}
-                    title={intl.get("sessionAudit.sortByRiskHighCount")}
-                  >
-                    {intl.get("sessionAudit.riskLevel")} {sortKey === "riskHigh" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("networkAccessCount")}>
-                    {intl.get("sessionAudit.networkAccess")} {sortKey === "networkAccessCount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("fileOpCount")}>
-                    {intl.get("sessionAudit.fileOp")} {sortKey === "fileOpCount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="cursor-pointer whitespace-nowrap px-3 py-3" onClick={() => toggleSort("execCount")}>
-                    exec {sortKey === "execCount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-                  </th>
-                  <th className="px-3 py-3">{intl.get("sessionAudit.abortedLastRun")}</th>
-                  <th className="max-w-[200px] px-3 py-3">{intl.get("sessionAudit.label")}</th>
+                  <th className="px-3 py-3 text-right">{intl.get("sessionAudit.queue.action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {loading ? (
                   <tr>
-                    <td colSpan={17} className="p-0 align-middle">
+                    <td colSpan={7} className="p-0 align-middle">
                       <LoadingSpinner message={intl.get("sessionAudit.loadingList")} className="!py-16" />
                     </td>
                   </tr>
                 ) : pageSlice.length === 0 ? (
                   <tr>
-                    <td colSpan={17} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
                       {intl.get("common.noMatch")}
                     </td>
                   </tr>
@@ -1735,55 +1877,88 @@ export default function SessionAudit({ setHeaderExtra }) {
                           }
                         }}
                       >
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200">{row.session_id ?? "—"}</td>
-                        <td className="max-w-[8rem] truncate px-3 py-2 text-gray-800 dark:text-gray-200" title={row.agentName || ""}>
-                          {row.agentName ?? "—"}
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex flex-col gap-1.5">
+                            <span
+                              className={[
+                                "inline-flex w-fit rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
+                                auditRiskBadgeClass(row.worstRiskLevel),
+                              ].join(" ")}
+                            >
+                              {auditRiskLabel(row.worstRiskLevel)}
+                            </span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                              <span className="font-medium text-red-700 dark:text-red-400">H {row.high}</span>
+                              <span className="text-gray-300"> / </span>
+                              <span className="font-medium text-amber-800 dark:text-amber-300">M {row.medium}</span>
+                              <span className="text-gray-300"> / </span>
+                              <span className="font-medium text-sky-700 dark:text-sky-300">L {row.low}</span>
+                            </span>
+                            {row.aborted && (
+                              <span className="w-fit rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-500/25">
+                                {intl.get("sessionAudit.abortedLastRun")}
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{formatMs(row.startedAt)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{formatMs(row.endedAt)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200" title={row.durationMs != null ? `${row.durationMs} ms` : ""}>
-                          {formatDurationMs(row.durationMs)}
+                        <td className="max-w-[18rem] px-3 py-3 align-top">
+                          <div className="font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">{row.session_id ?? "—"}</div>
+                          <div className="mt-1 truncate font-mono text-[11px] text-gray-500 dark:text-gray-400" title={row.sessionKey || ""}>
+                            {row.sessionKey || "—"}
+                          </div>
+                          {row.label && (
+                            <div className="mt-1 truncate text-xs font-medium text-gray-700 dark:text-gray-300" title={row.label}>
+                              {row.label}
+                            </div>
+                          )}
                         </td>
-                        <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{row.chatType ?? "—"}</td>
-                        <td className="max-w-[7rem] truncate px-3 py-2 text-gray-800 dark:text-gray-200" title={row.channel || ""}>
-                          {row.channel ?? "—"}
+                        <td className="max-w-[12rem] px-3 py-3 align-top">
+                          <div className="truncate font-medium text-gray-900 dark:text-gray-100" title={row.agentName || ""}>{row.agentName ?? "—"}</div>
+                          <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400" title={row.channel || row.lastChannel || ""}>
+                            {row.channel ?? row.lastChannel ?? "—"}
+                          </div>
                         </td>
-                        <td className="max-w-[8rem] truncate px-3 py-2 text-gray-800 dark:text-gray-200" title={row.originProvider || ""}>
-                          {row.originProvider ?? "—"}
+                        <td className="whitespace-nowrap px-3 py-3 align-top">
+                          <div className="tabular-nums text-xs text-gray-800 dark:text-gray-200">{formatMs(row.startedAt)}</div>
+                          <div className="mt-1 tabular-nums text-xs font-medium text-gray-600 dark:text-gray-400" title={row.durationMs != null ? `${row.durationMs} ms` : ""}>
+                            {formatDurationMs(row.durationMs)}
+                          </div>
                         </td>
-                        <td className="max-w-[8rem] truncate px-3 py-2 text-gray-800 dark:text-gray-200">{row.model ?? "—"}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{num(row.totalTokens)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{num(row.toolUseCount)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 text-xs">
-                          <span className="font-medium text-red-700 dark:text-red-400">
-                            {intl.get("sessionAudit.riskHigh")} {row.riskHigh ?? 0}
-                          </span>
-                          <span className="text-gray-400"> · </span>
-                          <span className="font-medium text-amber-800 dark:text-amber-300">
-                            {intl.get("sessionAudit.riskMedium")} {row.riskMedium ?? 0}
-                          </span>
-                          <span className="text-gray-400"> · </span>
-                          <span className="font-medium text-slate-600 dark:text-slate-400">
-                            {intl.get("sessionAudit.riskLow")} {row.riskLow ?? 0}
-                          </span>
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex max-w-[18rem] flex-wrap gap-1.5">
+                            {[
+                              [intl.get("sessionAudit.evidence.network"), row.network],
+                              [intl.get("sessionAudit.evidence.file"), row.file],
+                              [intl.get("sessionAudit.evidence.exec"), row.exec],
+                              [intl.get("sessionAudit.evidence.tool"), row.tool],
+                            ].map(([label, count]) => (
+                              <span
+                                key={label}
+                                className={[
+                                  "rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+                                  evidenceBadgeClass(Number(count) > 0),
+                                ].join(" ")}
+                              >
+                                {label} {num(count)}
+                              </span>
+                            ))}
+                          </div>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{num(row.networkAccessCount)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{num(row.fileOpCount)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-gray-800 dark:text-gray-200">{num(row.execCount)}</td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={[
-                              "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                              row.abortedLastRun
-                                ? "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-500/25"
-                                : "bg-emerald-50 text-emerald-800 ring-emerald-600/15 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-500/20",
-                            ].join(" ")}
+                        <td className="max-w-[12rem] px-3 py-3 align-top">
+                          <div className="truncate text-xs font-medium text-gray-800 dark:text-gray-200" title={row.model || ""}>{row.model ?? "—"}</div>
+                          <div className="mt-1 tabular-nums text-xs text-gray-500 dark:text-gray-400">{num(row.totalTokens)} tokens</div>
+                        </td>
+                        <td className="px-3 py-3 text-right align-top">
+                          <button
+                            type="button"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              openDetail(row);
+                            }}
+                            className="rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-primary-hover"
                           >
-                            {row.abortedLastRun ? intl.get("common.yes") : intl.get("common.no")}
-                          </span>
-                        </td>
-                        <td className="max-w-[200px] truncate px-3 py-2 text-xs text-gray-600 dark:text-gray-400" title={row.label || ""}>
-                          {row.label || "—"}
+                            {intl.get("sessionAudit.openInvestigation")}
+                          </button>
                         </td>
                       </tr>
                     );

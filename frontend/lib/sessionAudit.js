@@ -37,6 +37,7 @@ export function sortSessionRows(rows, sortKey, sortDir) {
       sortKey === "riskHigh" ||
       sortKey === "riskMedium" ||
       sortKey === "riskLow" ||
+      sortKey === "riskScore" ||
       sortKey === "networkAccessCount" ||
       sortKey === "fileOpCount" ||
       sortKey === "execCount"
@@ -874,6 +875,19 @@ export function extractSessionRisks(lines) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const tMs = getJsonlLineTimeMs(line);
+    const explicitRisk = line && typeof line === "object" ? String(line.riskLevel ?? "").toLowerCase() : "";
+    let hasExplicitRisk = false;
+    if (explicitRisk === "high" || explicitRisk === "medium" || explicitRisk === "low") {
+      hasExplicitRisk = true;
+      push({
+        severity: /** @type {"high"|"medium"|"low"} */ (explicitRisk),
+        category: "explicit_risk",
+        title: "审计规则命中",
+        detail: line.riskReasonText != null ? String(line.riskReasonText) : "日志行已标记风险等级",
+        lineIndex: i,
+        tMs,
+      });
+    }
 
     if (line.type === "parse_error") {
       push({
@@ -886,6 +900,8 @@ export function extractSessionRisks(lines) {
       });
       continue;
     }
+
+    if (hasExplicitRisk) continue;
 
     if (line.type === "custom" && line.customType != null && String(line.customType).toLowerCase().includes("error")) {
       const d = line.data && typeof line.data === "object" ? line.data : {};
