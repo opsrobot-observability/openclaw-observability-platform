@@ -283,7 +283,17 @@ export default function Dashboard() {
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
+  });
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("sidebar-collapsed", String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [navParams, setNavParams] = useState(null);
   const [headerExtra, setHeaderExtra] = useState(null);
   const [query, setQuery] = useState("");
@@ -295,7 +305,6 @@ export default function Dashboard() {
     setActiveNavRaw(id);
     setNavParams(params);
     localStorage.setItem("nav-active", id);
-    if (id === "log-search") setSidebarCollapsed(true);
   };
   // 数字员工概览「查看画像」等跨页跳转（CustomEvent），版本 1.0.1
   useEffect(() => {
@@ -527,7 +536,7 @@ export default function Dashboard() {
           <button
             type="button"
             title={sidebarCollapsed ? intl.get("common.expandSidebar") : intl.get("common.collapseSidebar")}
-            onClick={() => setSidebarCollapsed((v) => !v)}
+            onClick={toggleSidebarCollapsed}
             className="group relative flex h-8 items-center gap-1.5 rounded-full border border-gray-200/70 bg-white/80 px-2 py-1 text-xs font-medium text-gray-500 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-white hover:text-primary hover:shadow-md dark:border-gray-700/50 dark:bg-gray-900/80 dark:text-gray-400 dark:hover:border-primary/40 dark:hover:bg-gray-900 dark:hover:text-primary dark:hover:shadow-primary/10"
           >
             <span className="flex h-5 w-5 items-center justify-center overflow-hidden">
