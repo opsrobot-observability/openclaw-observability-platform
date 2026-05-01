@@ -354,12 +354,19 @@ export default function CostOverview2({ params }) {
 
   const effectiveTimeBounds = useMemo(() => {
     const now = new Date();
-    const days = Number(filters.timePreset);
+    if (filters.rangeStart && filters.rangeEnd) {
+      const s = new Date(filters.rangeStart);
+      const e = new Date(filters.rangeEnd);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        return { startDay: s.toISOString().slice(0, 10), endDay: e.toISOString().slice(0, 10) };
+      }
+    }
+    const days = Number(filters.timePreset ?? 7);
     const endDay = now.toISOString().slice(0, 10);
     const start = new Date(now.getTime() - days * 86400000);
     const startDay = start.toISOString().slice(0, 10);
     return { startDay, endDay };
-  }, [filters.timePreset]);
+  }, [filters.timePreset, filters.rangeStart, filters.rangeEnd]);
 
   useEffect(() => {
     if (!effectiveTimeBounds) return;
@@ -426,7 +433,8 @@ export default function CostOverview2({ params }) {
     });
   };
 
-  const handlePreset = (days) => setFilters((f) => ({ ...f, timePreset: days }));
+  const handlePreset = (days) => setFilters((f) => ({ ...f, timePreset: days, rangeStart: "", rangeEnd: "" }));
+  const handleRangeChange = (start, end) => setFilters((f) => ({ ...f, rangeStart: start || "", rangeEnd: end || "", timePreset: start && end ? null : f.timePreset }));
   const handleMultiChange = (key) => (values) => setFilters((f) => ({ ...f, [key]: values }));
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
@@ -440,7 +448,7 @@ export default function CostOverview2({ params }) {
         </div>
       )}
 
-      <CostTimeRangeFilter activeDays={filters.timePreset} onPreset={handlePreset} />
+      <CostTimeRangeFilter activeDays={filters.timePreset} onPreset={handlePreset} rangeStart={filters.rangeStart} rangeEnd={filters.rangeEnd} onRangeChange={handleRangeChange} />
 
       <div className="app-card overflow-hidden border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 dark:border-gray-800 sm:px-6">

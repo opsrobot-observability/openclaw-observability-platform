@@ -122,11 +122,19 @@ export function mapAgentSessionRow(raw) {
       : pickStr(n, ["originProvider", "origin_provider"]) ?? null;
   const sessionFile = pickStr(n, ["sessionFile", "session_file"]) ?? null;
 
+  const ts = (v) => {
+    if (v == null) return null;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  };
+
   const updatedAt =
-    raw.updated_at != null ? Number(raw.updated_at) : pickNum(n, ["updatedAt", "updated_at"]);
+    raw.updated_at != null ? ts(raw.updated_at) : pickNum(n, ["updatedAt", "updated_at"]);
   const startedAt =
-    raw.started_at != null ? Number(raw.started_at) : pickNum(n, ["startedAt", "started_at"]);
-  const endedAt = raw.ended_at != null ? Number(raw.ended_at) : pickNum(n, ["endedAt", "ended_at"]);
+    raw.started_at != null ? ts(raw.started_at) : pickNum(n, ["startedAt", "started_at"]);
+  const endedAt = raw.ended_at != null ? ts(raw.ended_at) : pickNum(n, ["endedAt", "ended_at"]);
 
   const label =
     (raw.display_name != null && String(raw.display_name) !== "")

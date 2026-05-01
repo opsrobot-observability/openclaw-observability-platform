@@ -628,7 +628,7 @@ export default function Dashboard() {
           ) : activeNav === "audit-overview" ? (
             <AuditOverview />
           ) : activeNav === "session-audit" ? (
-            <SessionAudit setHeaderExtra={setHeaderExtra} />
+            <SessionAudit setHeaderExtra={setHeaderExtra} params={navParams} />
           ) : activeNav === "log-search" ? (
             <LogSearch />
           ) : activeNav === "traceability" ? (

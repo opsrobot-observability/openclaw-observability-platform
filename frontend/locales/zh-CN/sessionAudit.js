@@ -45,7 +45,7 @@ export default {
   "sessionAudit.filterRisk.medium": "中危 (M)",
   "sessionAudit.filterRisk.low": "低危 (L)",
   "sessionAudit.filterRisk.clean": "健康 (N)",
-  "sessionAudit.filterRisk.label": "状态筛选：",
+  "sessionAudit.filterRisk.label": "状态筛选",
   "sessionAudit.evidence.network": "网络",
   "sessionAudit.evidence.file": "文件",
   "sessionAudit.evidence.exec": "执行",

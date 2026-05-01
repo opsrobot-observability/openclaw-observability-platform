@@ -45,7 +45,7 @@ export default {
   "sessionAudit.filterRisk.medium": "Medium",
   "sessionAudit.filterRisk.low": "Low",
   "sessionAudit.filterRisk.clean": "Clean",
-  "sessionAudit.filterRisk.label": "Status:",
+  "sessionAudit.filterRisk.label": "Status",
   "sessionAudit.evidence.network": "Network",
   "sessionAudit.evidence.file": "File",
   "sessionAudit.evidence.exec": "Exec",

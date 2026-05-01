@@ -132,6 +132,8 @@ export async function queryAgentSessionsRawWithLogTokens() {
         ...row,
         total_tokens_from_logs: agg.total_tokens_from_logs,
         tool_use_count: agg.tool_use_count,
+        tool_error_count: agg.tool_error_count,
+        exec_command_error_count: agg.exec_command_error_count,
         risk_high: agg.risk_high,
         risk_medium: agg.risk_medium,
         risk_low: agg.risk_low,

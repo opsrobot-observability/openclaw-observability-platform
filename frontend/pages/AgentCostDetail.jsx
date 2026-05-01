@@ -63,9 +63,17 @@ function SuccessIndicator({ rate }) {
 
 export default function AgentCostDetail({ params }) {
   const [activeDays, setActiveDays] = useState(30);
-  const rangeObj = useMemo(() => defaultRangeLastDays(activeDays), [activeDays]);
+  const [customRangeStart, setCustomRangeStart] = useState("");
+  const [customRangeEnd, setCustomRangeEnd] = useState("");
+  const rangeObj = useMemo(() => {
+    if (customRangeStart && customRangeEnd) return { start: customRangeStart, end: customRangeEnd };
+    return defaultRangeLastDays(activeDays ?? 30);
+  }, [activeDays, customRangeStart, customRangeEnd]);
   const rangeStart = rangeObj.start;
   const rangeEnd = rangeObj.end;
+
+  const handlePreset = (days) => { setActiveDays(days); setCustomRangeStart(""); setCustomRangeEnd(""); };
+  const handleRangeChange = (start, end) => { setCustomRangeStart(start || ""); setCustomRangeEnd(end || ""); if (start && end) setActiveDays(null); };
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState(params?.agentName ?? "");
   const [sortKey, setSortKey] = useState(null);
@@ -171,7 +179,7 @@ export default function AgentCostDetail({ params }) {
 
   return (
     <div className="space-y-4">
-      <CostTimeRangeFilter activeDays={activeDays} onPreset={setActiveDays} />
+      <CostTimeRangeFilter activeDays={activeDays} onPreset={handlePreset} rangeStart={customRangeStart} rangeEnd={customRangeEnd} onRangeChange={handleRangeChange} />
 
       <section className="app-card overflow-hidden">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 dark:border-gray-800">
