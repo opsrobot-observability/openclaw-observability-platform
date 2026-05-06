@@ -47,4 +47,4 @@ jobs:
           model: ${{ secrets.AI_MODEL }}
           max_turns: 25
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
