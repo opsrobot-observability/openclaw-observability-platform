@@ -40,11 +40,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Run AI Agent
-        uses: nadimtuhin/ai-code-action@v1
+        uses: nadimtuhin/ai-code-action@main
         with:
           api_url: ${{ secrets.AI_API_URL }}
           api_key: ${{ secrets.AI_API_KEY }}
           model: ${{ secrets.AI_MODEL }}
           max_turns: 25
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
