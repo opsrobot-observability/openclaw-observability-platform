@@ -1,23 +1,50 @@
-name: AI Code Reviewer
+name: AI Review
 
 on:
   pull_request:
-    types:
-      - opened
-      - synchronize
-permissions: write-all
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened]
 
-      - name: AI Code Reviewer
-        uses: never112/ai-codereviewer@main
+jobs:
+  ai-review:
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && (contains(github.event.comment.body, '@ai') || contains(github.event.comment.body, '/ai'))) ||
+      (github.event_name == 'pull_request_review_comment' && (contains(github.event.comment.body, '@ai') || contains(github.event.comment.body, '/ai'))) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@ai') || contains(github.event.issue.body, '/ai')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
         with:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.MINIMAX_KEY }}
-          #OPENAI_API_BASE_URL: ${{ secrets.MINIMAX_OPENAPI_BASEURL }}
-          OPENAI_API_MODEL: "MiniMax-M2.7"
-          exclude: "**/*.json, **/*.md"
+          fetch-depth: 0
+
+      - name: Checkout PR branch
+        if: github.event.issue.pull_request || github.event_name == 'pull_request'
+        run: |
+          if [ -n "${{ github.event.issue.pull_request }}" ]; then
+            PR_BRANCH=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
+            git fetch origin "$PR_BRANCH"
+            git checkout "$PR_BRANCH"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Run AI Agent
+        uses: nadimtuhin/ai-code-action@v1
+        with:
+          api_url: ${{ secrets.AI_API_URL }}
+          api_key: ${{ secrets.AI_API_KEY }}
+          model: ${{ secrets.AI_MODEL }}
+          max_turns: 25
+        env:
+          GH_TOKEN: ${{ github.token }}
