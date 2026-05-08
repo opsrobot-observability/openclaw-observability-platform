@@ -1,8 +1,5 @@
 # OpenClaw 可观测性平台
 
-![概览页](./docs/pictures/概览页.png)
-![实例监控](./docs/pictures/实例监控.png)
-
 **OpenClaw 可观测性平台**，基于 KWeaver Core 框架开发，使用 OTel 协议、eBPF 技术对智能体进行全链路追踪与监管，提供故障快速排查、安全合规管控及算力精益运营的管理能力，护航 AI 赋能业务的高质量增长。
 
 ## 核心特性与业务价值

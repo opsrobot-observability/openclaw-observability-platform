@@ -2,8 +2,6 @@
 
 > English | [中文](./README_zh.md)
 
-![概览页](./docs/pictures/概览页.png)
-![实例监控](./docs/pictures/实例监控.png)
 
 **OpenClaw Observability Platform**, developed based on the KWeaver Core framework, uses OTel protocol and eBPF technology for full-link tracing and monitoring of AI Agents. It provides rapid fault diagnosis, security compliance management, and lean computing operations capabilities to ensure high-quality growth of AI-powered businesses.
 
