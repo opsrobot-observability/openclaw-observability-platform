@@ -29,7 +29,7 @@ export default {
   "fullChain.detailView": "详情查看",
   "fullChain.backToList": "全文链路溯源",
   "fullChain.shrimp.title": "加急订单处理与供应商物料录入（检出高危行为）",
-  "fullChain.shrimp.agent": "供应链协同 · 员工虾",
+  "fullChain.shrimp.agent": "供应链协同",
   "fullChain.shrimp.phase.access": "接入",
   "fullChain.shrimp.phase.reasoning": "推理",
   "fullChain.shrimp.phase.tool": "工具",

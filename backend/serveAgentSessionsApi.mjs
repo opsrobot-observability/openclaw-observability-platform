@@ -10,6 +10,13 @@
  * - GET /api/llm-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-detail?startDay=&endDay=
  * - GET /api/session-cost-options?startDay=&endDay=
+ * - GET /api/cron-runs-overview?startIso=&endIso=
+ * - GET /api/cron-runs-run-overview?startIso=&endIso=
+ * - GET /api/cron-runs?page=&pageSize=&jobId=&startIso=&endIso=&agentId=&status=&q=
+ * - GET /api/cron-jobs — 任务详情列表（Doris cron_jobs + cron_runs 聚合）
+ * - GET /api/cron-jobs/:jobId/run-events?limit=&startIso=&endIso=
+ * - GET /api/local-jobs
+ * - GET /api/local-jobs/:jobId/run-events?limit=
  */
 import http from "node:http";
 import fs from "node:fs";
@@ -80,6 +87,15 @@ import {
 } from "./digital-employee/digital-employee-service.mjs";
 
 import { queryOtelOverviewData } from "./otel-metrics/otel-overview-query.mjs";
+import {
+  queryCronRunsPage,
+  queryCronRunsOverviewMetrics,
+  queryCronRunsRunOverviewCharts,
+  queryCronJobsForTaskDetailList,
+  queryCronJobRunEvents,
+} from "./cron-jobs/cron-runs-query.mjs";
+import { attachListRunSummariesToJobs } from "./cron-jobs/job-list-run-summary.mjs";
+import { readJobRunEvents, readLocalJobsDocument } from "./cron-jobs/local-jobs-data.mjs";
 import { queryHostMonitor, queryHostMonitorOverview } from "./host-monitor/host-monitor-query.mjs";
 const port = Number(process.env.PORT ?? 8787);
 
@@ -487,13 +503,130 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 主机监控 — 总览分析（多主机聚合、趋势、占比、Top排行）
+  // 本地任务定义与运行事件（data/jobs.json + data/<jobId>.jsonl）
+  if (url.startsWith("/api/local-jobs")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const pathname = u.pathname.replace(/\/+$/, "") || u.pathname;
+      if (pathname === "/api/local-jobs") {
+        const doc = readLocalJobsDocument();
+        const jobs = attachListRunSummariesToJobs(doc.jobs);
+        sendJson(res, 200, { version: doc.version, jobs });
+        return;
+      }
+      const m = /^\/api\/local-jobs\/([^/]+)\/run-events$/.exec(pathname);
+      if (m) {
+        const limit = Number(u.searchParams.get("limit") ?? "50");
+        const all = u.searchParams.get("all") === "1" || u.searchParams.get("all") === "true";
+        const data = readJobRunEvents(m[1], { limit, all });
+        sendJson(res, 200, {
+          jobId: data.jobId,
+          events: data.events,
+          totalLines: data.totalLines,
+        });
+        return;
+      }
+      sendJson(res, 404, { error: "not found" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const code = msg === "invalid jobId" ? 400 : 500;
+      sendJson(res, code, { error: msg });
+    }
+    return;
+  }
+
+  // 任务详情 — Doris cron_jobs 列表 + cron_runs 事件（jsonl 同形）
+  if (url.startsWith("/api/cron-jobs")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const pathname = u.pathname.replace(/\/+$/, "") || u.pathname;
+      if (pathname === "/api/cron-jobs") {
+        const data = await queryCronJobsForTaskDetailList();
+        sendJson(res, 200, data);
+        return;
+      }
+      const m = /^\/api\/cron-jobs\/([^/]+)\/run-events$/.exec(pathname);
+      if (m) {
+        const limit = Number(u.searchParams.get("limit") ?? "500");
+        const data = await queryCronJobRunEvents(m[1], {
+          limit,
+          startIso: u.searchParams.get("startIso"),
+          endIso: u.searchParams.get("endIso"),
+        });
+        sendJson(res, 200, data);
+        return;
+      }
+      sendJson(res, 404, { error: "not found" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const code = msg === "invalid jobId" ? 400 : 500;
+      sendJson(res, code, { error: msg });
+    }
+    return;
+  }
+
+  // 定时任务 — 运行概览聚合（须在 /api/cron-runs 之前匹配）
+  if (url.startsWith("/api/cron-runs-overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryCronRunsOverviewMetrics({
+        startIso: u.searchParams.get("startIso"),
+        endIso: u.searchParams.get("endIso"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 主机监控 — 总览分析（多主机聚合、趋势、占比、Top排行；须在 /api/host-monitor 之前匹配）
   if (url.startsWith("/api/host-monitor/overview")) {
     try {
       const u = new URL(url, "http://127.0.0.1");
       const data = await queryHostMonitorOverview({
         hours: Number(u.searchParams.get("hours") ?? "24"),
         topLimit: Number(u.searchParams.get("topLimit") ?? "10"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 定时任务 — 运行概览图表（须在 /api/cron-runs 之前匹配：路径前缀含 /api/cron-runs）
+  if (url.startsWith("/api/cron-runs-run-overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryCronRunsRunOverviewCharts({
+        startIso: u.searchParams.get("startIso"),
+        endIso: u.searchParams.get("endIso"),
+        jobId: u.searchParams.get("jobId"),
+      });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  // 定时任务 — 运行记录（Doris cron_runs + cron_jobs）
+  if (url.startsWith("/api/cron-runs")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const data = await queryCronRunsPage({
+        page: Number(u.searchParams.get("page") ?? "1"),
+        pageSize: Number(u.searchParams.get("pageSize") ?? "20"),
+        jobId: u.searchParams.get("jobId"),
+        startIso: u.searchParams.get("startIso"),
+        endIso: u.searchParams.get("endIso"),
+        agentId: u.searchParams.get("agentId"),
+        status: u.searchParams.get("status"),
+        q: u.searchParams.get("q"),
       });
       sendJson(res, 200, data);
     } catch (e) {
@@ -542,4 +675,9 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/config-audit-stats`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-detail?startDay=&endDay=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/session-cost-options?startDay=&endDay=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cron-runs-overview?startIso=&endIso=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cron-runs-run-overview?startIso=&endIso=`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cron-runs?page=1&pageSize=20`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cron-jobs`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/local-jobs`);
 });

@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import intl from "react-intl-universal";
-import CostTimeRangeFilter from "../../components/CostTimeRangeFilter.jsx";
+import LogTimeRangePicker, { resolvePresetRangeMs } from "../../components/LogTimeRangePicker.jsx";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 import { dedupeEmployeesBySessionKey, rowSessionKey } from "../../lib/digitalEmployeeRows.js";
 
@@ -115,7 +115,10 @@ const EMPLOYEE_COST_LINE_COLORS = [
  * 版本 1.0.1
  */
 export default function DigitalEmployeeOverview() {
-  const [activeDays, setActiveDays] = useState(7);
+  const [timePreset, setTimePreset] = useState("7d");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [effectiveDays, setEffectiveDays] = useState(7);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,20 +126,23 @@ export default function DigitalEmployeeOverview() {
   const [filterChannel, setFilterChannel] = useState(null);
   const [listSort, setListSort] = useState(null);
   const [sideTab, setSideTab] = useState("highRisk");
-  const [range, setRange] = useState(() => {
-    const end = new Date();
-    const start = new Date(end.getTime() - 7 * 86400000);
-    return { start, end };
-  });
-  const { start: rangeStart, end: rangeEnd } = range;
 
-  const fetchUrl = useMemo(() => {
-    if (activeDays === null && rangeStart && rangeEnd) {
-      // Backend doesn't support start/end yet, but we pass them for future support
-      return `/api/digital-employees/overview?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
-    }
-    return `/api/digital-employees/overview?days=${activeDays ?? 7}`;
-  }, [activeDays, rangeStart, rangeEnd]);
+  const fetchUrl = useMemo(() => `/api/digital-employees/overview?days=${effectiveDays}`, [effectiveDays]);
+
+  const applyTimeFilter = useCallback(() => {
+    const range = resolvePresetRangeMs(timePreset, customStart, customEnd);
+    if (!range) return;
+    const spanMs = Math.max(1, range.endMs - range.startMs);
+    const days = Math.min(365, Math.max(1, Math.ceil(spanMs / 86400000)));
+    setEffectiveDays(days);
+    setFilterHealthTier(null);
+    setFilterChannel(null);
+    setListSort(null);
+  }, [timePreset, customStart, customEnd]);
+
+  useEffect(() => {
+    applyTimeFilter();
+  }, [applyTimeFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -318,12 +324,12 @@ export default function DigitalEmployeeOverview() {
   }).length;
 
   const goPortrait = useCallback((row) => {
-    const payload = { agentName: row.agentName, days: activeDays };
+    const payload = { agentName: row.agentName, days: effectiveDays };
     const sk = rowSessionKey(row);
     if (sk) payload.sessionKey = sk;
     sessionStorage.setItem("digital-employee:focusAgent", JSON.stringify(payload));
     window.dispatchEvent(new CustomEvent("openclaw-nav", { detail: { id: "digital-employee-list" } }));
-  }, [activeDays]);
+  }, [effectiveDays]);
   const employeeByAgentName = useMemo(() => {
     const m = new Map();
     for (const r of employeesForCharts) {
@@ -351,23 +357,17 @@ export default function DigitalEmployeeOverview() {
 
   return (
     <div className="space-y-6">
-      <CostTimeRangeFilter
-        activeDays={activeDays}
-        onPreset={(d) => {
-          setActiveDays(d);
-          const end = new Date();
-          const start = new Date(end.getTime() - d * 86400000);
-          setRange({ start, end });
-          resetInteractions();
-        }}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
-        onRangeChange={(start, end) => {
-          setActiveDays(null);
-          setRange({ start: new Date(start), end: new Date(end) });
-          resetInteractions();
-        }}
-      />
+      <div className="app-card flex items-center justify-end px-4 py-3">
+        <LogTimeRangePicker
+          timePreset={timePreset}
+          setTimePreset={setTimePreset}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          onCommit={applyTimeFilter}
+        />
+      </div>
 
       {!loading && data && (
         <p className="text-xs text-gray-500 dark:text-gray-400">

@@ -58,8 +58,15 @@ cd opsrobot
 ### 3.基于镜像部署后台服务
 
 ```bash
+
+# 测试开发环境推荐如下安装方式， doris 镜像内存 16G 以上
 docker compose -f docker-compose.yml up -d
+
+# 生产环境推荐如下安装方式，可以在环境变量中设置 数据库名称密码 ,里面使用的 doris 镜像对内存要求更高 32G 以上
+docker compose -f docker-compose-prod.yml --env-file .env up 
+
 ```
+
 
 服务启动后访问：http://localhost:3000
 

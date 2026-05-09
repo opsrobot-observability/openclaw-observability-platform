@@ -8,14 +8,20 @@ export default function SortableTableTh({
   sortOrder,
   onSort,
   className = "",
+  title: titleAttr,
 }) {
   const active = sortKey === columnKey;
   return (
-    <th scope="col" className={`px-4 py-3 text-left ${className}`} aria-sort={active ? (sortOrder === "asc" ? "ascending" : "descending") : undefined}>
+    <th
+      scope="col"
+      title={titleAttr}
+      className={`px-4 py-3 text-left ${className}`}
+      aria-sort={active ? (sortOrder === "asc" ? "ascending" : "descending") : undefined}
+    >
       <button
         type="button"
         onClick={() => onSort(columnKey)}
-        className="group inline-flex max-w-full min-w-0 items-center gap-1 rounded font-semibold text-gray-700 dark:text-gray-200 transition hover:text-primary"
+        className="group inline-flex max-w-full min-w-0 items-center gap-1 rounded font-semibold text-gray-700 transition hover:text-primary dark:text-gray-300 dark:hover:text-primary"
       >
         <span className="truncate">{label}</span>
         <span

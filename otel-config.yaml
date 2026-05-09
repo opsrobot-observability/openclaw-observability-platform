@@ -25,7 +25,7 @@ exporters:
     database: "opsRobot"
     # Doris账号（空密码）
     username: "root"
-    password: ""
+    password: ${DORIS_PASSWORD}
     # 开启自动建表，解决表找不到的核心问题
     create_schema: true
     # 超时重试配置，提升稳定性

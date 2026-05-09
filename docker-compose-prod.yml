@@ -1,0 +1,131 @@
+name: openclaw-observability-platform
+
+services:
+  # =============================================================================
+  # frontend - 静态文件服务 (支持 HTTPS)
+  # =============================================================================
+  frontend:
+    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HTTP_PORT:-80}:80"     # HTTP 端口 (自动跳转到 HTTPS)
+      - "${FRONTEND_HTTPS_PORT:-3000}:3000"  # HTTPS 端口
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro              # 挂载 SSL 证书目录 (只读)
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro  # 挂载 Nginx 配置文件 (只读)
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k https://127.0.0.1:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - openclaw-net
+
+  # =============================================================================
+  # backend 服务 - Node.js 后端
+  # =============================================================================
+  backend:
+    image: ghcr.io/opsrobot-ai/openclaw-observability-platform-backend:latest
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8787}:8787"
+    environment:
+      - DORIS_HOST=${DORIS_HOST:-doris}
+      - DORIS_PORT=${DORIS_PORT:-9030}
+      - DORIS_USER=${DORIS_USER:-root}
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+      - DORIS_DATABASE=${DORIS_DATABASE:-}
+      - PORT=8787
+    depends_on:
+      doris:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 8787 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - openclaw-net
+
+  # =============================================================================
+  # Apache Doris - 单节点服务
+  # =============================================================================
+  doris:
+    image: ${DORIS_IMAGE:-yagagagaga/doris-standalone:4.0.3}
+    container_name: doris
+    hostname: doris
+    restart: unless-stopped
+    privileged: true
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 32G
+        reservations:
+          cpus: "2"
+          memory: 16G
+    ports:
+      - "${DORIS_FE_HTTP_PORT:-8030}:8030" # FE HTTP port (Web UI)
+      - "${DORIS_FE_MYSQL_PORT:-9030}:9030" # FE MySQL protocol port
+      - "${DORIS_BE_HTTP_PORT:-8040}:8040" # BE HTTP port
+    environment:
+      - SKIP_CHECK_ULIMIT=true
+      - "TZ=${TIMEZONE:-Asia/Shanghai}"
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+    volumes:
+      - doris_data:/opt/apache-doris
+      - ./scripts/init-doris-schema.sql:/opt/apache-doris/init-doris-schema.sql:ro
+      - ./scripts/start-doris.sh:/start-doris.sh:ro
+    entrypoint: [ "/bin/bash", "/start-doris.sh" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -uroot -e 'SELECT 1' || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - openclaw-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.144.0
+    hostname: otel-collector
+    container_name: otel-collector
+    command: [ "--config=/etc/otelcol/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-config.yaml:/etc/otelcol/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "8888:8888" # Prometheus metrics (collector self-monitoring)
+      - "8889:8889" # Prometheus exporter metrics
+      - "13133:13133" # Health check extension
+    environment:
+      - DORIS_FE_HTTP_ENDPOINT=${DORIS_FE_HTTP_ENDPOINT:-http://doris:8040}
+      - DORIS_FE_MYSQL_ENDPOINT=${DORIS_FE_MYSQL_ENDPOINT:-doris:9030}
+      - DORIS_USERNAME=${DORIS_USERNAME:-root}
+      - DORIS_PASSWORD=${DORIS_PASSWORD:-}
+      - DORIS_DATABASE=${DORIS_DATABASE:-opsRobot}
+      - DORIS_TABLE_LOGS=${DORIS_TABLE_LOGS:-otel_logs}
+      - DORIS_TABLE_TRACES=${DORIS_TABLE_TRACES:-otel_traces}
+      - DORIS_TABLE_METRICS=${DORIS_TABLE_METRICS:-otel_metrics}
+    restart: unless-stopped
+    depends_on:
+      doris:
+        condition: service_healthy
+    networks:
+      - openclaw-net
+
+networks:
+  openclaw-net:
+    driver: bridge
+    name: openclaw-observability-platform-network
+
+volumes:
+  doris_data:

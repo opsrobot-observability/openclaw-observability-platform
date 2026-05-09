@@ -140,7 +140,7 @@ export default {
   "digitalEmployee.portrait.runOverview.tableTasksTitle": "任务量 Top10 Agent",
   "digitalEmployee.portrait.runOverview.tableTokensTitle": "Token 消耗 Top10 Agent",
   "digitalEmployee.portrait.runOverview.tableRiskTitle": "风险最高 Top10 Agent",
-  "digitalEmployee.portrait.runOverview.colAgentName": "Agent 名称",
+  "digitalEmployee.portrait.runOverview.colAgentName": "实例名称",
   "digitalEmployee.portrait.runOverview.colTaskCount": "任务数",
   "digitalEmployee.portrait.runOverview.colSuccessRate": "成功率",
   "digitalEmployee.portrait.runOverview.colStatus": "状态",

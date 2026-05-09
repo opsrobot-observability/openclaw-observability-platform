@@ -23,6 +23,9 @@ const instances = [
     outputTokens: "400K",
     enqueueTotal: 8900,
     dequeueTotal: 8877,
+    cpuUtilizationPct: 42.3,
+    memoryUtilizationPct: 58.6,
+    diskUtilizationPct: 63.2,
   },
   {
     id: "inst-002",
@@ -48,6 +51,9 @@ const instances = [
     outputTokens: "286K",
     enqueueTotal: 6000,
     dequeueTotal: 5985,
+    cpuUtilizationPct: 55.1,
+    memoryUtilizationPct: 71.2,
+    diskUtilizationPct: 48.9,
   },
   {
     id: "inst-003",
@@ -73,6 +79,9 @@ const instances = [
     outputTokens: "143K",
     enqueueTotal: 2500,
     dequeueTotal: 2492,
+    cpuUtilizationPct: 28.4,
+    memoryUtilizationPct: 44.0,
+    diskUtilizationPct: 82.5,
   },
 ];
 

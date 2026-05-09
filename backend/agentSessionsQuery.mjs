@@ -6,10 +6,10 @@ import { computeSessionAggregatesFromLogRows } from "../frontend/lib/sessionAudi
 
 export function getDorisConfig() {
   return {
-    host: process.env.DORIS_HOST ?? "dorisn",
-    port: Number(process.env.DORIS_PORT ?? 32290),
+    host: process.env.DORIS_HOST ?? "192.168.64.81",
+    port: Number(process.env.DORIS_PORT ?? 9030),
     user: process.env.DORIS_USER ?? "root",
-    password: process.env.DORIS_PASSWORD ?? "",
+    password: process.env.DORIS_PASSWORD ?? "anyOps_132",
     database: process.env.DORIS_DATABASE ?? "opsRobot",
   };
 }
@@ -132,6 +132,8 @@ export async function queryAgentSessionsRawWithLogTokens() {
         ...row,
         total_tokens_from_logs: agg.total_tokens_from_logs,
         tool_use_count: agg.tool_use_count,
+        tool_error_count: agg.tool_error_count,
+        exec_command_error_count: agg.exec_command_error_count,
         risk_high: agg.risk_high,
         risk_medium: agg.risk_medium,
         risk_low: agg.risk_low,

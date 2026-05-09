@@ -10,6 +10,11 @@ function dayStr(offsetDays = 0) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function deterministicWave(index, min, max) {
+  const seed = Math.sin((index + 3) * 1.917) * 10000;
+  return Math.round(min + (seed - Math.floor(seed)) * (max - min));
+}
+
 export function mockCostOverview(params = {}) {
   const { trendDays, start, end } = params;
   const now = Date.now();
@@ -25,39 +30,37 @@ export function mockCostOverview(params = {}) {
     }
   }
 
-  const multiplier = count / 14;
-
-  // 卡片数据
+  // 卡片数据：模拟“AI 用量 KPI”导致的单日 Token 峰值和成本治理告警。
   const cards = {
-    today: { totalTokens: Math.round(284350 * multiplier), momPct: 12.3 },
-    week: { totalTokens: 1_823_600, momPct: -5.7 },
-    month: { totalTokens: 7_462_100, momPct: 18.4 },
+    today: { totalTokens: 3_180_000_000, momPct: 486.7 },
+    week: { totalTokens: 4_920_000_000, momPct: 221.4 },
+    month: { totalTokens: 8_760_000_000, momPct: 96.8 },
     dailyAvg7d: {
-      avgTokens: Math.round(260514 * (1 + (Math.random() - 0.5) * 0.2)),
-      peakDay: dayStr(-Math.floor(Math.random() * count)).slice(5),
-      peakTokens: Math.round(412800 * (1 + (Math.random() - 0.5) * 0.2)),
+      avgTokens: 702_857_143,
+      peakDay: dayStr(0).slice(5),
+      peakTokens: 3_180_000_000,
     },
   };
 
   // Agent 占比
   const agentShare = [
-    { name: "客服助手·小智", tokens: Math.round(2_800_000 * multiplier), value: 37.5, fill: AGENT_COLORS[0] },
-    { name: "运维巡检员", tokens: Math.round(1_600_000 * multiplier), value: 21.4, fill: AGENT_COLORS[1] },
-    { name: "数据分析员", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: AGENT_COLORS[2] },
-    { name: "HR 面试助手", tokens: Math.round(900_000 * multiplier), value: 12.1, fill: AGENT_COLORS[3] },
-    { name: "合规审查官", tokens: Math.round(520_000 * multiplier), value: 7.0, fill: AGENT_COLORS[4] },
-    { name: "其他", tokens: Math.round(442_100 * multiplier), value: 5.9, fill: AGENT_COLORS[6] },
+    { name: "乐园运营助手", tokens: 3_110_000_000, value: 63.2, fill: AGENT_COLORS[0] },
+    { name: "客服助手·小智", tokens: 620_000_000, value: 12.6, fill: AGENT_COLORS[1] },
+    { name: "内容营销助手", tokens: 430_000_000, value: 8.7, fill: AGENT_COLORS[2] },
+    { name: "数据分析员", tokens: 360_000_000, value: 7.3, fill: AGENT_COLORS[3] },
+    { name: "运维巡检员", tokens: 260_000_000, value: 5.3, fill: AGENT_COLORS[4] },
+    { name: "其他", tokens: 140_000_000, value: 2.9, fill: AGENT_COLORS[6] },
   ];
 
   // 输入/输出占比
   const inOut = {
-    inputTokens: Math.round(4_920_000 * multiplier),
-    outputTokens: Math.round(2_542_100 * multiplier),
-    inputPct: 65.9,
-    outputPct: 34.1,
+    inputTokens: 2_470_000_000,
+    outputTokens: 2_450_000_000,
+    inputPct: 50.2,
+    outputPct: 49.8,
     pie: [
-      { name: "输入 Token", value: 65.9, fill: "#2563eb" },
-      { name: "输出 Token", value: 34.1, fill: "#34d399" },
+      { name: "输入 Token", value: 50.2, fill: "#2563eb" },
+      { name: "输出 Token", value: 49.8, fill: "#34d399" },
     ],
   };
 
@@ -65,7 +68,7 @@ export function mockCostOverview(params = {}) {
   const trendData = [];
   for (let i = count - 1; i >= 0; i--) {
     const day = dayStr(-i);
-    const base = 180_000 + Math.floor(Math.random() * 200_000);
+    const base = i === 0 ? 3_180_000_000 : deterministicWave(i, 145_000_000, 315_000_000);
     trendData.push({
       date: day.slice(5),
       day,
@@ -75,7 +78,7 @@ export function mockCostOverview(params = {}) {
   }
 
   // 每日按 Agent 拆分
-  const topAgents = ["客服助手·小智", "运维巡检员", "数据分析员", "HR 面试助手", "合规审查官"];
+  const topAgents = ["乐园运营助手", "客服助手·小智", "内容营销助手", "数据分析员", "运维巡检员"];
   const series = topAgents.map((name, i) => ({
     dataKey: `a${i}`,
     name,
@@ -88,36 +91,33 @@ export function mockCostOverview(params = {}) {
     const day = dayStr(-i);
     const row = { date: day.slice(5) };
     topAgents.forEach((_, j) => {
-      row[`a${j}`] = Math.round((30_000 + Math.random() * 60_000) / 1_000_000 * 1000) / 1000;
+      const raw = i === 0 && j === 0 ? 3_110_000_000 : deterministicWave(i + j * 7, 16_000_000, 120_000_000);
+      row[`a${j}`] = Math.round((raw / 1_000_000) * 1000) / 1000;
     });
-    row.aOther = Math.round((10_000 + Math.random() * 20_000) / 1_000_000 * 1000) / 1000;
+    row.aOther = Math.round((deterministicWave(i + 99, 8_000_000, 22_000_000) / 1_000_000) * 1000) / 1000;
     dailyByAgentRows.push(row);
   }
 
   // 大模型占比
   const modelShare = [
-    { name: "Gemini 3.1 Pro", tokens: Math.round(3_500_000 * multiplier), value: 46.9, fill: "#4f46e5" },
-    { name: "Opus 4.6", tokens: Math.round(2_100_000 * multiplier), value: 28.1, fill: "#7c3aed" },
-    { name: "GLM 5.1", tokens: Math.round(1_200_000 * multiplier), value: 16.1, fill: "#2563eb" },
-    { name: "MiniMax-M2.7", tokens: Math.round(662_100 * multiplier), value: 8.9, fill: "#3b82f6" },
+    { name: "Claude 3.7 Sonnet", tokens: 3_180_000_000, value: 64.6, fill: "#7c3aed" },
+    { name: "Gemini 3.1 Pro", tokens: 720_000_000, value: 14.6, fill: "#4f46e5" },
+    { name: "GLM 5.1", tokens: 560_000_000, value: 11.4, fill: "#2563eb" },
+    { name: "MiniMax-M2.7", tokens: 460_000_000, value: 9.4, fill: "#3b82f6" },
   ];
 
   // Top10 会话消耗 (tokens 单位为 M)
   const topSessions = [
-    { session_id: "sess_928374", tokens: 2.45, agentName: "运维巡检员", userName: "张三" },
-    { session_id: "sess_102938", tokens: 1.82, agentName: "客服助手·小智", userName: "李四" },
-    { session_id: "sess_475829", tokens: 1.56, agentName: "数据分析员", userName: "王五" },
-    { session_id: "sess_564738", tokens: 1.21, agentName: "合规审查官", userName: "赵六" },
-    { session_id: "sess_384756", tokens: 0.98, agentName: "HR 面试助手", userName: "钱七" },
-    { session_id: "sess_293847", tokens: 0.85, agentName: "客服助手·小智", userName: "孙八" },
-    { session_id: "sess_192837", tokens: 0.72, agentName: "运维巡检员", userName: "周九" },
-    { session_id: "sess_019283", tokens: 0.65, agentName: "数据分析员", userName: "吴十" },
-    { session_id: "sess_918273", tokens: 0.58, agentName: "HR 面试助手", userName: "郑十一" },
-    { session_id: "sess_827364", tokens: 0.49, agentName: "合规审查官", userName: "王十二" },
+    { session_id: "sess_ai_kpi_loop_20260407", tokens: 3120, agentName: "乐园运营助手", userName: "growth-ops@corp.example" },
+    { session_id: "sess_ai_kpi_batch_20260407_a", tokens: 420, agentName: "乐园运营助手", userName: "marketing-ops@corp.example" },
+    { session_id: "sess_ai_kpi_batch_20260407_b", tokens: 310, agentName: "乐园运营助手", userName: "park-planner@corp.example" },
+    { session_id: "sess_1122334455667788", tokens: 22.1, agentName: "数据分析员", userName: "王五" },
+    { session_id: "sess_a1b2c3d4e5f67890", tokens: 12.84, agentName: "客服助手·小智", userName: "张三" },
+    { session_id: "sess_f9e8d7c6b5a49382", tokens: 6.42, agentName: "运维巡检员", userName: "bot-runner@infra" },
   ];
 
   // 每日按模型拆分
-  const modelsForTrend = ["Gemini 3.1 Pro", "Opus 4.6", "GLM 5.1", "MiniMax-M2.7"];
+  const modelsForTrend = ["Claude 3.7 Sonnet", "Gemini 3.1 Pro", "GLM 5.1", "MiniMax-M2.7"];
   const modelSeriesData = modelsForTrend.map((name, i) => ({
     dataKey: `m${i}`,
     name,
@@ -129,7 +129,8 @@ export function mockCostOverview(params = {}) {
     const day = dayStr(-i);
     const row = { date: day.slice(5) };
     modelsForTrend.forEach((_, j) => {
-      row[`m${j}`] = Math.round((20_000 + Math.random() * 40_000) / 1_000_000 * 1000) / 1000;
+      const raw = i === 0 && j === 0 ? 3_180_000_000 : deterministicWave(i + j * 11, 18_000_000, 95_000_000);
+      row[`m${j}`] = Math.round((raw / 1_000_000) * 1000) / 1000;
     });
     dailyByModelRows.push(row);
   }
@@ -147,20 +148,20 @@ export function mockCostOverview(params = {}) {
     dailyByModel: { series: modelSeriesData, rows: dailyByModelRows },
     abnormalities: {
       gatewayLoss: {
-        tokens: Math.round(12_500 * multiplier),
-        sessions: Math.round(140 * multiplier),
+        tokens: 12_500,
+        sessions: 140,
         percentage: 4.4,
       },
       loopLoss: {
-        agentName: "数据分析员",
-        sessions: Math.round(140 * multiplier),
-        tokens: Math.round(45_000 * multiplier),
+        agentName: "乐园运营助手",
+        sessions: 28,
+        tokens: 3_120_000_000,
       },
       modelErrors: {
-        modelName: "Gemini 3.1 Pro",
-        errorCalls: Math.round(120 * multiplier),
-        totalCalls: Math.round(1000 * multiplier),
-        errorRate: 12,
+        modelName: "Claude 3.7 Sonnet",
+        errorCalls: 84,
+        totalCalls: 50_000,
+        errorRate: 0.17,
       },
     },
     legend: "Mock 数据 · 无需数据库连接",
