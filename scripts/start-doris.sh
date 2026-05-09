@@ -22,7 +22,8 @@ if [ -f "$FE_CONF" ]; then
 fi
 # 先启动 Doris 服务（在后台运行）
 echo "启动 Doris 服务..."
-bash entry_point.sh &
+[ -f "entry_point.sh" ] && bash entry_point.sh &  # doris:4.0.3-all-slim 镜像使用 entry_point.sh
+[ -f "/usr/local/bin/docker-entrypoint.sh" ] && bash /usr/local/bin/docker-entrypoint.sh &  #doris-standalone:4.0.3 镜像使用 docker-entrypoint.sh
 DORIS_PID=$!
 
 # 等待 FE 就绪（使用 mysql client 检查）
@@ -40,6 +41,15 @@ until mysql -h127.0.0.1 -P9030 -uroot -e "SHOW BACKENDS\G" 2>/dev/null | grep -q
     sleep 5
 done
 echo "Doris BE 已就绪"
+
+# 设置 root 密码（仅当 DORIS_PASSWORD 不为空且能无密码登录时）
+if [ -n "${DORIS_PASSWORD}" ] && mysql -h127.0.0.1 -P9030 -uroot -e "SELECT 1" >/dev/null 2>&1; then
+    echo "设置 Doris root 密码..."
+    mysql -h127.0.0.1 -P9030 -uroot -e "SET PASSWORD FOR 'root' = PASSWORD('${DORIS_PASSWORD}');" 2>/dev/null || \
+    mysql -h127.0.0.1 -P9030 -uroot -e "ALTER USER 'root'@'%' IDENTIFIED BY '${DORIS_PASSWORD}';" 2>/dev/null || \
+    mysql -h127.0.0.1 -P9030 -uroot -e "SET PASSWORD = PASSWORD('${DORIS_PASSWORD}');" 2>/dev/null
+    echo "Doris root 密码已设置"
+fi
 
 # 执行初始化脚本（如果存在）
 if [ -f "$INIT_SQL" ]; then
