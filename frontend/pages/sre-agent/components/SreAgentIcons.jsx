@@ -14,6 +14,42 @@ export const RobotIcon = memo(function RobotIcon({ className }) {
 export const SkillIcon = memo(function SkillIcon({ name }) {
   const cls = "h-8 w-8 rounded-lg bg-primary/10 p-1.5 text-primary dark:bg-primary/20 shrink-0";
   switch (name) {
+    case "server":
+      return (
+        <div className={cls}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21.75 17.25v-2.625a1.125 1.125 0 00-1.125-1.125h-18a1.125 1.125 0 00-1.125 1.125v2.625m19.5 0h-19.5m19.5 0v2.625a1.125 1.125 0 01-1.125 1.125h-18a1.125 1.125 0 01-1.125-1.125v-2.625m19.5 0h-19.5M6 12h.008v.008H6V12zm0 3h.008v.008H6V15zm0 3h.008v.008H6V18zm3-6h.008v.008H9V12zm0 3h.008v.008H9V15zm0 3h.008v.008H9V18zm3-6h.008v.008h-.008V12zm0 3h.008v.008h-.008V15zm0 3h.008v.008h-.008V18z"
+            />
+          </svg>
+        </div>
+      );
+    case "container":
+      return (
+        <div className={cls}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 6.878V6h12v.878M6 8.25h12m-12 3h12m-12 3h12m-12 3h12m-12 3h12M6 21h12a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12.75A2.25 2.25 0 006 21z"
+            />
+          </svg>
+        </div>
+      );
+    case "app":
+      return (
+        <div className={cls}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+            />
+          </svg>
+        </div>
+      );
     case "cube":
       return (
         <div className={cls}>
@@ -23,6 +59,7 @@ export const SkillIcon = memo(function SkillIcon({ name }) {
         </div>
       );
     case "chart":
+    case "bar-chart":
       return (
         <div className={cls}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>

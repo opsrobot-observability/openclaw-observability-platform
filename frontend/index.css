@@ -46,7 +46,7 @@
     outline: none;
   }
 
- /* SRE Agent — Pod 状态闪烁动画 */
+ /* opsRobot Agent — Pod 状态闪烁动画 */
   .sre-blink {
     animation: sre-blink-kf 1.2s ease-in-out infinite;
   }

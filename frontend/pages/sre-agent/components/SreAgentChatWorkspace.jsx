@@ -1,8 +1,6 @@
 import WorkspaceRenderer from "../../../components/agui/WorkspaceRenderer.jsx";
 import SreReportWorkspace from "../../../components/agui/SreReportWorkspace.jsx";
 import { CHAT_SPLIT_MIN, USE_MOCK } from "../constants.js";
-import AgentPicker from "./AgentPicker.jsx";
-import AgentThinkingPanel from "./AgentThinkingPanel.jsx";
 import ChatMessageList from "./ChatMessageList.jsx";
 import InputBar from "./InputBar.jsx";
 import { RobotIcon } from "./SreAgentIcons.jsx";
@@ -27,12 +25,8 @@ export default function SreAgentChatWorkspace({
   input,
   handleSend,
   setInput,
-  handleKeyDown,
   cancel,
-  catalog,
-  handleAgentChange,
-  catalogLoading,
-  catalogError,
+  agentPickerSlot,
   workspacePanels,
   handleAction,
   inputRef,
@@ -44,11 +38,6 @@ export default function SreAgentChatWorkspace({
   onExecuteRecommendation,
   reportActionsDisabled = false,
 }) {
-  const latestStep =
-    [...steps].reverse().find((s) => s.status === "running") ??
-    steps[steps.length - 1] ??
-    null;
-
   return (
     <div
       ref={chatSplitContainerRef}
@@ -73,7 +62,7 @@ export default function SreAgentChatWorkspace({
                 </svg>
               </button>
               <RobotIcon className="h-5 w-5 shrink-0 text-primary" />
-              <span className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">SRE Agent</span>
+              <span className="truncate text-sm font-semibold text-gray-800 dark:text-gray-100">opsRobot Agent</span>
             </div>
             {!USE_MOCK && (
               <p className="truncate text-[10px] text-gray-400 dark:text-gray-500" title={selectedAgentId}>
@@ -96,12 +85,6 @@ export default function SreAgentChatWorkspace({
           </button>
         </div>
 
-        {steps.length > 0 && (
-          <div className="shrink-0 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
-            <AgentThinkingPanel steps={steps} isRunning={isRunning} />
-          </div>
-        )}
-
         <ChatMessageList
           messages={messages}
           toolCallList={toolCallList}
@@ -118,31 +101,16 @@ export default function SreAgentChatWorkspace({
           onOpenSreVizItem={onOpenSreVizItem}
         />
 
-        <div className="border-t border-gray-200 p-3 dark:border-gray-700">
-          <div className="flex items-end gap-2">
-            {!USE_MOCK && (
-              <AgentPicker
-                value={selectedAgentId}
-                onChange={handleAgentChange}
-                disabled={isRunning}
-                catalog={catalog}
-                loading={catalogLoading}
-                error={catalogError}
-                compact
-              />
-            )}
-            <div className="flex-1">
-              <InputBar
-                input={input}
-                setInput={setInput}
-                onSend={handleSend}
-                onKeyDown={handleKeyDown}
-                isRunning={isRunning}
-                onCancel={cancel}
-                inputRef={inputRef}
-              />
-            </div>
-          </div>
+        <div className="p-3">
+          <InputBar
+            input={input}
+            setInput={setInput}
+            onSend={handleSend}
+            isRunning={isRunning}
+            onCancel={cancel}
+            inputRef={inputRef}
+            agentPickerSlot={agentPickerSlot}
+          />
         </div>
       </div>
 

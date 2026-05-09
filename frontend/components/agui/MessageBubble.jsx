@@ -31,7 +31,7 @@ export default function MessageBubble({ message }) {
             <circle cx="14.5" cy="11" r="1" fill="currentColor" stroke="none" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 14.5h5" />
           </svg>
-          SRE Agent
+          opsRobot Agent
         </span>
         <MarkdownContent text={content} />
         {streaming && <span className="inline-block h-4 w-1.5 animate-pulse bg-primary/60 ml-0.5 align-middle rounded-sm" />}

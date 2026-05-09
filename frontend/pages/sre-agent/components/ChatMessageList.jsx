@@ -1,14 +1,73 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { stripOpenClawHiddenBlocks } from "../messageDisplayUtils.js";
 import AssistantMessageGroup from "./AssistantMessageGroup.jsx";
+import AgentThinkingPanel, { ThinkingStreamBar } from "./AgentThinkingPanel.jsx";
 import ConfirmCard from "./ConfirmCard.jsx";
 import UserBubble from "./UserBubble.jsx";
 
 const BOTTOM_THRESHOLD_PX = 80;
 
+/** 最后一条「有可见正文」的用户消息下标（与 UserBubble 是否渲染一致）。 */
+function findLastRenderableUserMessageIndex(messages) {
+  let i = -1;
+  if (!Array.isArray(messages)) return -1;
+  for (let j = 0; j < messages.length; j++) {
+    if (messages[j].role !== "user") continue;
+    const visible = stripOpenClawHiddenBlocks(messages[j].content ?? "").trim();
+    if (visible) i = j;
+  }
+  return i;
+}
+
+/** 自 lastUserIdx 后起至下一条 user 之前的第一个 assistant（本轮回复占位）。 */
+function assistantReplyAfterUser(messages, lastUserIdx) {
+  if (!Array.isArray(messages) || lastUserIdx < 0) return null;
+  for (let j = lastUserIdx + 1; j < messages.length; j++) {
+    if (messages[j].role === "user") return null;
+    if (messages[j].role === "assistant") return messages[j];
+  }
+  return null;
+}
+
+/**
+ * Cursor 风格：仅在「本条用户消息对应的回复尚无可见正文」阶段展示思考占位；可见输出出现后或本轮空手结束则隐藏。
+ * @returns {{ show: false } | { show: true, showPanel: boolean, showDots: boolean }}
+ */
+function deriveCurrentTurnThinkingUi({ messages, steps, isRunning, error }) {
+  if (error) return { show: false };
+
+  const lastUserIdx = findLastRenderableUserMessageIndex(messages);
+  if (lastUserIdx < 0) return { show: false };
+
+  const assist = assistantReplyAfterUser(messages, lastUserIdx);
+  const visibleOut = Boolean(
+    assist && stripOpenClawHiddenBlocks(assist.content ?? "").trim().length > 0,
+  );
+  if (visibleOut) return { show: false };
+
+  const streamDoneNoOutput =
+    assist && !assist.streaming && !visibleOut && !isRunning;
+  if (streamDoneNoOutput) return { show: false };
+
+  const hasSteps = Array.isArray(steps) && steps.length > 0;
+  if (!isRunning && !hasSteps) return { show: false };
+
+  return {
+    show: true,
+    showPanel: hasSteps,
+    showDots: !hasSteps && isRunning,
+  };
+}
+
 function isNearBottom(el) {
   if (!el) return true;
   return el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_THRESHOLD_PX;
+}
+
+function scrollElementToBottom(el, behavior) {
+  if (!el) return;
+  const top = Math.max(0, el.scrollHeight - el.clientHeight);
+  el.scrollTo({ top, behavior: behavior === "smooth" ? "smooth" : "auto" });
 }
 
 function buildScrollContentSig(messages, steps, confirm, toolCallList) {
@@ -44,67 +103,145 @@ export default function ChatMessageList({
   onOpenSreVizItem,
 }) {
   const scrollRef = useRef(null);
-  const followBottomRef = useRef(true);
+  /** 包住列表根节点：ResizeObserver / MutationObserver 捕获 Markdown 内部 DOM 变化 */
+  const scrollContentMeasureRef = useRef(null);
+  /** 用户希望「粘底」：会话切换 / 自己发消息 / 点回到底部。勿用几何 near 替代，否则中间态 scroll 事件会关掉粘底，Resize 回调不再滚到底 */
+  const stickBottomRef = useRef(true);
+  /** 本次滚动事件是否为程序化设置 scrollTop（避免误判为用户上滑） */
+  const programmaticScrollRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
   const prevConversationKeyRef = useRef(undefined);
   const prevLastUserIdRef = useRef(null);
   const prevContentSigRef = useRef("");
   const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [hasNewBelow, setHasNewBelow] = useState(false);
 
-  const showInlineThinking = useMemo(() => {
-    const hasVisibleStream = messages.some(
-      (m) =>
-        m.role === "assistant" &&
-        m.streaming &&
-        stripOpenClawHiddenBlocks(m.content ?? "").trim().length > 0,
-    );
-    if (hasVisibleStream || error) return false;
-    const hasRunningStep = Array.isArray(steps) && steps.some((s) => s.status === "running");
-    const lastMessageIsUser =
-      messages.length > 0 && messages[messages.length - 1].role === "user";
-    return isRunning || hasRunningStep || lastMessageIsUser;
-  }, [messages, steps, isRunning, error]);
+  const turnThinking = useMemo(
+    () => deriveCurrentTurnThinkingUi({ messages, steps, isRunning, error }),
+    [messages, steps, isRunning, error],
+  );
 
-  const scrollContainerToBottom = useCallback((behavior) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: behavior === "smooth" ? "smooth" : "auto" });
-  }, []);
+  const lastRenderableUserIdx = useMemo(() => findLastRenderableUserMessageIndex(messages), [messages]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const near = isNearBottom(el);
-    followBottomRef.current = near;
+    const st = el.scrollTop;
+    const prevTop = lastScrollTopRef.current;
+    lastScrollTopRef.current = st;
+
+    if (!programmaticScrollRef.current) {
+      if (near) {
+        stickBottomRef.current = true;
+      } else if (prevTop - st > 6) {
+        /** 明确向上滚动（非布局抖动），解除粘底 */
+        stickBottomRef.current = false;
+      }
+    }
+
     setAwayFromBottom(!near);
     if (near) setHasNewBelow(false);
   }, []);
 
-  useEffect(() => {
+  const scrollContainerToBottom = useCallback((behavior) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    programmaticScrollRef.current = true;
+    scrollElementToBottom(el, behavior);
+    lastScrollTopRef.current = el.scrollTop;
+    requestAnimationFrame(() => {
+      const box = scrollRef.current;
+      if (!box) {
+        programmaticScrollRef.current = false;
+        return;
+      }
+      lastScrollTopRef.current = box.scrollTop;
+      programmaticScrollRef.current = false;
+      handleScroll();
+    });
+  }, [handleScroll]);
+
+  /** 切换会话 / 新会话 id：在布局提交后立即滚到底，避免 flex 未结算时 scrollHeight 偏小（历史会话从列表打开） */
+  useLayoutEffect(() => {
     const prev = prevConversationKeyRef.current;
     if (prev !== undefined && conversationResetKey === prev) return;
     prevConversationKeyRef.current = conversationResetKey;
-    followBottomRef.current = true;
+    stickBottomRef.current = true;
     prevLastUserIdRef.current = null;
     setAwayFromBottom(false);
     setHasNewBelow(false);
     prevContentSigRef.current = "";
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
-        scrollContainerToBottom("auto");
-        handleScroll();
-      });
-      return () => cancelAnimationFrame(raf2);
+
+    const snapToBottom = () => {
+      scrollContainerToBottom("auto");
+    };
+
+    snapToBottom();
+    const raf = requestAnimationFrame(() => {
+      snapToBottom();
     });
-    return () => cancelAnimationFrame(raf1);
-  }, [conversationResetKey, scrollContainerToBottom, handleScroll]);
+    return () => cancelAnimationFrame(raf);
+  }, [conversationResetKey, scrollContainerToBottom]);
+
+  /** 滚轮向上：明确的「离开底部」意图（避免仅靠几何误判关掉粘底） */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (e.deltaY < -4) stickBottomRef.current = false;
+    };
+    el.addEventListener("wheel", onWheel, { passive: true });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  /** Markdown 排版 / 内部 DOM 更新：粘底时持续对齐（几何 near 与 stick 解耦） */
+  useLayoutEffect(() => {
+    const measureEl = scrollContentMeasureRef.current;
+    if (!measureEl) return;
+
+    let moRaf = 0;
+    const scheduleSnap = () => {
+      if (!stickBottomRef.current) return;
+      cancelAnimationFrame(moRaf);
+      moRaf = requestAnimationFrame(() => {
+        moRaf = 0;
+        if (!stickBottomRef.current) return;
+        scrollContainerToBottom("auto");
+      });
+    };
+
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(scheduleSnap);
+      ro.observe(measureEl);
+    }
+
+    let mo = null;
+    if (typeof MutationObserver !== "undefined") {
+      mo = new MutationObserver(scheduleSnap);
+      mo.observe(measureEl, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+      });
+    }
+
+    scheduleSnap();
+    return () => {
+      cancelAnimationFrame(moRaf);
+      ro?.disconnect();
+      mo?.disconnect();
+    };
+  }, [conversationResetKey, scrollContainerToBottom]);
 
   useEffect(() => {
     const last = messages[messages.length - 1];
     if (!last || last.role !== "user") return;
     if (last.id === prevLastUserIdRef.current) return;
     prevLastUserIdRef.current = last.id;
-    followBottomRef.current = true;
+    stickBottomRef.current = true;
     setAwayFromBottom(false);
     setHasNewBelow(false);
     const raf = requestAnimationFrame(() => {
@@ -115,7 +252,7 @@ export default function ChatMessageList({
 
   useEffect(() => {
     const sig = buildScrollContentSig(messages, steps, confirm, toolCallList);
-    if (!followBottomRef.current) {
+    if (!stickBottomRef.current) {
       if (prevContentSigRef.current && sig !== prevContentSigRef.current) {
         setHasNewBelow(true);
       }
@@ -124,20 +261,21 @@ export default function ChatMessageList({
     }
     prevContentSigRef.current = sig;
     const raf = requestAnimationFrame(() => {
-      if (!followBottomRef.current) return;
+      if (!stickBottomRef.current) return;
       scrollContainerToBottom("auto");
     });
     return () => cancelAnimationFrame(raf);
   }, [messages, steps, confirm, toolCallList, scrollContainerToBottom]);
 
   const handleJumpToBottom = useCallback(() => {
-    followBottomRef.current = true;
+    stickBottomRef.current = true;
     setHasNewBelow(false);
     setAwayFromBottom(false);
-    scrollContainerToBottom("smooth");
+    scrollContainerToBottom("auto");
   }, [scrollContainerToBottom]);
 
-  const showJumpFab = awayFromBottom && messages.length > 0;
+  /** 粘底会话载入过程中几何上可能暂时不在底部，不弹出 FAB */
+  const showJumpFab = awayFromBottom && !stickBottomRef.current && messages.length > 0;
   const jumpFabLiveReply = isRunning;
 
   return (
@@ -145,13 +283,28 @@ export default function ChatMessageList({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3"
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
       >
-        {messages.map((msg, idx) => {
+        <div ref={scrollContentMeasureRef} className="space-y-3">
+          {messages.map((msg, idx) => {
           if (msg.role === "user") {
             const userVisible = stripOpenClawHiddenBlocks(msg.content);
             if (!userVisible.trim()) return null;
-            return <UserBubble key={msg.id} text={userVisible} />;
+            const injectThinking = turnThinking.show && idx === lastRenderableUserIdx;
+            return (
+              <Fragment key={msg.id}>
+                <UserBubble text={userVisible} />
+                {injectThinking ? (
+                  <div className="px-1">
+                    {turnThinking.showPanel ? (
+                      <AgentThinkingPanel steps={steps} isRunning={isRunning} />
+                    ) : (
+                      <ThinkingStreamBar active />
+                    )}
+                  </div>
+                ) : null}
+              </Fragment>
+            );
           }
           if (msg.role !== "assistant") return null;
           return (
@@ -166,34 +319,20 @@ export default function ChatMessageList({
               onOpenSreVizItem={onOpenSreVizItem}
             />
           );
-        })}
+          })}
 
-        {confirm && (
-          <ConfirmCard confirm={confirm} onRespond={respondConfirm} />
-        )}
+          {confirm && (
+            <ConfirmCard confirm={confirm} onRespond={respondConfirm} />
+          )}
 
-        {showInlineThinking && (
-          <div
-            className="flex items-center gap-2 px-1 py-2"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">思考中</span>
-            <div className="flex gap-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms] dark:bg-gray-500" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms] dark:bg-gray-500" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms] dark:bg-gray-500" />
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
+              {error}
             </div>
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
-            {error}
-          </div>
-        )}
-
-        <div ref={chatEndRef} />
+          <div ref={chatEndRef} />
+        </div>
       </div>
 
       {showJumpFab && (

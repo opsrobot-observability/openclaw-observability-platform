@@ -1,5 +1,5 @@
 /**
- * SRE Agent 可选 Agent 列表（对话目标 OpenClaw agent_id）。
+ * opsRobot Agent 可选 Agent 列表（对话目标 OpenClaw agent_id）。
  *
  * 优先从后端 GET /api/openclaw/agents（与 /api/sre/agents 等价）拉取 OpenClaw 已注册 Agent；
  * 若接口不可用，回退到 VITE_SRE_AGENT_CATALOG 环境变量（离线 fallback）。
@@ -29,7 +29,7 @@ function parseCatalog() {
       /* fall through */
     }
   }
-  return [{ id: "sre", label: "内置 SRE Agent", description: "平台默认（与后端 OPENCLAW_AGENT_ID 可一致）" }];
+  return [{ id: "sre", label: "内置 opsRobot Agent", description: "平台默认（与后端 OPENCLAW_AGENT_ID 可一致）" }];
 }
 
 export const STATIC_FALLBACK_CATALOG = parseCatalog();

@@ -52,7 +52,7 @@ export default {
   "nav.instanceMonitoring": "驾驶舱",
   "nav.digitalEmployeeOverview": "数字员工概览",
   "nav.digitalEmployeeList": "数字员工",
-  "nav.sreAgent": "SRE Agent",
+  "nav.sreAgent": "opsRobot Agent",
 
   "page.panorama.title": "数据总览",
   "page.panorama.subtitle": "关键指标与订单一览 · 实时更新",

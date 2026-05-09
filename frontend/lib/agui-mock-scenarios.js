@@ -1,5 +1,5 @@
 /**
- * AG-UI Mock Scenarios — SRE Agent 事件流
+ * AG-UI Mock Scenarios — opsRobot Agent 事件流
  *
  * 每个 scenario 返回事件数组，驱动左侧聊天 + 右侧工作区。
  * CUSTOM(workspace) 事件推送右侧面板；TEXT_MESSAGE 推送左侧消息。

@@ -22,7 +22,6 @@ export default function OpenClawSessionsAside({
     <aside className="flex w-[280px] shrink-0 flex-col border-r border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-950/40">
       <div className="border-b border-gray-200 px-3 py-2.5 dark:border-gray-700">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">OpenClaw 会话</p>
-        <p className="mt-0.5 truncate text-[11px] text-gray-400 dark:text-gray-500">来自 Gateway 接口</p>
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-2 py-2">

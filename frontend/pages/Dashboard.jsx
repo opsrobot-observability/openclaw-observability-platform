@@ -35,7 +35,7 @@ const PAGE_META_KEYS = {
   "openclaw-instance": { title: "page.openclawInstance.title", subtitle: "page.openclawInstance.subtitle" },
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
   "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
-  "sre-agent": { title: "SRE Agent", subtitle: "智能运维助手 · K8s 巡检 / 监控查询 / 故障诊断" },
+  "sre-agent": { title: "opsRobot Agent", subtitle: "智能运维助手 · K8s 巡检 / 监控查询 / 故障诊断" },
 };
 
 const NAV_KEYS = [

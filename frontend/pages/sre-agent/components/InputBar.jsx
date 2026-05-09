@@ -1,40 +1,80 @@
-import { memo } from "react";
+import { Sender } from "@ant-design/x";
+import { memo, useCallback, useMemo } from "react";
+import { useTheme } from "../../../context/ThemeContext.jsx";
 
-const InputBar = memo(function InputBar({ input, setInput, onSend, onKeyDown, isRunning, onCancel, inputRef }) {
+const InputBar = memo(function InputBar({ input, setInput, onSend, isRunning, onCancel, inputRef, agentPickerSlot }) {
+  const { resolved } = useTheme();
+  const isDark = resolved === "dark";
+
+  const senderStyles = useMemo(() => {
+    const bg = isDark ? "rgb(17 24 39)" : "#ffffff";
+    const border = isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)";
+    return {
+      root: {
+        backgroundColor: bg,
+        borderRadius: 16,
+        overflow: "hidden",
+        border: border,
+        boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.04)",
+      },
+      content: {
+        backgroundColor: bg,
+        padding: "10px 14px 6px",
+        alignItems: "flex-start",
+      },
+      input: {
+        backgroundColor: "transparent",
+        borderRadius: 10,
+      },
+      footer: {
+        backgroundColor: bg,
+        padding: 0,
+        margin: 0,
+      },
+    };
+  }, [isDark]);
+
+  const mergeRef = useCallback(
+    (instance) => {
+      if (inputRef) {
+        inputRef.current = instance;
+      }
+    },
+    [inputRef],
+  );
+
+  const toolbarFooter = useCallback(
+    (actionNode) => (
+      <div
+        className={`flex w-full min-h-[36px] items-center gap-3 px-3 pb-2
+          ${agentPickerSlot ? "justify-between" : "justify-end"}`}
+      >
+        {agentPickerSlot ? <div className="flex min-w-0 flex-1 items-center">{agentPickerSlot}</div> : null}
+        <div className="flex shrink-0 items-center">{actionNode}</div>
+      </div>
+    ),
+    [agentPickerSlot, isDark],
+  );
+
   return (
-    <div className="flex items-end gap-2">
-      <textarea
-        ref={inputRef}
+    <div className="w-full min-w-0">
+      <Sender
+        ref={mergeRef}
         value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={onKeyDown}
-        rows={1}
-        placeholder="输入运维指令…"
-        className="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
+        onChange={(v) => setInput(v)}
+        onSubmit={(msg) => {
+          const t = String(msg ?? "").trim();
+          if (t) onSend(t);
+        }}
+        loading={isRunning}
+        onCancel={onCancel}
+        placeholder="按 Enter 发送，Shift + Enter 换行"
+        submitType="enter"
+        autoSize={{ minRows: 1, maxRows: 8 }}
+        styles={senderStyles}
+        suffix={false}
+        footer={toolbarFooter}
       />
-      {isRunning ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white transition hover:bg-rose-600"
-          title="取消"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onSend()}
-          disabled={!input.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-          </svg>
-        </button>
-      )}
     </div>
   );
 });

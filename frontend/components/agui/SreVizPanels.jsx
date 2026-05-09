@@ -1,5 +1,5 @@
 /**
- * SRE Agent 右侧工作区可视化面板 — 统一导出入口。
+ * opsRobot Agent 右侧工作区可视化面板 — 统一导出入口。
  *
  * 各面板实现位于 `./sre-viz/`，按类型拆分；此处仅 re-export，供 `WorkspaceRenderer` 等按需引用。
  */

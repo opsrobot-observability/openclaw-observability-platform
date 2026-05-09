@@ -150,7 +150,7 @@ function buildSreAgentWebSocketUrl(path) {
 }
 
 /**
- * SRE Agent：WebSocket 传输，AG-UI 事件为 JSON 文本帧。
+ * opsRobot Agent：WebSocket 传输，AG-UI 事件为 JSON 文本帧。
  * 长连接：先 `connect()`，同一会话内多次 `runAgent` 复用同一 socket；`RUN_FINISHED` 不关闭连接。
  * 会话增量：`startSessionPoll` 每约 3s 发送 `op: "poll_session"`，服务端经 WS 推送 `CUSTOM openclaw_session_detail`。
  */

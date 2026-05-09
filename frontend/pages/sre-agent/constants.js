@@ -13,10 +13,10 @@ export const SRE_USE_WEBSOCKET =
   import.meta.env.VITE_SRE_AGENT_TRANSPORT !== "sse";
 
 export const SKILLS = [
-  { key: "k8s", label: "巡检 K8s", icon: "cube", prompt: "请对当前 K8s 集群做一次巡检，列出异常 Pod 和关键事件" },
-  { key: "prom", label: "查监控", icon: "chart", prompt: "查询当前集群 CPU 使用率、内存使用率和 5xx 错误率" },
-  { key: "diagnose", label: "诊断故障", icon: "bug", prompt: "有服务响应变慢，请帮我诊断可能的原因" },
-  { key: "report", label: "出报告", icon: "doc", prompt: "请生成一份今日集群巡检报告" },
+  { key: "claw-task", label: "任务管理", icon: "check-square", prompt: "查看OpenClaw所有执行任务状态、进度与历史记录" },
+  { key: "claw-config", label: "配置管理", icon: "settings", prompt: "巡检OpenClaw系统配置，检查参数、权限与接入状态是否正常" },
+  { key: "claw-monitor", label: "平台监控", icon: "eye", prompt: "监控OpenClaw自身服务状态、接口可用性与资源占用" },
+  { key: "claw-dashboard", label: "全景看板", icon: "grid", prompt: "生成OpenClaw运维平台全景数据看板与健康度评分" }
 ];
 
 export const REFRESH_INTERVAL = 60_000;

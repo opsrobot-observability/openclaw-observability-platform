@@ -41,11 +41,11 @@ const STAGE_HEADER = {
 };
 
 const ACCENT_STYLES = {
-  blue:    { border: "border-l-blue-500",    badge: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",    title: "text-blue-700 dark:text-blue-300" },
-  amber:   { border: "border-l-amber-500",   badge: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",  title: "text-amber-700 dark:text-amber-300" },
-  rose:    { border: "border-l-rose-500",    badge: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",    title: "text-rose-700 dark:text-rose-300" },
-  emerald: { border: "border-l-emerald-500", badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", title: "text-emerald-700 dark:text-emerald-300" },
-  violet:  { border: "border-l-violet-500",  badge: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",  title: "text-violet-700 dark:text-violet-300" },
+  blue:    { badge: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",    title: "text-blue-700 dark:text-blue-300" },
+  amber:   { badge: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",  title: "text-amber-700 dark:text-amber-300" },
+  rose:    { badge: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",    title: "text-rose-700 dark:text-rose-300" },
+  emerald: { badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", title: "text-emerald-700 dark:text-emerald-300" },
+  violet:  { badge: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",  title: "text-violet-700 dark:text-violet-300" },
 };
 
 const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"];
@@ -448,13 +448,13 @@ function TimelineSection({ tableData }) {
         return (
           <li key={ri} className="flex gap-3">
             <div
-              className="flex w-[7.5rem] shrink-0 flex-col items-end border-r border-dashed border-primary/35 pr-3 pt-0.5 text-right"
+              className="flex w-[7.5rem] shrink-0 flex-col items-end pr-3 pt-0.5 text-right"
               style={{ minHeight: "2.5rem" }}
             >
               <span className="text-[11px] font-mono text-primary/90 dark:text-primary/80">{tCell || "—"}</span>
             </div>
-            <div className="relative min-w-0 flex-1 pb-4 pl-0.5">
-              <span className="absolute -left-px top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-primary bg-white shadow-sm dark:border-primary dark:bg-gray-900" />
+            <div className="relative min-w-0 flex-1 border-l border-dashed border-primary/35 pb-4 pl-3">
+              <span className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-primary bg-white shadow-sm dark:border-primary dark:bg-gray-900" />
               {restIdx.length === 0 ? (
                 <p className="text-xs text-gray-600 dark:text-gray-300">—</p>
               ) : (
@@ -488,13 +488,13 @@ function TimelineListSection({ items }) {
       {items.map((it, ri) => (
         <li key={ri} className="flex gap-3">
           <div
-            className="flex w-[7.5rem] shrink-0 flex-col items-end border-r border-dashed border-primary/35 pr-3 pt-0.5 text-right"
+            className="flex w-[7.5rem] shrink-0 flex-col items-end pr-3 pt-0.5 text-right"
             style={{ minHeight: "2.5rem" }}
           >
             <span className="text-[11px] font-mono text-primary/90 dark:text-primary/80">{it.time || "—"}</span>
           </div>
-          <div className="relative min-w-0 flex-1 pb-4 pl-0.5">
-            <span className="absolute -left-px top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-primary bg-white shadow-sm dark:border-primary dark:bg-gray-900" />
+          <div className="relative min-w-0 flex-1 border-l border-dashed border-primary/35 pb-4 pl-3">
+            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-primary bg-white shadow-sm dark:border-primary dark:bg-gray-900" />
             <p className="ml-2 text-xs leading-relaxed break-words text-gray-700 dark:text-gray-200">{it.description}</p>
           </div>
         </li>
@@ -1180,7 +1180,7 @@ function SectionShell({ heading, level, accent, children }) {
   }
   const titlePlain = stripMarkdownBoldAndCodeForPlainText(heading);
   return (
-    <div className={`rounded-xl border border-gray-100 border-l-[3px] bg-white p-4 dark:border-gray-700 dark:bg-gray-900 ${styles.border}`}>
+    <div className="rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
       <h3 className={`mb-3 text-${level === 2 ? "sm" : "xs"} font-semibold ${styles.title}`}>{titlePlain}</h3>
       {children}
     </div>

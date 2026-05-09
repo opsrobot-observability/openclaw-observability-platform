@@ -559,9 +559,9 @@ async function runSreAgentViaWs(input, emit, signal, opts, config, clientRunId, 
       _lastContentBuffer = cleanText;
     }
 
-    if (!hasWorkspacePanel) {
-      emitFallbackWorkspacePanel(trackedEmit);
-    }
+    // if (!hasWorkspacePanel) {
+    //   emitFallbackWorkspacePanel(trackedEmit);
+    // }
 
     if (!opts?.suppressRunFinished) {
       trackedEmit({ type: EventType.RUN_FINISHED, threadId, runId: clientRunId });
@@ -632,9 +632,9 @@ async function runSreAgentViaHttp(input, emit, signal, opts, config, runId, thre
 
     await processStreamResponse(response, trackedEmit, config, chatMessages, signal, threadId);
 
-    if (!hasWorkspacePanel) {
-      emitFallbackWorkspacePanel(trackedEmit);
-    }
+    // if (!hasWorkspacePanel) {
+    //   emitFallbackWorkspacePanel(trackedEmit);
+    // }
 
     if (!opts?.suppressRunFinished) {
       trackedEmit({ type: EventType.RUN_FINISHED, threadId, runId });

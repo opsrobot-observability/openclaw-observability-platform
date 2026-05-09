@@ -23,12 +23,13 @@ import { useAgentCatalog } from "./hooks/useAgentCatalog.js";
 import { useOpenClawSessionsList } from "./hooks/useOpenClawSessionsList.js";
 import { useSreReportTabs } from "./hooks/useSreReportTabs.js";
 import { readStoredChatSplitPx } from "./sessionUtils.js";
+import AgentPicker from "./components/AgentPicker.jsx";
 import OpenClawSessionsAside from "./components/OpenClawSessionsAside.jsx";
 import SreAgentChatWorkspace from "./components/SreAgentChatWorkspace.jsx";
 import SreAgentLanding from "./components/SreAgentLanding.jsx";
 
 /**
- * SRE Agent — 左侧聊天框(意图层) + 右侧工作区(执行层)
+ * opsRobot Agent — 左侧聊天框(意图层) + 右侧工作区(执行层)
  *
  * 双模式：
  * - OpenClaw 模式（默认）：POST /api/sre-agent → 后端桥接 OpenClaw Chat API
@@ -145,6 +146,10 @@ export default function SreAgent() {
     openSreVizQueueItem,
   } = useAgui(agent, { openClawSessionKey: activeOpenClawSessionKey });
 
+  /** 保证落地页首条发送在 sessionThreadId 更新后仍调用到最新的 sendMessage（新 HttpAgent/WsAgent） */
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
   const resetConversation = useCallback(() => {
     setActiveOpenClawSessionKey(null);
     setSessionOpenError(null);
@@ -152,14 +157,6 @@ export default function SreAgent() {
     setSessionThreadId(newOpsRobotThreadId());
     resetAgui();
   }, [resetAgui]);
-
-  useEffect(() => {
-    if (catalog.length > 0 && !catalog.some((a) => a.id === selectedAgentId)) {
-      const fallbackId = readStoredAgentId(catalog);
-      setSelectedAgentId(fallbackId);
-      writeStoredAgentId(fallbackId);
-    }
-  }, [catalog, selectedAgentId]);
 
   useEffect(() => {
     if (prevAgentIdRef.current === null) {
@@ -179,6 +176,31 @@ export default function SreAgent() {
   }, []);
 
   const isRunning = status === "running";
+
+  /** OpenClaw 列表更新后：若当前选中 id 已不在列表中，回退到本地记忆或列表首项 */
+  useEffect(() => {
+    if (catalog.length > 0 && !catalog.some((a) => a.id === selectedAgentId)) {
+      const fallbackId = readStoredAgentId(catalog);
+      setSelectedAgentId(fallbackId);
+      writeStoredAgentId(fallbackId);
+    }
+  }, [catalog, selectedAgentId]);
+
+  const agentPickerSlot = useMemo(() => {
+    if (USE_MOCK) return null;
+    return (
+      <AgentPicker
+        value={selectedAgentId}
+        onChange={handleAgentChange}
+        disabled={isRunning}
+        catalog={catalog}
+        loading={catalogLoading}
+        error={catalogError}
+        embedded
+      />
+    );
+  }, [selectedAgentId, handleAgentChange, isRunning, catalog, catalogLoading, catalogError]);
+
   const showChatWorkspace = messages.length > 0 || activeOpenClawSessionKey != null;
 
   const { tabs: sreReportTabs, activeTabId, setActiveTabId } = useSreReportTabs(messages);
@@ -259,9 +281,21 @@ export default function SreAgent() {
       const t = String(raw ?? "").trim();
       if (!t || isRunning) return;
       setInput("");
+
+      // 落地页（无消息、未打开历史会话）：每次发送都换新 thread，避免沿用旧会话 id
+      const startFreshFromLanding = messages.length === 0 && activeOpenClawSessionKey == null;
+      if (startFreshFromLanding) {
+        setSessionThreadId(newOpsRobotThreadId());
+        setActiveOpenClawSessionKey(null);
+        queueMicrotask(() => {
+          sendMessageRef.current(t);
+        });
+        return;
+      }
+
       sendMessage(t);
     },
-    [input, isRunning, sendMessage],
+    [input, isRunning, sendMessage, messages.length, activeOpenClawSessionKey],
   );
 
   /** 报告「推荐方案」执行：在当前会话发送该条推荐正文（纯文本，无附加前缀） */
@@ -272,16 +306,6 @@ export default function SreAgent() {
       handleSend(t);
     },
     [handleSend, isRunning],
-  );
-
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend],
   );
 
   if (!showChatWorkspace) {
@@ -302,14 +326,9 @@ export default function SreAgent() {
         <SreAgentLanding
           sessionOpenError={sessionOpenError}
           handleSend={handleSend}
-          selectedAgentId={selectedAgentId}
-          handleAgentChange={handleAgentChange}
-          catalog={catalog}
-          catalogLoading={catalogLoading}
-          catalogError={catalogError}
+          agentPickerSlot={agentPickerSlot}
           input={input}
           setInput={setInput}
-          handleKeyDown={handleKeyDown}
           isRunning={isRunning}
           cancel={cancel}
           inputRef={inputRef}
@@ -339,12 +358,8 @@ export default function SreAgent() {
       input={input}
       handleSend={handleSend}
       setInput={setInput}
-      handleKeyDown={handleKeyDown}
       cancel={cancel}
-      catalog={catalog}
-      handleAgentChange={handleAgentChange}
-      catalogLoading={catalogLoading}
-      catalogError={catalogError}
+      agentPickerSlot={agentPickerSlot}
       workspacePanels={workspacePanels}
       handleAction={handleAction}
       inputRef={inputRef}
