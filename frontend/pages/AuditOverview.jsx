@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import intl from "react-intl-universal";
 import CostTimeRangeFilter, { defaultRangeLastDays } from "../components/CostTimeRangeFilter.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import AuditOverviewContent from "./audit-overview/index.jsx";
 import { generateMockData } from "./audit-overview/mockData.js";
 import { adaptApiToUI } from "./audit-overview/adaptApiToUI.js";
+import intl from "react-intl-universal";
 
 const USE_MOCK = import.meta.env.VITE_MOCK === "true";
 
@@ -53,8 +53,7 @@ export default function AuditOverview() {
     <div className="space-y-6">
       <CostTimeRangeFilter
         activeDays={activeDays}
-        onPreset={(p) => {
-          const days = p?.days ?? 7;
+        onPreset={(days) => {
           setActiveDays(days);
           setRange(defaultRangeLastDays(days));
         }}

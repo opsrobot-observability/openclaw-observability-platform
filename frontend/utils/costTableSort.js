@@ -55,7 +55,7 @@ function compareValues(va, vb) {
  * @param {object[]} rows
  * @param {string} key
  * @param {'asc'|'desc'} order
- * @param {'agent-list'|'llm'} table
+ * @param {'agent-list'|'llm'|'llm-summary'} table
  */
 export function sortCostRows(rows, key, order, table) {
   if (!key || !rows.length) return rows;
@@ -68,6 +68,14 @@ export function sortCostRows(rows, key, order, table) {
           avgPerTask: (r) => parseTokensDisplay(r.avgPerTask),
           callCount: (r) => Number(r.callCount) || 0,
           successRate: (r) => parsePercentDisplay(r.successRate),
+        }[key]
+      : table === "llm-summary"
+      ? {
+          model: (r) => r.model,
+          provider: (r) => r.provider ?? "",
+          totalTokens: (r) => Number(r.totalTokens) || parseTokensDisplay(r.totalTokensFmt),
+          callCount: (r) => Number(r.callCount) || 0,
+          errorRate: (r) => parsePercentDisplay(r.errorRate),
         }[key]
       : {
           model: (r) => r.model,
