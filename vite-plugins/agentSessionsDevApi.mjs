@@ -18,6 +18,16 @@ import {
 import { queryUnifiedLogsSearch } from "../backend/log-search/unified-logs-search.mjs";
 import { queryConfigAuditLogs, queryConfigAuditStats } from "../backend/security-audit/config-audit-query.mjs";
 import { queryOtelOverviewData } from "../backend/otel-metrics/otel-overview-query.mjs";
+import { queryOtelTraceData } from "../backend/otel-metrics/otel-traces-query.mjs";
+import { queryOtelTracesOverview } from "../backend/otel-metrics/otel-traces-overview-query.mjs";
+import { queryOtelTracesInstances } from "../backend/otel-metrics/otel-traces-instances-query.mjs";
+import {
+  queryInstanceDetailSpans,
+  queryInstanceDetailTraces,
+  queryInstanceDetailScatter,
+  queryInstanceDetailApdex,
+  queryInstanceDetailAggregation,
+} from "../backend/otel-metrics/otel-instance-detail-query.mjs";
 import {
   queryMonitorDashboard,
   queryMonitorDashboardSourceTerminalsByWindow,
@@ -505,6 +515,141 @@ export function agentSessionsDevApi() {
             sendJson(res, 200, data);
           } catch (e) {
             console.error("[otel-overview] Error:", e);
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/otel-traces-instances")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const data = await queryOtelTracesInstances({ hours, startTime, endTime });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/instance-detail/spans")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const instanceId = u.searchParams.get("instanceId") || "";
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const filtersJson = u.searchParams.get("filters");
+            const filters = filtersJson ? JSON.parse(filtersJson) : {};
+            const data = await queryInstanceDetailSpans({ instanceId, hours, startTime, endTime, filters });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/instance-detail/traces")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const instanceId = u.searchParams.get("instanceId") || "";
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const traceId = u.searchParams.get("traceId") || "";
+            const filtersJson = u.searchParams.get("filters");
+            const filters = filtersJson ? JSON.parse(filtersJson) : {};
+            const data = await queryInstanceDetailTraces({ instanceId, hours, startTime, endTime, filters, traceId });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/instance-detail/scatter")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const instanceId = u.searchParams.get("instanceId") || "";
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const data = await queryInstanceDetailScatter({ instanceId, hours, startTime, endTime });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/instance-detail/apdex")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const instanceId = u.searchParams.get("instanceId") || "";
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const threshold = Number(u.searchParams.get("threshold") ?? "500");
+            const data = await queryInstanceDetailApdex({ instanceId, hours, startTime, endTime, threshold });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/instance-detail/aggregation")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const instanceId = u.searchParams.get("instanceId") || "";
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const dimension = u.searchParams.get("dimension") || "spanName";
+            const data = await queryInstanceDetailAggregation({ instanceId, hours, startTime, endTime, dimension });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/otel-traces-overview")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            const data = await queryOtelTracesOverview({ hours, startTime, endTime });
+            sendJson(res, 200, data);
+          } catch (e) {
+            const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+            sendJson(res, 500, { error: msg });
+          }
+          return;
+        }
+
+        if (url.startsWith("/api/otel-traces")) {
+          try {
+            const u = new URL(url, "http://vite.local");
+            const hours = Number(u.searchParams.get("hours") ?? "1");
+            const startTime = u.searchParams.get("startTime");
+            const endTime = u.searchParams.get("endTime");
+            console.log("[otel-traces] Querying with hours:", hours, "startTime:", startTime, "endTime:", endTime);
+            const data = await queryOtelTraceData({ hours, startTime, endTime });
+            console.log("[otel-traces] Success, totalSpans:", data.overview?.totalSpans || 0);
+            sendJson(res, 200, data);
+          } catch (e) {
+            console.error("[otel-traces] Error:", e);
             const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
             sendJson(res, 500, { error: msg });
           }
