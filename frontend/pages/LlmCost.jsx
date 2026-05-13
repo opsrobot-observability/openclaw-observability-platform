@@ -178,7 +178,8 @@ export default function LlmCost({ params }) {
     <div className="space-y-6">
       <CostTimeRangeFilter
         activeDays={activeDays}
-        onPreset={(days) => {
+        onPreset={(preset) => {
+          const days = preset?.days ?? preset;
           setActiveDays(days);
           setRange(defaultRangeLastDays(days));
         }}

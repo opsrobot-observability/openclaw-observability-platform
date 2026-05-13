@@ -31,8 +31,11 @@ export function LocaleProvider({ children }) {
   useEffect(() => {
     intl
       .init({ currentLocale: locale, locales: LOCALES })
-      .then(() => setIntlReady(true));
-  }, []);
+      .then(() => {
+        document.documentElement.lang = locale;
+        setIntlReady(true);
+      });
+  }, [locale]);
 
   const setLocale = useCallback(async (lang) => {
     if (!LOCALES[lang]) return;

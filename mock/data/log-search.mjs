@@ -6,111 +6,164 @@ import {
   normalizeAgentSessionsRow,
   normalizeAuditRow,
   normalizeGatewayRow,
+  sortUnifiedByTime,
 } from "../../backend/log-search/log-unified-model.mjs";
 
-function isoStr(offsetMs = 0) {
-  return new Date(Date.now() + offsetMs).toISOString();
+/** Agent 会话 mock 条数（分页演示） */
+const MOCK_AGENT_LOG_ROWS = 300;
+/** 配置变更（audit_logs）mock 条数 */
+const MOCK_AUDIT_LOG_ROWS = 300;
+/** 网关（gateway_logs）mock 条数 */
+const MOCK_GATEWAY_LOG_ROWS = 300;
+
+const MOCK_TYPES = ["message", "session", "model_change", "custom"];
+const MOCK_PROVIDERS = ["openai", "anthropic", "minimax-cn", "deepseek", "alibaba"];
+const MOCK_CHANNELS = ["web", "internal", "api", "feishu", "dingtalk"];
+const MOCK_AGENTS = ["客服助手·小智", "运维巡检员", "数据分析员", "HR 面试助手", "合规审查官"];
+const MOCK_MODELS = ["gpt-4o-mini", "gpt-4o", "claude-3-5-sonnet", "MiniMax-M2.5", "deepseek-r1", "qwen-turbo"];
+const MOCK_ROLES = ["assistant", "user", "toolResult", "system"];
+const MOCK_TOOLS = ["metrics.query", "warehouse.run_sql", "docs.search", "calendar.create", ""];
+
+/** @type {Record<string, unknown>[] | null} */
+let cachedMockAgentRows = null;
+/** @type {Record<string, unknown>[] | null} */
+let cachedMockAuditRows = null;
+/** @type {Record<string, unknown>[] | null} */
+let cachedMockGatewayRows = null;
+
+/**
+ * 生成固定条数的会话日志样例（时间分布在约 7 天内，便于时间轴 / 分页联调）
+ * @param {number} n
+ */
+function buildMockAgentSessionRows(n) {
+  const out = [];
+  const spanMs = 7 * 24 * 3600_000;
+  for (let i = 0; i < n; i++) {
+    const frac = n <= 1 ? 0 : i / (n - 1);
+    const t = Date.now() - Math.floor(frac * spanMs) - (i % 41) * 60_000 - (i % 3) * 1000;
+    const type = MOCK_TYPES[i % MOCK_TYPES.length];
+    const provider = MOCK_PROVIDERS[i % MOCK_PROVIDERS.length];
+    const model = MOCK_MODELS[i % MOCK_MODELS.length];
+    const agent = MOCK_AGENTS[i % MOCK_AGENTS.length];
+    const channel = MOCK_CHANNELS[i % MOCK_CHANNELS.length];
+    const role = MOCK_ROLES[i % MOCK_ROLES.length];
+    const isErr = i % 9 === 0 || i % 13 === 0 ? 1 : 0;
+    const sessionId = `sess_mock_${String(i).padStart(4, "0")}${(((i * 7919) % 4096) + 4096).toString(16).slice(1, 5)}`;
+    const messageId = `msg_mock_${String(i + 1).padStart(5, "0")}`;
+    const tool = role === "toolResult" ? MOCK_TOOLS[i % MOCK_TOOLS.length] : "";
+    const tracePayload =
+      i % 4 === 0
+        ? JSON.stringify({
+            trace_id: `tr_mock_${((i * 131) % 999999).toString(36)}`,
+            request_id: i % 6 === 0 ? `req_mock_${i}` : undefined,
+          })
+        : null;
+    out.push({
+      message_id: messageId,
+      session_id: sessionId,
+      timestamp: new Date(t).toISOString(),
+      type,
+      version: "1.0",
+      provider,
+      model_id: model,
+      message_model: model,
+      message_role: role,
+      message_tool_name: tool,
+      message_is_error: isErr,
+      parent_id: "",
+      log_attributes: tracePayload,
+      agent_name: agent,
+      channel,
+    });
+  }
+  out.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  return out;
+}
+
+function getMockAgentSessionRowsAll() {
+  if (!cachedMockAgentRows) cachedMockAgentRows = buildMockAgentSessionRows(MOCK_AGENT_LOG_ROWS);
+  return cachedMockAgentRows;
+}
+
+function getMockAuditRowsAll() {
+  if (!cachedMockAuditRows) cachedMockAuditRows = buildMockAuditRows(MOCK_AUDIT_LOG_ROWS);
+  return cachedMockAuditRows;
+}
+
+function getMockGatewayRowsAll() {
+  if (!cachedMockGatewayRows) cachedMockGatewayRows = buildMockGatewayRows(MOCK_GATEWAY_LOG_ROWS);
+  return cachedMockGatewayRows;
+}
+
+/** 最近 24 小时内按小时桶聚合（与样例时间戳一致，非随机） */
+function buildLast24hTrendFromRows(rows) {
+  const now = Date.now();
+  const buckets = [];
+  for (let h = 23; h >= 0; h -= 1) {
+    const start = now - (h + 1) * 3600_000;
+    const end = now - h * 3600_000;
+    const d = new Date(end);
+    const bucket = d.toISOString().slice(0, 13);
+    let count = 0;
+    for (const r of rows) {
+      const t = Date.parse(String(r.timestamp));
+      if (Number.isFinite(t) && t >= start && t < end) count += 1;
+    }
+    buckets.push({ bucket, count });
+  }
+  return buckets;
+}
+
+/** @param {number} n */
+function buildMockAuditRows(n) {
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const t = Date.now() - i * 195_000 - (i % 11) * 8000;
+    rows.push({
+      id: 90000 + i,
+      event_time: new Date(t).toISOString(),
+      log_attributes: JSON.stringify({
+        source: "config",
+        event: i % 5 === 0 ? "reload" : "patch",
+        level: i % 7 === 0 ? "warn" : "info",
+        session_id: `sess_audit_${i % 24}`,
+        trace_id: `tr_audit_${(i * 17) % 900}`,
+        actor: `admin_${i % 5}`,
+      }),
+    });
+  }
+  rows.sort((a, b) => String(b.event_time).localeCompare(String(a.event_time)));
+  return rows;
+}
+
+/** @param {number} n */
+function buildMockGatewayRows(n) {
+  const modules = ["http", "router", "ws", "grpc"];
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const t = Date.now() - i * 125_000 - (i % 9) * 6000;
+    rows.push({
+      id: 80000 + i,
+      event_time: new Date(t).toISOString(),
+      module: modules[i % modules.length],
+      level: i % 10 === 0 ? "warn" : "info",
+      log_attributes: JSON.stringify({
+        message: `GET /v1/chat mock-${i}`,
+        session_id: i % 4 === 0 ? `sess_gw_${i % 35}` : "",
+        trace_id: `tr_gw_${(i * 13) % 1200}`,
+      }),
+    });
+  }
+  rows.sort((a, b) => String(b.event_time).localeCompare(String(a.event_time)));
+  return rows;
 }
 
 export function mockLogSearch(params) {
   const limit = Math.min(Number(params.limit) || 100, 500);
   const offset = Number(params.offset) || 0;
 
-  const sampleRows = [
-    {
-      id: "log-search-001",
-      sessionId: "sess_a1b2c3d4e5f67890",
-      timestamp: isoStr(-3600_000),
-      type: "message",
-      version: "1.0",
-      provider: "openai",
-      model_id: "gpt-4o-mini",
-      message_model: "gpt-4o-mini",
-      message_role: "assistant",
-      message_tool_name: "",
-      message_is_error: 0,
-      parent_id: "",
-      log_attributes: null,
-      agent_name: "客服助手·小智",
-      channel: "web",
-    },
-    {
-      message_id: "log-search-002",
-      session_id: "sess_f9e8d7c6b5a49382",
-      timestamp: isoStr(-7200_000),
-      type: "message",
-      version: "1.0",
-      provider: "anthropic",
-      model_id: "claude-3-5-sonnet",
-      message_model: "claude-3-5-sonnet",
-      message_role: "assistant",
-      message_tool_name: "metrics.query",
-      message_is_error: 0,
-      parent_id: "",
-      log_attributes: null,
-      agent_name: "运维巡检员",
-      channel: "internal",
-    },
-    {
-      message_id: "log-search-003",
-      session_id: "sess_1122334455667788",
-      timestamp: isoStr(-14400_000),
-      type: "message",
-      version: "1.0",
-      provider: "openai",
-      model_id: "gpt-4o",
-      message_model: "gpt-4o",
-      message_role: "toolResult",
-      message_tool_name: "warehouse.run_sql",
-      message_is_error: 1,
-      parent_id: "",
-      log_attributes: null,
-      agent_name: "数据分析员",
-      channel: "api",
-    },
-    {
-      message_id: "log-search-004",
-      session_id: "sess_aabbccddeeff0011",
-      timestamp: isoStr(-21600_000),
-      type: "message",
-      version: "1.0",
-      provider: "minimax-cn",
-      model_id: "MiniMax-M2.5",
-      message_model: "MiniMax-M2.5",
-      message_role: "user",
-      message_tool_name: "",
-      message_is_error: 0,
-      parent_id: "",
-      log_attributes: null,
-      agent_name: "HR 面试助手",
-      channel: "feishu",
-    },
-    {
-      message_id: "log-search-005",
-      session_id: "sess_9988776655443322",
-      timestamp: isoStr(-43200_000),
-      type: "message",
-      version: "1.0",
-      provider: "deepseek",
-      model_id: "deepseek-r1",
-      message_model: "deepseek-r1",
-      message_role: "assistant",
-      message_tool_name: "",
-      message_is_error: 0,
-      parent_id: "",
-      log_attributes: null,
-      agent_name: "合规审查官",
-      channel: "internal",
-    },
-  ];
-
-  // 按小时聚合趋势
-  const trend = [];
-  for (let h = 23; h >= 0; h--) {
-    const d = new Date(Date.now() - h * 3600_000);
-    const bucket = d.toISOString().slice(0, 13);
-    trend.push({ bucket, count: Math.floor(Math.random() * 20) + 1 });
-  }
+  const sampleRows = getMockAgentSessionRowsAll();
+  const trend = buildLast24hTrendFromRows(sampleRows);
 
   const total = sampleRows.length;
   const sliced = sampleRows.slice(offset, offset + limit);
@@ -157,82 +210,52 @@ export function mockUnifiedLogsSearch(params) {
   }
 
   if (ds === "audit_logs") {
-    const rows = [
-      {
-        id: 9001,
-        event_time: isoStr(-1800_000),
-        log_attributes: JSON.stringify({
-          source: "config",
-          event: "reload",
-          level: "info",
-          session_id: "sess_mock_audit",
-          trace_id: "tr_audit_1",
-        }),
-      },
-    ];
-    const unifiedRows = rows.map((r) => normalizeAuditRow(r));
+    const rowsAll = getMockAuditRowsAll();
+    const total = rowsAll.length;
+    const sliced = rowsAll.slice(offset, offset + limit);
+    const unifiedRows = sliced.map((r) => normalizeAuditRow(r));
     return {
       dataSource: "audit_logs",
-      total: rows.length,
+      total,
       limit,
       offset,
       unifiedRows,
-      meta: { audit: { total: rows.length, rows } },
+      meta: { audit: { total, rows: sliced } },
     };
   }
 
   if (ds === "gateway_logs") {
-    const rows = [
-      {
-        id: 8001,
-        event_time: isoStr(-900_000),
-        module: "http",
-        level: "info",
-        log_attributes: JSON.stringify({
-          message: "GET /v1/chat",
-          session_id: "sess_gw_1",
-          trace_id: "tr_gw_1",
-        }),
-      },
-    ];
-    const unifiedRows = rows.map((r) => normalizeGatewayRow(r));
+    const rowsAll = getMockGatewayRowsAll();
+    const total = rowsAll.length;
+    const sliced = rowsAll.slice(offset, offset + limit);
+    const unifiedRows = sliced.map((r) => normalizeGatewayRow(r));
     return {
       dataSource: "gateway_logs",
-      total: rows.length,
+      total,
       limit,
       offset,
       unifiedRows,
-      meta: { gateway: { total: rows.length, rows } },
+      meta: { gateway: { total, rows: sliced } },
     };
   }
 
-  const agent = mockLogSearch({ ...params, limit: 50, offset: 0 });
-  const auditRows = [
-    {
-      id: 9001,
-      event_time: isoStr(-1800_000),
-      log_attributes: JSON.stringify({ event: "audit_mock", level: "warn" }),
-    },
-  ];
-  const gwRows = [
-    {
-      id: 8001,
-      event_time: isoStr(-900_000),
-      module: "router",
-      level: "info",
-      log_attributes: JSON.stringify({ message: "gateway mock" }),
-    },
-  ];
-  const merged = [
-    ...(agent.rows || []).map((row) => normalizeAgentSessionsRow(row)),
-    ...auditRows.map((row) => normalizeAuditRow(row)),
-    ...gwRows.map((row) => normalizeGatewayRow(row)),
-  ].sort((a, b) => String(b.time).localeCompare(String(a.time)));
+  const agentRowsAll = getMockAgentSessionRowsAll();
+  const auditRowsAll = getMockAuditRowsAll();
+  const gwRowsAll = getMockGatewayRowsAll();
+  const merged = sortUnifiedByTime(
+    [
+      ...agentRowsAll.map((row) => normalizeAgentSessionsRow(row)),
+      ...auditRowsAll.map((row) => normalizeAuditRow(row)),
+      ...gwRowsAll.map((row) => normalizeGatewayRow(row)),
+    ],
+    "desc",
+  );
+  const total = merged.length;
   const unifiedRows = merged.slice(offset, offset + limit);
 
   return {
     dataSource: "all",
-    total: merged.length,
+    total,
     limit,
     offset,
     unifiedRows,

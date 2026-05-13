@@ -18,6 +18,7 @@ import SessionAudit from "./SessionAudit.jsx";
 import AuditOverview from "./AuditOverview.jsx";
 import LogSearch from "./LogSearch.jsx";
 import MonitorDashboard from "./monitor-dashboard/index.jsx";
+import ScheduledTasks from "./ScheduledTasks.jsx";
 
 const PAGE_META_KEYS = {
   panorama: { title: "page.panorama.title", subtitle: "page.panorama.subtitle" },
@@ -38,6 +39,7 @@ const PAGE_META_KEYS = {
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
   "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
   "host-monitor": { title: "page.hostMonitor.title", subtitle: "page.hostMonitor.subtitle" },
+  "scheduled-tasks": { title: "page.scheduledTasks.title", subtitle: "page.scheduledTasks.subtitle" },
 };
 
 const NAV_KEYS = [
@@ -50,6 +52,7 @@ const NAV_KEYS = [
       { id: "openclaw-instance", labelKey: "nav.openclawInstance" },
       { id: "call-chain-analysis", labelKey: "nav.callChainAnalysis" },
       { id: "host-monitor", labelKey: "nav.hostMonitor" },
+      { id: "scheduled-tasks", labelKey: "nav.scheduledTasks" },
       // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
       // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
       { id: "digital-employee-list", labelKey: "nav.digitalEmployeeList" },
@@ -625,6 +628,8 @@ export default function Dashboard() {
             <MonitorDashboard />
           ) : activeNav === "host-monitor" ? (
             <HostMonitorPage />
+          ) : activeNav === "scheduled-tasks" ? (
+            <ScheduledTasks />
           ) : activeNav === "instance-monitoring" ? (
             <InstanceMonitoring />
           ) : activeNav === "cost-overview" ? (

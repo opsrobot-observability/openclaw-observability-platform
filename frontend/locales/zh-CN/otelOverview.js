@@ -99,6 +99,11 @@ export default {
   "otelOverview.colActions": "操作",
   "otelOverview.viewDetail": "查看详情",
 
+  "otelOverview.resourceCpuUtil": "CPU 利用率",
+  "otelOverview.resourceMemoryUtil": "内存利用率",
+  "otelOverview.resourceDiskUtil": "磁盘空间利用率",
+  "otelOverview.sectionResourceUtil": "资源占用",
+
   "otelOverview.sessionTotal": "会话总数",
   "otelOverview.sessionSuccessRate": "成功率",
   "otelOverview.chartStateDist": "状态分布",

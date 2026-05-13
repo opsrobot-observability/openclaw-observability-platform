@@ -76,11 +76,6 @@ export default function ConfigChange() {
   const [detailTab, setDetailTab] = useState("overview");
   /** 时间筛选：统一预设天数 */
   const [activeDays, setActiveDays] = useState(7);
-  const [range, setRange] = useState(() => {
-    const now = new Date();
-    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return { startIso: start.toISOString(), endIso: now.toISOString() };
-  });
 
   const toggleExpandRow = (e) => {
     const id = stableRowId(e);
@@ -93,8 +88,10 @@ export default function ConfigChange() {
 
   // 计算时间范围参数
   const getTimeRangeParams = useMemo(() => {
-    return { startIso: range.startIso, endIso: range.endIso };
-  }, [range]);
+    const now = new Date();
+    const start = new Date(now.getTime() - activeDays * 24 * 60 * 60 * 1000);
+    return { startIso: start.toISOString(), endIso: now.toISOString() };
+  }, [activeDays]);
 
   // 从 API 获取数据
   useEffect(() => {
@@ -190,24 +187,7 @@ export default function ConfigChange() {
         </p>
       )}
 
-      <CostTimeRangeFilter
-        activeDays={activeDays}
-        onPreset={(days) => {
-          setActiveDays(days);
-          const now = new Date();
-          const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-          setRange({ startIso: start.toISOString(), endIso: now.toISOString() });
-        }}
-        rangeStart={range.startIso}
-        rangeEnd={range.endIso}
-        onRangeChange={(start, end) => {
-          setActiveDays(null);
-          setRange({
-            startIso: new Date(start).toISOString(),
-            endIso: new Date(end).toISOString(),
-          });
-        }}
-      />
+      <CostTimeRangeFilter activeDays={activeDays} onPreset={(p) => setActiveDays(p.days ?? 7)} />
 
       <section className="app-card p-4 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

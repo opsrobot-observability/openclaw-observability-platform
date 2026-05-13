@@ -7,6 +7,8 @@ export default function TablePagination({
   pageSize,
   total,
   onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50, 100],
   className = "",
   trailingControls = null,
   loading = false,
@@ -35,6 +37,22 @@ export default function TablePagination({
         className={`flex flex-wrap items-center gap-4 ${loading ? "pointer-events-none opacity-50" : ""}`}
         aria-hidden={loading || undefined}
       >
+        {typeof onPageSizeChange === "function" ? (
+          <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+            <span className="shrink-0">{intl.get("logSearch.pageSize")}</span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="app-input h-8 min-w-[92px] px-2.5 py-0 text-xs"
+            >
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {intl.get("logSearch.pageSizeOption", { n: size })}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <button
           type="button"
           disabled={!canPrev}

@@ -78,27 +78,17 @@ function MomBadge({ pct }) {
 export default function CostAnalysis() {
   const { locale } = useLocale();
   const [trendDays, setTrendDays] = useState(14);
-  const [range, setRange] = useState(() => {
-    const end = new Date();
-    const start = new Date(end.getTime() - 14 * 86400000);
-    return { start, end };
-  });
-  const { start: rangeStart, end: rangeEnd } = range;
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [dailyAgentFilter, setDailyAgentFilter] = useState(null);
-  const [dailyModelFilter, setDailyModelFilter] = useState(null);
+  const [inOutHidden, setInOutHidden] = useState(() => new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
-      let url = `/api/cost-overview?trendDays=${trendDays ?? 14}`;
-      if (trendDays === null && rangeStart && rangeEnd) {
-        url = `/api/cost-overview?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
-      }
-      const r = await fetch(url);
+      const r = await fetch(`/api/cost-overview?trendDays=${trendDays}`);
       const text = await r.text();
       if (!r.ok) {
         let msg = text;
@@ -112,12 +102,13 @@ export default function CostAnalysis() {
       }
       const j = JSON.parse(text);
       setSnapshot(j);
+      setInOutHidden(new Set());
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [trendDays, rangeStart, rangeEnd]);
+  }, [trendDays]);
 
   useEffect(() => {
     load();
@@ -128,9 +119,10 @@ export default function CostAnalysis() {
   const trend14 = snapshot?.trend14d ?? [];
   const agentShare = snapshot?.agentShare ?? [];
   const modelShare = snapshot?.modelShare ?? [];
+  const topSessions = snapshot?.topSessions ?? [];
   const agentTokenDetail = snapshot?.agentTokenDetail ?? [];
+  const inOutPie = snapshot?.inOut?.pie ?? [];
   const cards = snapshot?.cards;
-  const abnormalities = snapshot?.abnormalities;
   const meta = snapshot?.meta;
 
   const trendWithCost = useMemo(
@@ -142,25 +134,15 @@ export default function CostAnalysis() {
     [trend14]
   );
 
-  const modelDistSeries = snapshot?.dailyByModel?.series ?? [];
-  const modelDistRows = snapshot?.dailyByModel?.rows ?? [];
-
   const overviewCards = useMemo(() => {
     if (!cards) return [];
-    const isToday = trendDays === 1;
-    const firstCardTitle = isToday
-      ? intl.get("costAnalysis.todayToken")
-      : trendDays
-        ? intl.get("costAnalysis.lastNDaysTotal", { days: trendDays })
-        : intl.get("costAnalysis.periodTotal");
-
     return [
       {
         kind: "total",
-        title: firstCardTitle,
+        title: intl.get("costAnalysis.todayToken"),
         value: cards.today.totalTokens,
         mom: cards.today.momPct,
-        compareLabel: isToday ? intl.get("costAnalysis.vsYesterday") : intl.get("costAnalysis.vsPrevPeriod"),
+        compareLabel: intl.get("costAnalysis.vsYesterday"),
         accent: CARD_ACCENTS[0],
         border: CARD_BORDER[0],
       },
@@ -182,63 +164,47 @@ export default function CostAnalysis() {
         accent: CARD_ACCENTS[2],
         border: CARD_BORDER[2],
       },
+      {
+        kind: "avg",
+        title: intl.get("costAnalysis.dailyAvg7d"),
+        subtitle: intl.get("costAnalysis.dailyAvg7dSubtitle"),
+        avgValue: cards.dailyAvg7d.avgTokens,
+        peakDay: cards.dailyAvg7d.peakDay,
+        peakValue: cards.dailyAvg7d.peakTokens,
+        accent: "bg-white",
+        border: "border-gray-100",
+      },
     ];
-  }, [cards, locale, trendDays]);
-
-  const top5Instances = useMemo(() => {
-    return agentShare.slice(0, 5);
-  }, [agentShare]);
-
-  const maxTokens = useMemo(() => {
-    if (top5Instances.length === 0) return 0;
-    return Math.max(...top5Instances.map((x) => x.tokens || 0));
-  }, [top5Instances]);
-
-  const topModels = useMemo(() => {
-    return modelShare.slice(0, 5);
-  }, [modelShare]);
-
-  const maxModelTokens = useMemo(() => {
-    if (topModels.length === 0) return 0;
-    return Math.max(...topModels.map((x) => x.tokens || 0));
-  }, [topModels]);
+  }, [cards, locale]);
 
   const dailySingleSeries =
     dailyAgentFilter == null ? null : barSeries.find((x) => x.dataKey === dailyAgentFilter) ?? null;
 
-  const modelSingleSeries =
-    dailyModelFilter == null ? null : modelDistSeries.find((x) => x.dataKey === dailyModelFilter) ?? null;
+  const hasInOutData =
+    (snapshot?.inOut?.inputTokens ?? 0) + (snapshot?.inOut?.outputTokens ?? 0) > 0;
 
-  const handleModelClick = (name) => {
-    window.dispatchEvent(
-      new CustomEvent("openclaw-nav", {
-        detail: { id: "llm-cost", params: { modelName: name } },
-      })
-    );
-  };
+  const inOutPieFiltered = useMemo(() => {
+    return inOutPie.filter((e) => !inOutHidden.has(String(e.name)));
+  }, [inOutPie, inOutHidden]);
 
-  const handleInstanceClick = (name) => {
-    window.dispatchEvent(
-      new CustomEvent("openclaw-nav", {
-        detail: { id: "agent-cost-detail", params: { agentName: name } },
-      })
-    );
-  };
-
-  const handleStatusClick = (status) => {
-    window.dispatchEvent(
-      new CustomEvent("openclaw-nav", {
-        detail: { id: "cost-overview-2", params: { status } },
-      })
-    );
+  const handleInOutLegendClick = (o) => {
+    const name = o?.value ?? o?.payload?.name;
+    if (name == null || name === "—") return;
+    setInOutHidden((prev) => {
+      const next = new Set(prev);
+      const key = String(name);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   if (loading && !snapshot) {
     return (
       <div className="space-y-3">
         <div className="app-card h-12 animate-pulse bg-gray-100/80 dark:bg-gray-800/80" />
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="app-card h-[5.25rem] animate-pulse bg-gray-100/80 dark:bg-gray-800/80" />
           ))}
         </div>
@@ -260,22 +226,11 @@ export default function CostAnalysis() {
       {/* 顶部工具栏 */}
       <CostTimeRangeFilter
         activeDays={trendDays}
-        onPreset={(d) => {
-          setTrendDays(d);
-          const end = new Date();
-          const start = new Date(end.getTime() - d * 86400000);
-          setRange({ start, end });
-        }}
-        rangeStart={rangeStart}
-        rangeEnd={rangeEnd}
-        onRangeChange={(start, end) => {
-          setTrendDays(null);
-          setRange({ start: new Date(start), end: new Date(end) });
-        }}
+        onPreset={(p) => setTrendDays(p.days ?? 7)}
       />
 
-      {/* KPI：紧凑高度 */}
-      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {/* KPI：紧凑高度 + 左侧色条（整体约缩短 1/4） */}
+      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {overviewCards.map((m) => (
           <article
             key={m.title}
@@ -322,365 +277,325 @@ export default function CostAnalysis() {
         ))}
       </section>
 
-      {/* 算力损耗异常 */}
-      {abnormalities && (
-        <section className="grid gap-3 sm:grid-cols-3">
-          {/* 网关无效损耗 */}
-          <div
-            onClick={() => handleStatusClick("interruption")}
-            className="app-card group cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md hover:ring-1 hover:ring-primary/20 dark:bg-gray-900"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-500 dark:bg-rose-950/30">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                {intl.get("costAnalysis.gatewayLossTitle")}
-              </h3>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {fmtTokens(abnormalities.gatewayLoss.tokens)}
-              </span>
-              <span className="text-xs text-rose-500 font-medium">({abnormalities.gatewayLoss.percentage}%)</span>
-            </div>
-            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              {intl.get("costAnalysis.shareOfTotal")}
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 dark:border-gray-800">
-              <span className="text-[10px] text-gray-500">{intl.get("costAnalysis.affectedSessions")}</span>
-              <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{abnormalities.gatewayLoss.sessions} 次</span>
-            </div>
-          </div>
-
-          {/* 实例死循环损耗 */}
-          <div
-            onClick={() => handleStatusClick("loop")}
-            className="app-card group cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md hover:ring-1 hover:ring-primary/20 dark:bg-gray-900"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-950/30">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </div>
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                {intl.get("costAnalysis.loopLossTitle")}
-              </h3>
-            </div>
-            <div className="mt-3 flex items-center">
-              <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {fmtTokens(abnormalities.loopLoss.tokens)}
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              {intl.get("costAnalysis.wastedTokens")}
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 dark:border-gray-800">
-              <span className="text-[10px] text-gray-500">{intl.get("costAnalysis.abnormalCalls")}</span>
-              <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{abnormalities.loopLoss.sessions} 次</span>
-            </div>
-          </div>
-
-          {/* 模型异常报错 */}
-          <div
-            onClick={() => handleStatusClick("error")}
-            className="app-card group cursor-pointer overflow-hidden bg-white p-4 transition-all hover:shadow-md hover:ring-1 hover:ring-primary/20 dark:bg-gray-900"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 dark:bg-indigo-950/30">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                {intl.get("costAnalysis.modelErrorTitle")}
-              </h3>
-            </div>
-            <div className="mt-3 flex items-baseline">
-              <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {abnormalities.modelErrors.errorRate}%
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              {intl.get("costAnalysis.errorRate")} 激增中
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 dark:border-gray-800">
-              <span className="text-[10px] text-gray-500">{intl.get("costAnalysis.affectedSessions")}</span>
-              <span className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{abnormalities.modelErrors.errorCalls} 次</span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 实例消耗分布情况 */}
+      {/* 每日 Token 消耗情况 */}
       <section className="app-card p-3 sm:p-4">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">
-          {intl.get("costAnalysis.instanceDistTitle")}
-        </h2>
-
-        <div className="mt-4 flex flex-col gap-6 lg:flex-row">
-          {/* 左侧：图表 */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("costAnalysis.agentFilter")}</span>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.dailyTokenTitle")}</h2>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("costAnalysis.agentFilter")}</span>
+          <button
+            type="button"
+            onClick={() => setDailyAgentFilter(null)}
+            className={[
+              "rounded-full border px-3 py-1 text-xs font-medium transition",
+              dailyAgentFilter == null
+                ? "border-primary bg-primary-soft text-primary dark:bg-primary/20"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600",
+            ].join(" ")}
+          >
+            {intl.get("common.all")}
+          </button>
+          {barSeries.map((s) => {
+            const active = dailyAgentFilter === s.dataKey;
+            return (
               <button
+                key={s.dataKey}
                 type="button"
-                onClick={() => setDailyAgentFilter(null)}
+                onClick={() => setDailyAgentFilter(active ? null : s.dataKey)}
                 className={[
-                  "rounded-full border px-3 py-1 text-xs font-medium transition",
-                  dailyAgentFilter == null
+                  "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-medium transition",
+                  active
                     ? "border-primary bg-primary-soft text-primary dark:bg-primary/20"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600",
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-600",
                 ].join(" ")}
               >
-                {intl.get("common.all")}
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
+                <span className="truncate">{s.name}</span>
               </button>
-              {barSeries.map((s) => {
-                const active = dailyAgentFilter === s.dataKey;
-                return (
-                  <button
-                    key={s.dataKey}
-                    type="button"
-                    onClick={() => setDailyAgentFilter(active ? null : s.dataKey)}
-                    className={[
-                      "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-medium transition",
-                      active
-                        ? "border-primary bg-primary-soft text-primary dark:bg-primary/20"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-600",
-                    ].join(" ")}
-                  >
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
-                    <span className="truncate">{s.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 h-[220px] w-full">
-              {barRows.length === 0 ? (
-                <p className="flex h-full items-center justify-center text-sm text-gray-400">{intl.get("common.noData")}</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={barRows} margin={{ top: 8, right: 8, left: 0, bottom: 4 }} barCategoryGap="18%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#6b7280" }} tickMargin={8} />
-                    <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} width={40} tickFormatter={(v) => `${v}`} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                      formatter={(v, name) => [`${v}M`, name]}
-                      labelFormatter={(l) => intl.get("costAnalysis.dateLabel", { label: l })}
+            );
+          })}
+        </div>
+        <div className="mt-2 h-[188px] w-full sm:h-[200px]">
+          {barRows.length === 0 ? (
+            <p className="flex h-full items-center justify-center text-sm text-gray-400">{intl.get("common.noData")}</p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={barRows} margin={{ top: 8, right: 8, left: 0, bottom: 4 }} barCategoryGap="18%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#6b7280" }} tickMargin={8} />
+                <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} width={40} tickFormatter={(v) => `${v}`} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                  formatter={(v, name) => [`${v}M`, name]}
+                  labelFormatter={(l) => intl.get("costAnalysis.dateLabel", { label: l })}
+                />
+                {dailyAgentFilter == null ? (
+                  barSeries.map((s, idx) => (
+                    <Bar
+                      key={s.dataKey}
+                      dataKey={s.dataKey}
+                      name={s.name}
+                      stackId={barSeries.length > 1 ? "agent" : undefined}
+                      fill={s.color}
+                      maxBarSize={48}
+                      radius={idx === barSeries.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
                     />
-                    {dailyAgentFilter == null ? (
-                      barSeries.map((s, idx) => (
-                        <Bar
-                          key={s.dataKey}
-                          dataKey={s.dataKey}
-                          name={s.name}
-                          stackId={barSeries.length > 1 ? "agent" : undefined}
-                          fill={s.color}
-                          maxBarSize={48}
-                          radius={idx === barSeries.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                        />
-                      ))
-                    ) : dailySingleSeries ? (
-                      <Bar
-                        dataKey={dailySingleSeries.dataKey}
-                        name={dailySingleSeries.name}
-                        fill={dailySingleSeries.color}
-                        maxBarSize={48}
-                        radius={[4, 4, 0, 0]}
-                      />
-                    ) : null}
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
+                  ))
+                ) : dailySingleSeries ? (
+                  <Bar
+                    dataKey={dailySingleSeries.dataKey}
+                    name={dailySingleSeries.name}
+                    fill={dailySingleSeries.color}
+                    maxBarSize={48}
+                    radius={[4, 4, 0, 0]}
+                  />
+                ) : null}
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
 
-          {/* 右侧：TOP5 榜单 */}
-          <div className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-800 pt-4 lg:pt-0 lg:pl-6">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">
-              {intl.get("costAnalysis.top5InstanceTitle")}
-            </h3>
-            <div className="space-y-4">
-              {top5Instances.map((item, idx) => (
-                <div
-                  key={item.name}
-                  onClick={() => handleInstanceClick(item.name)}
-                  className="group flex cursor-pointer flex-col gap-1.5 rounded-lg p-1 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
-                >
-                  <div className="flex items-center justify-between gap-3 overflow-hidden">
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={[
-                          "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-sm",
-                          idx < 3 ? "bg-primary text-white" : "bg-gray-100 text-gray-500 dark:bg-gray-800",
-                        ].join(" ")}
+      {/* 大模型消耗占比 + 输入输出占比 并排 */}
+      <section className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
+        {/* 大模型消耗占比 */}
+        <div className="app-card flex flex-col p-3 sm:p-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.modelShareTitle")}</h2>
+          <div className="mt-2 w-full min-w-0 flex-1">
+            {modelShare.length > 0 ? (
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
+                <div className="h-[188px] w-full max-w-[250px] shrink-0">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <PieChart>
+                      <Pie
+                        data={modelShare}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={38}
+                        outerRadius={66}
+                        paddingAngle={2}
                       >
-                        {idx + 1}
+                        {modelShare.map((entry, i) => (
+                          <Cell key={i} fill={entry.fill} stroke="#fff" strokeWidth={2} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v, name) => {
+                          const m = modelShare.find((x) => x.name === name);
+                          return [`${v}% ${m ? `(${fmtTokens(m.tokens)} Tokens)` : ""}`, name];
+                        }}
+                        contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full min-w-0 max-w-sm flex-1 space-y-1 text-[11px] sm:w-auto">
+                  {modelShare.map((m) => (
+                    <div key={m.name} className="flex min-w-0 items-baseline justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: m.fill }} aria-hidden />
+                        <span className="truncate">{m.name}</span>
                       </span>
-                      <span className="truncate text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {item.name}
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      {fmtTokens(item.tokens)}
-                    </span>
+                      <span className="shrink-0 font-semibold tabular-nums text-gray-900 dark:text-gray-100">{m.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noModelData")}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Token 消耗占比：输入 / 输出 */}
+        <div className="app-card flex flex-col p-3 sm:p-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.tokenShareTitle")}</h2>
+          <div className="mt-2 w-full min-w-0 flex-1">
+            {hasInOutData ? (
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
+                <div className="h-[188px] w-full max-w-[250px] shrink-0">
+                  {inOutPieFiltered.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-gray-400">
+                      <p>{intl.get("costAnalysis.legendHidden")}</p>
+                      <button
+                        type="button"
+                        onClick={() => setInOutHidden(new Set())}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        {intl.get("costAnalysis.restoreDisplay")}
+                      </button>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <PieChart>
+                        <Pie
+                          data={inOutPieFiltered}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={38}
+                          outerRadius={66}
+                          paddingAngle={2}
+                        >
+                          {inOutPieFiltered.map((entry, i) => (
+                            <Cell key={i} fill={entry.fill} stroke="#fff" strokeWidth={2} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v) => [`${v}%`, intl.get("costAnalysis.share")]}
+                          contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                <div className="w-full min-w-0 max-w-xs flex-1 space-y-2 text-[11px] sm:w-auto">
+                  <div className="space-y-1">
+                    {inOutPie.map((entry) => {
+                      const hidden = inOutHidden.has(String(entry.name));
+                      return (
+                        <button
+                          key={entry.name}
+                          type="button"
+                          onClick={() => handleInOutLegendClick({ value: entry.name })}
+                          className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md py-0.5 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                        >
+                          <span
+                            className={[
+                              "flex min-w-0 items-center gap-1.5",
+                              hidden ? "text-gray-400 line-through" : "text-gray-600 dark:text-gray-400",
+                            ].join(" ")}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white dark:ring-gray-900"
+                              style={{ background: entry.fill }}
+                              aria-hidden
+                            />
+                            <span className="truncate">{entry.name}</span>
+                          </span>
+                          <span
+                            className={[
+                              "shrink-0 font-semibold tabular-nums",
+                              hidden
+                                ? "text-gray-400 line-through"
+                                : entry.name === "输入 Token"
+                                  ? "text-primary"
+                                  : "text-emerald-700 dark:text-emerald-400",
+                            ].join(" ")}
+                          >
+                            {entry.value}%
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary/80 transition-all duration-500"
-                      style={{ width: `${maxTokens > 0 ? (item.tokens / maxTokens) * 100 : 0}%` }}
-                    />
+                  <div className="border-t border-gray-100 pt-2 dark:border-gray-800">
+                    <div className="flex flex-col gap-1.5 text-gray-600 dark:text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-1">
+                      <span>
+                        {intl.get("costAnalysis.input")}
+                        <span className="font-semibold text-primary">{snapshot?.inOut?.inputPct ?? 0}%</span>
+                      </span>
+                      <span>
+                        {intl.get("costAnalysis.output")}
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                          {snapshot?.inOut?.outputPct ?? 0}%
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              ))}
-              {top5Instances.length === 0 && (
-                <p className="text-center py-8 text-xs text-gray-400">{intl.get("common.noData")}</p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noInOutData")}</p>
+            )}
           </div>
         </div>
       </section>
 
-      {/* 模型消耗分布情况 */}
-      <section className="app-card p-3 sm:p-4">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">
-          {intl.get("costAnalysis.modelDistTitle")}
-        </h2>
-
-        <div className="mt-4 flex flex-col gap-6 lg:flex-row">
-          {/* 左侧：图表 */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{intl.get("costAnalysis.modelFilter")}</span>
-              <button
-                type="button"
-                onClick={() => setDailyModelFilter(null)}
-                className={[
-                  "rounded-full border px-3 py-1 text-xs font-medium transition",
-                  dailyModelFilter == null
-                    ? "border-primary bg-primary-soft text-primary dark:bg-primary/20"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-gray-600",
-                ].join(" ")}
-              >
-                {intl.get("common.all")}
-              </button>
-              {modelDistSeries.map((s) => {
-                const active = dailyModelFilter === s.dataKey;
-                return (
-                  <button
-                    key={s.dataKey}
-                    type="button"
-                    onClick={() => setDailyModelFilter(active ? null : s.dataKey)}
-                    className={[
-                      "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-medium transition",
-                      active
-                        ? "border-primary bg-primary-soft text-primary dark:bg-primary/20"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-600",
-                    ].join(" ")}
-                  >
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
-                    <span className="truncate">{s.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 h-[220px] w-full">
-              {modelDistRows.length === 0 ? (
-                <p className="flex h-full items-center justify-center text-sm text-gray-400">{intl.get("common.noData")}</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={modelDistRows} margin={{ top: 8, right: 8, left: 0, bottom: 4 }} barCategoryGap="18%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#6b7280" }} tickMargin={8} />
-                    <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} width={40} tickFormatter={(v) => `${v}`} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                      formatter={(v, name) => [`${v}M`, name]}
-                      labelFormatter={(l) => intl.get("costAnalysis.dateLabel", { label: l })}
-                    />
-                    {dailyModelFilter == null ? (
-                      modelDistSeries.map((s, idx) => (
-                        <Bar
-                          key={s.dataKey}
-                          dataKey={s.dataKey}
-                          name={s.name}
-                          stackId={modelDistSeries.length > 1 ? "model" : undefined}
-                          fill={s.color}
-                          maxBarSize={48}
-                          radius={idx === modelDistSeries.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                        />
-                      ))
-                    ) : modelSingleSeries ? (
-                      <Bar
-                        dataKey={modelSingleSeries.dataKey}
-                        name={modelSingleSeries.name}
-                        fill={modelSingleSeries.color}
-                        maxBarSize={48}
-                        radius={[4, 4, 0, 0]}
-                      />
-                    ) : null}
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+      {/* Agent 占比 + Top10 会话：宽屏两列并排 */}
+      <section className="grid gap-3 lg:grid-cols-2 lg:items-stretch">
+        <div className="app-card flex flex-col p-3 sm:p-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.agentShareTitle")}</h2>
+          <div className="mx-auto mt-2 w-full min-w-0 max-w-3xl">
+            {agentShare.length > 0 ? (
+              <AgentTokenRoseChart data={agentShare} height={195} />
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noAgentData")}</p>
+            )}
+            {agentShare.length > 0 ? (
+              <div className="mt-2 grid gap-1 text-[11px] text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+                {agentShare.map((e) => (
+                  <div key={e.name} className="flex min-w-0 items-baseline justify-between gap-2">
+                    <span className="truncate text-gray-600 dark:text-gray-400">{e.name}</span>
+                    <span className="shrink-0 font-semibold tabular-nums text-gray-900 dark:text-gray-100">{e.value}%</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
+        </div>
 
-          {/* 右侧：TOP 模型榜单 */}
-          <div className="w-full lg:w-80 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-800 pt-4 lg:pt-0 lg:pl-6">
-            <h3 className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-wider">
-              {intl.get("costAnalysis.topModelTitle")}
-            </h3>
-            <div className="space-y-4">
-              {topModels.map((item, idx) => (
-                <div
-                  key={item.name}
-                  onClick={() => handleModelClick(item.name)}
-                  className="group flex cursor-pointer flex-col gap-1.5 rounded-lg p-1 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+        <div className="app-card flex min-h-0 flex-col p-3 sm:p-4">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 sm:text-base">{intl.get("costAnalysis.top10SessionTitle")}</h2>
+          <div className="mt-2 min-h-0 flex-1">
+            {topSessions.length > 0 ? (
+              <ResponsiveContainer width="100%" height={260} minWidth={0}>
+                <BarChart
+                  data={topSessions}
+                  layout="vertical"
+                  margin={{ top: 4, right: 60, left: 0, bottom: 4 }}
                 >
-                  <div className="flex items-center justify-between gap-3 overflow-hidden">
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={[
-                          "flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px] font-bold text-white shadow-sm",
-                          idx === 0
-                            ? "bg-primary"
-                            : idx < 3
-                              ? "bg-primary/70"
-                              : "bg-gray-300 dark:bg-gray-700",
-                        ].join(" ")}
-                      >
-                        {idx + 1}
-                      </span>
-                      <span className="truncate text-xs font-medium text-gray-700 group-hover:text-primary dark:text-gray-300 transition-colors">
-                        {item.name}
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      {fmtTokens(item.tokens)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary/80 transition-all duration-500"
-                      style={{ width: `${maxModelTokens > 0 ? (item.tokens / maxModelTokens) * 100 : 0}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-              {topModels.length === 0 && (
-                <p className="text-center py-8 text-xs text-gray-400">{intl.get("common.noData")}</p>
-              )}
-            </div>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tickFormatter={(v) => `${v}M`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="session_id"
+                    width={120}
+                    tick={{ fontSize: 10, fill: "#6b7280" }}
+                    tickFormatter={(v) =>
+                      v.length > 16 ? `${v.slice(0, 14)}…` : v
+                    }
+                  />
+                  <Tooltip
+                    formatter={(v) => [`${v}M Tokens`, intl.get("costAnalysis.totalConsumption")]}
+                    contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                    labelFormatter={(label) => {
+                      const s = topSessions.find((x) => x.session_id === label);
+                      if (!s) return label;
+                      return (
+                        <div className="space-y-1 text-left">
+                          <div className="font-mono text-[11px]">{s.session_id}</div>
+                          <div className="text-[10px] text-gray-500">{s.agentName}</div>
+                          {s.userName && (
+                            <div className="text-[10px] text-gray-500">{intl.get("costAnalysis.user", { name: s.userName })}</div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="tokens" name={intl.get("costAnalysis.totalConsumption")} fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                    {topSessions.map((s, i) => (
+                      <Cell key={`cell-${i}`} fill={i === 0 ? "#4f46e5" : i < 3 ? "#6366f1" : "#a5b4fc"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-400">{intl.get("costAnalysis.noSessionData")}</p>
+            )}
           </div>
         </div>
       </section>
-
     </div>
   );
 }

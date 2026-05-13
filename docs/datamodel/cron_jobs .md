@@ -67,6 +67,50 @@
 | logattributesdeliverychannel         | string | 任务结果交付渠道（仅delivery配置存在时有该字段）                 | webchat                                                               |
 | logattributesdeliverymode            | string | 任务结果交付模式（仅delivery配置存在时有该字段）                 | announce                                                              |
 
+## （三）Token 消耗：`cron_jobs.log_attributes` 明细（与后端 `cron-runs-query.mjs` 对齐）
+
+说明：平台任务列表 / 任务卡片上的 **Token 汇总**、**最近一次运行 Token** 会优先从 **`cron_jobs`** 的 **`log_attributes`**（JSON）读取；列名由 Doris 探测，常见为 `log_attributes`。若这些路径均为空，再回退为对 **`cron_runs.log_attributes`** 按任务聚合（见 `cron_runs` 数据说明）。
+
+### 1. 任务级汇总 Token（`job_summary_total_tokens_raw` → 前端 `totalTokensSum` 优先来源之一）
+
+| JSONPath（按序 COALESCE，先非空者生效） | 含义说明 |
+| ---------------------------------------- | -------- |
+| `$.total_tokens_sum` | 累计 Token 汇总（推荐写入字段名） |
+| `$.totalTokensSum` | 驼峰别名 |
+| `$.sum_tokens` | 合计 Token 别名 |
+| `$.sumTokens` | 驼峰别名 |
+
+### 2. 最近一次运行 Token 快照（`job_last_tokens_snapshot_raw` → 前端「最近 Token」优先来源之一）
+
+| JSONPath（按序 COALESCE） | 含义说明 |
+| -------------------------- | -------- |
+| `$.state.last_run_tokens_total` | 最近一次运行的 Token 合计（嵌套在 `state` 下） |
+| `$.state.lastRunTokensTotal` | 驼峰别名 |
+| `$.state.last_total_tokens` | 最近一次 total tokens |
+| `$.last_run_tokens_total` | 顶层别名 |
+| `$.lastRunTokensTotal` | 驼峰别名 |
+| `$.last_total_tokens` | 顶层别名 |
+
+### 3. 与 `cron_runs` 的关系（回退逻辑）
+
+- 当 **`cron_jobs.log_attributes`** 中上述路径均无有效数值时，前端列表上的 Token 汇总会使用 **`cron_runs`** 表按 `job_id` 聚合的结果（从 **`cron_runs.log_attributes`** 内 `$.usage.*` / `$.total_tokens` 等路径解析后求和）。
+- **单次运行日志**里的 Token **只读 `cron_runs`**，不会把 `cron_jobs` 的快照拆到每一行。
+
+### 4. Doris 查询示例（直接查看 JSON 中的 Token 字段）
+
+```sql
+-- 从任务表 log_attributes 读取汇总与最近一次 Token（需存在 log_attributes 列）
+SELECT
+  id AS job_id,
+  name AS job_name,
+  NULLIF(TRIM(GET_JSON_STRING(CAST(log_attributes AS STRING), '$.total_tokens_sum')), '') AS total_tokens_sum_raw,
+  NULLIF(TRIM(GET_JSON_STRING(CAST(log_attributes AS STRING), '$.state.last_run_tokens_total')), '') AS last_run_tokens_raw
+FROM cron_jobs
+ORDER BY id
+LIMIT 50;
+```
+
+实现参考：`backend/cron-jobs/cron-runs-query.mjs` 中 `resolveJobsLogAttributesSelectSql`。
 
 # 三、使用示例
 

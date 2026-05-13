@@ -153,6 +153,9 @@ AGENTS.md
 doris-data/*
 !doris-data/.gitkeep
 
+# Datamodel LLM bundles (may contain row samples; generate-doris-datamodel-md --llm)
+data/datamodel-llm/
+
 
 dist/
 .DS_Store

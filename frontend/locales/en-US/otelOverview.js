@@ -100,6 +100,11 @@ export default {
   "otelOverview.colActions": "Actions",
   "otelOverview.viewDetail": "Details",
 
+  "otelOverview.resourceCpuUtil": "CPU usage",
+  "otelOverview.resourceMemoryUtil": "Memory usage",
+  "otelOverview.resourceDiskUtil": "Disk usage",
+  "otelOverview.sectionResourceUtil": "Resource usage",
+
   "otelOverview.sessionTotal": "Total sessions",
   "otelOverview.sessionSuccessRate": "Success rate",
   "otelOverview.chartStateDist": "State distribution",

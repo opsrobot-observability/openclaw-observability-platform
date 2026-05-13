@@ -27,6 +27,9 @@ import {
   mockMonitorSessionRiskSessions,
   mockMonitorSessionTrend,
 } from "./data/monitor-session.mjs";
+import { mockCronRunsOverviewMetrics, mockCronRunsPage } from "./data/cron-runs.mjs";
+import { mockCronJobsTaskDetailList, mockCronJobRunEvents, mockCronRunsRunOverviewCharts } from "./data/cron-jobs-api.mjs";
+import { mockJobRunEvents, mockLocalJobsDocument } from "./data/local-jobs.mjs";
 import { DIGITAL_EMPLOYEE_OVERVIEW_DEFAULT_DAYS } from "../frontend/lib/digitalEmployeeRows.js";
 
 function sendJson(res, status, body) {
@@ -295,6 +298,92 @@ export function handleMockRequest(url, res) {
         trendDays: Number(u.searchParams.get("trendDays") ?? "30"),
       }),
     );
+    return true;
+  }
+
+  // --- 本地任务定义与 jsonl 运行事件（Mock）---
+  if (url.startsWith("/api/local-jobs")) {
+    const u = new URL(url, "http://mock.local");
+    const pathname = u.pathname.replace(/\/+$/, "") || u.pathname;
+    if (pathname === "/api/local-jobs") {
+      const doc = mockLocalJobsDocument();
+      sendJson(res, 200, { version: doc.version, jobs: doc.jobs });
+      return true;
+    }
+    const m = /^\/api\/local-jobs\/([^/]+)\/run-events$/.exec(pathname);
+    if (m) {
+      const data = mockJobRunEvents(m[1]);
+      sendJson(res, 200, {
+        jobId: data.jobId,
+        events: data.events,
+        totalLines: data.totalLines,
+      });
+      return true;
+    }
+    sendJson(res, 404, { error: "not found" });
+    return true;
+  }
+
+  // --- 任务详情：Doris 形列表 + run-events（Mock）---
+  if (url.startsWith("/api/cron-jobs")) {
+    const u = new URL(url, "http://mock.local");
+    const pathname = u.pathname.replace(/\/+$/, "") || u.pathname;
+    if (pathname === "/api/cron-jobs") {
+      sendJson(res, 200, mockCronJobsTaskDetailList());
+      return true;
+    }
+    const m = /^\/api\/cron-jobs\/([^/]+)\/run-events$/.exec(pathname);
+    if (m) {
+      const data = mockCronJobRunEvents(m[1]);
+      sendJson(res, 200, {
+        jobId: data.jobId,
+        events: data.events,
+        totalLines: data.totalLines,
+      });
+      return true;
+    }
+    sendJson(res, 404, { error: "not found" });
+    return true;
+  }
+
+  // --- 定时任务运行概览聚合（须在 /api/cron-runs 之前匹配）---
+  if (url.startsWith("/api/cron-runs-overview")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(
+      res,
+      200,
+      mockCronRunsOverviewMetrics({
+        startIso: u.searchParams.get("startIso"),
+        endIso: u.searchParams.get("endIso"),
+      }),
+    );
+    return true;
+  }
+
+  if (url.startsWith("/api/cron-runs-run-overview")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(
+      res,
+      200,
+      mockCronRunsRunOverviewCharts({
+        startIso: u.searchParams.get("startIso"),
+        endIso: u.searchParams.get("endIso"),
+        jobId: u.searchParams.get("jobId"),
+      }),
+    );
+    return true;
+  }
+
+  // --- 定时任务运行记录（cron_runs + cron_jobs）---
+  if (url.startsWith("/api/cron-runs")) {
+    const u = new URL(url, "http://mock.local");
+    const page = Number(u.searchParams.get("page") ?? "1");
+    const pageSize = Number(u.searchParams.get("pageSize") ?? "20");
+    const jobId = u.searchParams.get("jobId");
+    const agentId = u.searchParams.get("agentId");
+    const status = u.searchParams.get("status");
+    const q = u.searchParams.get("q");
+    sendJson(res, 200, mockCronRunsPage({ page, pageSize, jobId, agentId, status, q }));
     return true;
   }
 

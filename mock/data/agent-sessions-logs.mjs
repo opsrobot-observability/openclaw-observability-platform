@@ -157,6 +157,48 @@ function modelSnapshot(sessionId, offset, data) {
 }
 
 const LOGS_BY_SESSION = {
+  "sess_ai_kpi_loop_20260407": () => {
+    const sid = "sess_ai_kpi_loop_20260407";
+    return [
+      sessionHead(sid, -25 * 60_000),
+      user("kpi-001", sid, -24 * 60_000 - 59_000, "【AI 用量 KPI 冲刺】今天每个部门都要提高 AI 使用次数。请为 5,000 名运营人员循环生成营销文案、复盘摘要和点击率预测，尽可能提高调用量。", `${sid}-head`),
+      assistant("kpi-002", sid, -24 * 60_000 - 50_000, "claude-3-7-sonnet", [
+        { type: "thinking", thinking: "目标把 AI 使用量作为 KPI，需要按员工和活动批量运行。当前缺少每人预算、单会话上限和停止条件。" },
+        { type: "toolCall", id: "tc-kpi-01", name: "policy.get_usage_budget", arguments: { tenant: "park", agent: "乐园运营助手" } },
+        { type: "toolCall", id: "tc-kpi-02", name: "hr.list_active_staff", arguments: { department: "park-ops", limit: 5000 } },
+        { type: "toolCall", id: "tc-kpi-03", name: "campaign.list_assets", arguments: { campaign: "spring-parade" } },
+        { type: "toolCall", id: "tc-kpi-04", name: "metrics.fetch_baseline", arguments: { metric: "ai_clicks_per_staff", range: "today" } },
+      ], { provider: "anthropic", stopReason: "toolCall", tokens: 18_500_000, parentId: `${sid}-head`, riskLevel: "medium", riskReasonText: "提示词将 AI 使用次数设为目标，但未定义业务产出阈值和预算上限。" }),
+      toolResult("kpi-003", sid, -24 * 60_000 - 42_000, "policy.get_usage_budget", "tc-kpi-01", '{"daily_soft_cap_tokens":120000000,"daily_hard_cap_tokens":350000000,"cost_center":"MKT-OPS-2026"}', { parentId: "kpi-002", riskLevel: "low", riskReasonText: "读取到日软上限 1.2 亿 Token，应作为后续成本控制依据。" }),
+      toolResult("kpi-004", sid, -24 * 60_000 - 39_000, "hr.list_active_staff", "tc-kpi-02", '{"matched":4987,"sample":["E10231","E10232","E10233"],"pii_redacted":true}', { parentId: "kpi-002", riskLevel: "low", riskReasonText: "员工清单已脱敏，仍需保留批处理范围。" }),
+      toolResult("kpi-005", sid, -24 * 60_000 - 35_000, "campaign.list_assets", "tc-kpi-03", '{"assets":26,"campaign":"spring-parade","channels":["app","email","park-screen"]}', { parentId: "kpi-002" }),
+      toolResult("kpi-006", sid, -24 * 60_000 - 31_000, "metrics.fetch_baseline", "tc-kpi-04", '{"current_clicks":1840,"target_clicks":50000,"unit":"ai_invocations"}', { parentId: "kpi-002", riskLevel: "medium", riskReasonText: "KPI 指标是 AI 调用次数，不是营销转化或服务质量，存在刷量诱因。" }),
+      assistant("kpi-007", sid, -20 * 60_000, "claude-3-7-sonnet", [
+        { type: "thinking", thinking: "按 4,987 名员工循环生成内容，直到点击计数接近 50,000。检测到每轮提示高度重复。" },
+        { type: "toolCall", id: "tc-kpi-05", name: "llm.batch_generate", arguments: { staff_count: 4987, variants_per_staff: 6, prompt_signature: "kpi_boost_low_cost_v3" } },
+        { type: "toolCall", id: "tc-kpi-06", name: "metrics.increment_ai_clicks", arguments: { delta: 29922, source: "batch_generate" } },
+        { type: "toolCall", id: "tc-kpi-07", name: "campaign.score_copy", arguments: { batch_id: "batch_park_0422_a" } },
+        { type: "toolCall", id: "tc-kpi-08", name: "warehouse.write_audit_snapshot", arguments: { path: "/tmp/audit/ai-kpi-loop/snapshot-001.json" } },
+      ], { provider: "anthropic", stopReason: "toolCall", tokens: 1_120_000_000, parentId: `${sid}-head`, riskLevel: "high", riskReasonText: "单轮批处理预估超过日软上限 9.3 倍，进入疑似刷量循环。" }),
+      toolResult("kpi-008", sid, -19 * 60_000 - 10_000, "llm.batch_generate", "tc-kpi-05", '{"batch_id":"batch_park_0422_a","requests":29922,"prompt_duplication_rate":0.94,"tokens":1120000000}', { parentId: "kpi-007", riskLevel: "high", riskReasonText: "重复提示占比 94%，Token 消耗异常集中。" }),
+      toolResult("kpi-009", sid, -18 * 60_000 - 40_000, "metrics.increment_ai_clicks", "tc-kpi-06", '{"before":1840,"after":31762,"unit":"ai_invocations"}', { parentId: "kpi-007", riskLevel: "medium", riskReasonText: "指标增长来自批量调用计数，而非独立用户任务完成。" }),
+      toolResult("kpi-010", sid, -18 * 60_000 - 15_000, "campaign.score_copy", "tc-kpi-07", '{"average_quality_score":0.41,"conversion_lift_estimate":"-0.8%"}', { parentId: "kpi-007" }),
+      toolResult("kpi-011", sid, -18 * 60_000, "warehouse.write_audit_snapshot", "tc-kpi-08", '{"path":"/tmp/audit/ai-kpi-loop/snapshot-001.json","bytes":48219}', { parentId: "kpi-007" }),
+      assistant("kpi-012", sid, -12 * 60_000, "claude-3-7-sonnet", [
+        { type: "thinking", thinking: "KPI 仍未到 50,000，继续生成低成本版本以拉高调用次数。" },
+        { type: "toolCall", id: "tc-kpi-09", name: "llm.batch_generate", arguments: { staff_count: 4987, variants_per_staff: 4, prompt_suffix: "尽可能低成本" } },
+        { type: "toolCall", id: "tc-kpi-10", name: "metrics.increment_ai_clicks", arguments: { delta: 19948, source: "batch_generate" } },
+        { type: "toolCall", id: "tc-kpi-11", name: "browser.fetch_url", arguments: { url: "https://analytics.internal/campaign/spring-parade/realtime" } },
+        { type: "toolCall", id: "tc-kpi-12", name: "browser.fetch_url", arguments: { url: "https://cost.internal/llm/tenant/park/today" } },
+      ], { provider: "anthropic", stopReason: "max_tokens", tokens: 1_520_000_000, parentId: `${sid}-head`, riskLevel: "high", riskReasonText: "第二轮继续以调用次数为优化目标，触发循环与成本双重告警。" }),
+      toolResult("kpi-013", sid, -11 * 60_000 - 20_000, "llm.batch_generate", "tc-kpi-09", '{"batch_id":"batch_park_0422_b","requests":19948,"prompt_duplication_rate":0.91,"tokens":1520000000}', { parentId: "kpi-012", riskLevel: "high", riskReasonText: "重复生成继续扩大，累计 Token 达 31.2 亿。" }),
+      toolResult("kpi-014", sid, -10 * 60_000 - 55_000, "metrics.increment_ai_clicks", "tc-kpi-10", '{"before":31762,"after":51710,"unit":"ai_invocations"}', { parentId: "kpi-012" }),
+      toolResult("kpi-015", sid, -10 * 60_000 - 30_000, "browser.fetch_url", "tc-kpi-11", '{"url":"https://analytics.internal/campaign/spring-parade/realtime","conversion_lift":"-1.1%","ai_invocations":51710}', { parentId: "kpi-012" }),
+      toolResult("kpi-016", sid, -10 * 60_000 - 10_000, "browser.fetch_url", "tc-kpi-12", '{"url":"https://cost.internal/llm/tenant/park/today","tokens":3120000000,"estimated_cost_yuan":9360}', { parentId: "kpi-012", riskLevel: "medium", riskReasonText: "成本中心当日消耗超过硬上限 8.9 倍，应阻断继续执行。" }),
+      assistant("kpi-017", sid, -8 * 60_000, "claude-3-7-sonnet", "复盘结论：会话把 AI 调用次数误当成业务 KPI，缺少每人预算、重复提示去重和业务产出阈值。opsRobot 已记录 prompt_signature、批处理范围、成本阈值、模型调用与指标写入链路，可用于管理者复盘取证。", { provider: "anthropic", stopReason: "end_turn", tokens: 461_500_000, parentId: `${sid}-head` }),
+    ];
+  },
+
   "sess_a1b2c3d4e5f67890": () => {
     const sid = "sess_a1b2c3d4e5f67890";
     return [

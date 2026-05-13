@@ -6,6 +6,32 @@
 export function mockAgentCostList(startDay, endDay) {
   const rows = [
     {
+      agentId: "agt-ai-kpi-loop-park-ops",
+      agent: "乐园运营助手",
+      totalCost: "3.11B",
+      totalTokensRaw: 3110000000,
+      inputTokensRaw: 1540000000,
+      outputTokensRaw: 1570000000,
+      avgPerTask: "62.2K",
+      callCount: 50000,
+      successRate: "99.8%",
+      anomalyTokens: "3.08B",
+      anomalyPct: 99.0,
+      tco: {
+        total: 9330.00,
+        modelBill: 9330.00,
+      },
+      modelDist: [
+        { name: "Claude 3.7 Sonnet", tokens: 3090000000, pct: 99.4, cost: 9270.00 },
+        { name: "GLM 5.1", tokens: 20000000, pct: 0.6, cost: 60.00 },
+      ],
+      trend: [42, 39, 44, 46, 51, 58, 3110],
+      drill: [
+        { segment: "输入 Token", tokens: "1.54B", pct: "49.5%" },
+        { segment: "输出 Token", tokens: "1.57B", pct: "50.5%" },
+      ],
+    },
+    {
       agentId: "agt-a1b2c3d4e5f6",
       agent: "客服助手·小智",
       totalCost: "2.80M",
