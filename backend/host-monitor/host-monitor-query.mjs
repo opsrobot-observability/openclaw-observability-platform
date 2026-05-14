@@ -16,6 +16,24 @@
 import mysql from "mysql2/promise";
 import { getDorisConfig } from "../agentSessionsQuery.mjs";
 
+const FALLBACK_HOSTNAME = "default-host";
+
+function hostNameExpr(alias) {
+  return `COALESCE(NULLIF(get_json_string(resource_attributes, '$.host.name'), ''), '${FALLBACK_HOSTNAME}')` + (alias ? ` AS ${alias}` : "");
+}
+
+function hostOsExpr(alias) {
+  return `COALESCE(NULLIF(get_json_string(resource_attributes, '$.os.type'), ''), 'linux')` + (alias ? ` AS ${alias}` : "");
+}
+
+function hostArchExpr(alias) {
+  return `COALESCE(NULLIF(get_json_string(resource_attributes, '$.host.arch'), ''), 'amd64')` + (alias ? ` AS ${alias}` : "");
+}
+
+function hostIpExpr(alias) {
+  return `COALESCE(NULLIF(get_json_string(resource_attributes, '$.host.ip'), ''), '-')` + (alias ? ` AS ${alias}` : "");
+}
+
 function normalizeRow(row) {
   if (!row || typeof row !== "object") return row;
   const out = { ...row };
@@ -62,9 +80,9 @@ async function queryCpuLoad(conn, startIso, endIso) {
         timestamp,
         metric_name,
         value,
-        get_json_string(resource_attributes, '$.host.name') AS host_name,
-        get_json_string(resource_attributes, '$.os.type') AS os_type,
-        get_json_string(resource_attributes, '$.host.arch') AS host_arch
+        ${hostNameExpr("host_name")},
+        ${hostOsExpr("os_type")},
+        ${hostArchExpr("host_arch")}
      FROM \`opsRobot\`.\`host_metrics_gauge\`
      WHERE metric_name IN (
          'system.cpu.load_average.1m',
@@ -113,7 +131,7 @@ async function queryLoadAverageTrend(conn, startIso, endIso, hours, hostname) {
      WHERE metric_name IN ('system.cpu.load_average.1m','system.cpu.load_average.5m','system.cpu.load_average.15m')
        AND timestamp >= ? AND timestamp <= ?`;
   const sql = hostname
-    ? baseSql + ` AND get_json_string(resource_attributes, '$.host.name') = ? GROUP BY ${bucketExpr}, metric_name ORDER BY time_bucket`
+    ? baseSql + ` AND ${hostNameExpr()} = ? GROUP BY ${bucketExpr}, metric_name ORDER BY time_bucket`
     : baseSql + ` GROUP BY ${bucketExpr}, metric_name ORDER BY time_bucket`;
   const params = hostname ? [startIso, endIso, hostname] : [startIso, endIso];
   const [rows] = await conn.query(sql, params);
@@ -940,7 +958,7 @@ async function queryHostNetworkTotals(conn, startIso, endIso, hostname) {
          FROM \`opsRobot\`.\`host_metrics_sum\`
          WHERE metric_name = 'system.network.io'
            AND timestamp >= ? AND timestamp <= ?
-           AND get_json_string(resource_attributes, '$.host.name') = ?
+           AND ${hostNameExpr()} = ?
          GROUP BY get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
        ) t`,
       [startIso, endIso, hostname]
@@ -968,10 +986,10 @@ async function queryHostList(conn, startIso, endIso) {
         timestamp,
         metric_name,
         value,
-        get_json_string(resource_attributes, '$.host.name') AS host_name,
-        get_json_string(resource_attributes, '$.os.type') AS os_type,
-        get_json_string(resource_attributes, '$.host.arch') AS host_arch,
-        get_json_string(resource_attributes, '$.host.ip') AS host_ip
+        ${hostNameExpr("host_name")},
+        ${hostOsExpr("os_type")},
+        ${hostArchExpr("host_arch")},
+        ${hostIpExpr("host_ip")}
      FROM \`opsRobot\`.\`host_metrics_gauge\`
      WHERE metric_name IN ('system.cpu.load_average.1m')
      ORDER BY timestamp DESC
@@ -1245,13 +1263,13 @@ async function queryCpuTrendPerHost(conn, startIso, endIso, hours) {
   const [rows] = await conn.query(
     `SELECT 
         ${bucketExpr} AS time_bucket,
-        get_json_string(resource_attributes, '$.host.name') AS hostname,
+        ${hostNameExpr("hostname")},
         SUM(CASE WHEN get_json_string(attributes, '$.state') IN ('user','system','iowait','irq','softirq','steal') THEN value ELSE 0 END) AS busy_time,
         SUM(CASE WHEN get_json_string(attributes, '$.state') = 'idle' THEN value ELSE 0 END) AS idle_time
      FROM \`opsRobot\`.\`host_metrics_sum\`
      WHERE metric_name = 'system.cpu.time'
        AND timestamp >= ? AND timestamp <= ?
-     GROUP BY ${bucketExpr}, get_json_string(resource_attributes, '$.host.name')
+     GROUP BY ${bucketExpr}, ${hostNameExpr()}
      ORDER BY time_bucket, hostname`,
     [startIso, endIso]
   );
@@ -1279,7 +1297,7 @@ async function queryMemoryTrendPerHost(conn, startIso, endIso, hours) {
   const [rows] = await conn.query(
     `SELECT 
         ${bucketExpr} AS time_bucket,
-        get_json_string(resource_attributes, '$.host.name') AS hostname,
+        ${hostNameExpr("hostname")},
         SUM(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value ELSE 0 END) AS used_bytes,
         SUM(CASE WHEN get_json_string(attributes, '$.state') = 'free' THEN value ELSE 0 END) AS free_bytes,
         SUM(CASE WHEN get_json_string(attributes, '$.state') = 'cached' THEN value ELSE 0 END) AS cached_bytes,
@@ -1287,7 +1305,7 @@ async function queryMemoryTrendPerHost(conn, startIso, endIso, hours) {
      FROM \`opsRobot\`.\`host_metrics_sum\`
      WHERE metric_name = 'system.memory.usage'
        AND timestamp >= ? AND timestamp <= ?
-     GROUP BY ${bucketExpr}, get_json_string(resource_attributes, '$.host.name')
+     GROUP BY ${bucketExpr}, ${hostNameExpr()}
      ORDER BY time_bucket, hostname`,
     [startIso, endIso]
   );
@@ -1319,14 +1337,14 @@ async function queryDiskTrendPerHost(conn, startIso, endIso, hours) {
   const [rows] = await conn.query(
     `SELECT 
         ${bucketExpr} AS time_bucket,
-        get_json_string(resource_attributes, '$.host.name') AS hostname,
+        ${hostNameExpr("hostname")},
         MAX(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value END) AS used_bytes,
         MAX(CASE WHEN get_json_string(attributes, '$.state') = 'free' THEN value END) AS free_bytes
      FROM \`opsRobot\`.\`host_metrics_sum\`
      WHERE metric_name = 'system.filesystem.usage'
        AND get_json_string(attributes, '$.mountpoint') = '/'
        AND timestamp >= ? AND timestamp <= ?
-     GROUP BY ${bucketExpr}, get_json_string(resource_attributes, '$.host.name')
+     GROUP BY ${bucketExpr}, ${hostNameExpr()}
      ORDER BY time_bucket, hostname`,
     [startIso, endIso]
   );
@@ -1375,14 +1393,14 @@ async function queryNetworkTrendPerHost(conn, startIso, endIso, hours) {
        FROM (
          SELECT
            ${bucketExpr} AS time_bucket,
-           get_json_string(resource_attributes, '$.host.name') AS hostname,
+           ${hostNameExpr("hostname")},
            get_json_string(attributes, '$.device') AS device,
            get_json_string(attributes, '$.direction') AS direction,
            MAX(value) AS max_value
          FROM \`opsRobot\`.\`host_metrics_sum\`
          WHERE metric_name = 'system.network.io'
            AND timestamp >= ? AND timestamp <= ?
-         GROUP BY ${bucketExpr}, get_json_string(resource_attributes, '$.host.name'), get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
+         GROUP BY ${bucketExpr}, ${hostNameExpr()}, get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
        ) b
      ) w
      ORDER BY time_bucket, hostname`,
@@ -1435,14 +1453,14 @@ async function queryDiskIoTrendPerHost(conn, startIso, endIso, hours) {
        FROM (
          SELECT
            ${bucketExpr} AS time_bucket,
-           get_json_string(resource_attributes, '$.host.name') AS hostname,
+           ${hostNameExpr("hostname")},
            get_json_string(attributes, '$.device') AS device,
            get_json_string(attributes, '$.direction') AS direction,
            MAX(value) AS max_value
          FROM \`opsRobot\`.\`host_metrics_sum\`
          WHERE metric_name = 'system.disk.io'
            AND timestamp >= ? AND timestamp <= ?
-         GROUP BY ${bucketExpr}, get_json_string(resource_attributes, '$.host.name'), get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
+         GROUP BY ${bucketExpr}, ${hostNameExpr()}, get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
        ) b
      ) w
      ORDER BY time_bucket, hostname`,
@@ -1670,13 +1688,13 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
       const [rows] = await conn.query(
         `SELECT hostname, AVG(cpu_pct) * 100 AS value FROM (
            SELECT
-              get_json_string(resource_attributes, '$.host.name') AS hostname,
+              ${hostNameExpr("hostname")},
               SUM(CASE WHEN get_json_string(attributes, '$.state') IN ('user','system','iowait','irq','softirq','steal') THEN value ELSE 0 END) /
               NULLIF(SUM(value), 0) AS cpu_pct
            FROM \`opsRobot\`.\`host_metrics_sum\`
            WHERE metric_name = 'system.cpu.time'
              AND timestamp >= ? AND timestamp <= ?
-           GROUP BY get_json_string(resource_attributes, '$.host.name'), SUBSTR(CAST(timestamp AS VARCHAR), 1, 16)
+           GROUP BY ${hostNameExpr()}, SUBSTR(CAST(timestamp AS VARCHAR), 1, 16)
          ) t
          GROUP BY hostname
          ORDER BY value DESC
@@ -1686,14 +1704,14 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
       const coreMap = new Map();
       try {
         const [coreRows] = await conn.query(
-          `SELECT get_json_string(resource_attributes, '$.host.name') AS hostname,
+          `SELECT ${hostNameExpr("hostname")},
                   ROUND(AVG(value), 0) AS cpu_cores
            FROM \`opsRobot\`.\`host_metrics_gauge\`
            WHERE metric_name = 'system.cpu.logical.count'
              AND timestamp >= ? AND timestamp <= ?
-             AND get_json_string(resource_attributes, '$.host.name') IS NOT NULL
-             AND get_json_string(resource_attributes, '$.host.name') != ''
-           GROUP BY get_json_string(resource_attributes, '$.host.name')`,
+             AND ${hostNameExpr()} IS NOT NULL
+             AND ${hostNameExpr()} != ''
+           GROUP BY ${hostNameExpr()}`,
           [startIso, endIso]
         );
         for (const cr of coreRows.map(normalizeRow)) {
@@ -1719,7 +1737,7 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
       const [rows] = await conn.query(
         `SELECT hostname, MAX(mem_pct) * 100 AS value, AVG(used_bytes) / 1024 / 1024 / 1024 AS usedGB, AVG(total_bytes) / 1024 / 1024 / 1024 AS totalGB FROM (
            SELECT
-              get_json_string(resource_attributes, '$.host.name') AS hostname,
+              ${hostNameExpr("hostname")},
               SUM(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value ELSE 0 END) /
               NULLIF(SUM(value), 0) AS mem_pct,
               SUM(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value ELSE 0 END) AS used_bytes,
@@ -1727,7 +1745,7 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
            FROM \`opsRobot\`.\`host_metrics_sum\`
            WHERE metric_name = 'system.memory.usage'
              AND timestamp >= ? AND timestamp <= ?
-           GROUP BY get_json_string(resource_attributes, '$.host.name'), SUBSTR(CAST(timestamp AS VARCHAR), 1, 16)
+           GROUP BY ${hostNameExpr()}, SUBSTR(CAST(timestamp AS VARCHAR), 1, 16)
          ) t
          GROUP BY hostname
          ORDER BY value DESC
@@ -1754,7 +1772,7 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
       const [rows] = await conn.query(
         `SELECT hostname, MAX(disk_pct) * 100 AS value FROM (
            SELECT
-              get_json_string(resource_attributes, '$.host.name') AS hostname,
+              ${hostNameExpr("hostname")},
               get_json_string(attributes, '$.mountpoint') AS mountpoint,
               CASE WHEN (MAX(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value ELSE 0 END) +
                         MAX(CASE WHEN get_json_string(attributes, '$.state') = 'free' THEN value ELSE 0 END)) > 0
@@ -1765,7 +1783,7 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
            FROM \`opsRobot\`.\`host_metrics_sum\`
            WHERE metric_name = 'system.filesystem.usage'
              AND timestamp >= ? AND timestamp <= ?
-           GROUP BY get_json_string(resource_attributes, '$.host.name'), get_json_string(attributes, '$.mountpoint')
+           GROUP BY ${hostNameExpr()}, get_json_string(attributes, '$.mountpoint')
          ) t
          GROUP BY hostname
          ORDER BY value DESC
@@ -1776,14 +1794,14 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
       try {
         const [spaceRows] = await conn.query(
           `SELECT
-              get_json_string(resource_attributes, '$.host.name') AS hostname,
+              ${hostNameExpr("hostname")},
               MAX(CASE WHEN get_json_string(attributes, '$.state') = 'used' THEN value ELSE 0 END) / 1024 / 1024 / 1024 AS used_gb,
               MAX(CASE WHEN get_json_string(attributes, '$.state') = 'free' THEN value ELSE 0 END) / 1024 / 1024 / 1024 AS free_gb
            FROM \`opsRobot\`.\`host_metrics_sum\`
            WHERE metric_name = 'system.filesystem.usage'
              AND timestamp >= ? AND timestamp <= ?
              AND get_json_string(attributes, '$.mountpoint') = '/'
-           GROUP BY get_json_string(resource_attributes, '$.host.name')`,
+           GROUP BY ${hostNameExpr()}`,
           [startIso, endIso]
         );
         for (const sr of spaceRows.map(normalizeRow)) {
@@ -1824,14 +1842,14 @@ async function queryTopHostsByMetric(conn, metricType, startIso, endIso, limit) 
             SUM(CASE WHEN device != 'lo' THEN delta_bytes ELSE 0 END) / 1024 / 1024 AS value
          FROM (
            SELECT
-             get_json_string(resource_attributes, '$.host.name') AS hostname,
+             ${hostNameExpr("hostname")},
              get_json_string(attributes, '$.device') AS device,
              get_json_string(attributes, '$.direction') AS direction,
              CASE WHEN MAX(value) >= MIN(value) THEN MAX(value) - MIN(value) ELSE 0 END AS delta_bytes
            FROM \`opsRobot\`.\`host_metrics_sum\`
            WHERE metric_name = 'system.network.io'
              AND timestamp >= ? AND timestamp <= ?
-           GROUP BY get_json_string(resource_attributes, '$.host.name'), get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
+           GROUP BY ${hostNameExpr()}, get_json_string(attributes, '$.device'), get_json_string(attributes, '$.direction')
          ) t
          GROUP BY hostname
          ORDER BY value DESC

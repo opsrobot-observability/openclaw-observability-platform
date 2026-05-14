@@ -87,6 +87,16 @@ import {
 } from "./digital-employee/digital-employee-service.mjs";
 
 import { queryOtelOverviewData } from "./otel-metrics/otel-overview-query.mjs";
+import { queryOtelTraceData } from "./otel-metrics/otel-traces-query.mjs";
+import { queryOtelTracesOverview } from "./otel-metrics/otel-traces-overview-query.mjs";
+import { queryOtelTracesInstances } from "./otel-metrics/otel-traces-instances-query.mjs";
+import {
+  queryInstanceDetailSpans,
+  queryInstanceDetailTraces,
+  queryInstanceDetailScatter,
+  queryInstanceDetailApdex,
+  queryInstanceDetailAggregation,
+} from "./otel-metrics/otel-instance-detail-query.mjs";
 import {
   queryCronRunsPage,
   queryCronRunsOverviewMetrics,
@@ -120,6 +130,138 @@ const server = http.createServer(async (req, res) => {
       const startTime = u.searchParams.get("startTime");
       const endTime = u.searchParams.get("endTime");
       const data = await queryOtelOverviewData({ hours, granularityMinutes, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/otel-traces-instances")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryOtelTracesInstances({ hours, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/instance-detail/spans")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const instanceId = u.searchParams.get("instanceId") || "";
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const filtersJson = u.searchParams.get("filters");
+      const filters = filtersJson ? JSON.parse(filtersJson) : {};
+      const data = await queryInstanceDetailSpans({ instanceId, hours, startTime, endTime, filters });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/instance-detail/traces")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const instanceId = u.searchParams.get("instanceId") || "";
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const traceId = u.searchParams.get("traceId") || "";
+      const filtersJson = u.searchParams.get("filters");
+      const filters = filtersJson ? JSON.parse(filtersJson) : {};
+      const data = await queryInstanceDetailTraces({ instanceId, hours, startTime, endTime, filters, traceId });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/instance-detail/scatter")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const instanceId = u.searchParams.get("instanceId") || "";
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryInstanceDetailScatter({ instanceId, hours, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/instance-detail/apdex")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const instanceId = u.searchParams.get("instanceId") || "";
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const threshold = Number(u.searchParams.get("threshold") ?? "500");
+      const data = await queryInstanceDetailApdex({ instanceId, hours, startTime, endTime, threshold });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/instance-detail/aggregation")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const instanceId = u.searchParams.get("instanceId") || "";
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const dimension = u.searchParams.get("dimension") || "spanName";
+      const data = await queryInstanceDetailAggregation({ instanceId, hours, startTime, endTime, dimension });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/otel-traces-overview")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryOtelTracesOverview({ hours, startTime, endTime });
+      sendJson(res, 200, data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/otel-traces")) {
+    try {
+      const u = new URL(url, "http://127.0.0.1");
+      const hours = Number(u.searchParams.get("hours") ?? "1");
+      const startTime = u.searchParams.get("startTime");
+      const endTime = u.searchParams.get("endTime");
+      const data = await queryOtelTraceData({ hours, startTime, endTime });
       sendJson(res, 200, data);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -664,6 +806,7 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/digital-employees/overview`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/digital-employees/profile?agentName=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/otel-overview`);
+  console.log(`[agent-sessions] http://127.0.0.1:${port}/api/otel-traces`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/cost-overview`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/agent-cost-list?startDay=&endDay=`);
   console.log(`[agent-sessions] http://127.0.0.1:${port}/api/llm-cost-detail?startDay=&endDay=`);

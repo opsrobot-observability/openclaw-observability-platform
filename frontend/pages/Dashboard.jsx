@@ -11,6 +11,7 @@ import AgentCostDetail from "./AgentCostDetail.jsx";
 import LlmCost from "./LlmCost.jsx";
 import FullChainTraceability from "./FullChainTraceability.jsx";
 import OpenClawInstance from "./OpenClawInstance.jsx";
+import CallChainAnalysis from "./CallChainAnalysis.jsx";
 import InstanceMonitoring from "./InstanceMonitoring.jsx";
 import HostMonitorPage from "./HostMonitorPage.jsx";
 import SessionAudit from "./SessionAudit.jsx";
@@ -34,6 +35,7 @@ const PAGE_META_KEYS = {
   "agent-cost-detail": { title: "page.agentCostDetail.title", subtitle: "page.agentCostDetail.subtitle" },
   "llm-cost": { title: "page.llmCost.title", subtitle: "page.llmCost.subtitle" },
   "openclaw-instance": { title: "page.openclawInstance.title", subtitle: "page.openclawInstance.subtitle" },
+  "call-chain-analysis": { title: "page.callChainAnalysis.title", subtitle: "page.callChainAnalysis.subtitle" },
   "instance-monitoring": { title: "page.instanceMonitoring.title", subtitle: "page.instanceMonitoring.subtitle" },
   "monitor-dashboard": { title: "page.monitorDashboard.title", subtitle: "page.monitorDashboard.subtitle" },
   "host-monitor": { title: "page.hostMonitor.title", subtitle: "page.hostMonitor.subtitle" },
@@ -48,6 +50,7 @@ const NAV_KEYS = [
     children: [
       { id: "monitor-dashboard", labelKey: "nav.monitorDashboard" },
       { id: "openclaw-instance", labelKey: "nav.openclawInstance" },
+      { id: "call-chain-analysis", labelKey: "nav.callChainAnalysis" },
       { id: "host-monitor", labelKey: "nav.hostMonitor" },
       { id: "scheduled-tasks", labelKey: "nav.scheduledTasks" },
       // 数字员工：数据来自 /api/digital-employees/* 版本 1.0.1
@@ -647,6 +650,8 @@ export default function Dashboard() {
             <LogSearch />
           ) : activeNav === "traceability" ? (
             <FullChainTraceability setHeaderExtra={setHeaderExtra} />
+          ) : activeNav === "call-chain-analysis" ? (
+            <CallChainAnalysis />
           ) : (
             <>
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

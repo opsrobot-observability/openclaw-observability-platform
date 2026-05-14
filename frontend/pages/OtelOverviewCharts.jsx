@@ -3,17 +3,18 @@ import { useState } from "react";
 export function LineChart({ data, color, height = 120 }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
-  if (!data || data.length === 0) return null;
+  const validData = (data || []).filter(d => d && typeof d.value === "number" && isFinite(d.value));
+  if (validData.length === 0) return null;
 
-  const values = data.map((d) => d.value);
+  const values = validData.map((d) => d.value);
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   const range = maxValue - minValue || 1;
   const width = 100;
   const padding = 5;
 
-  const points = data.map((item, index) => {
-    const x = padding + (index / Math.max(1, data.length - 1)) * (width - 2 * padding);
+  const points = validData.map((item, index) => {
+    const x = padding + (index / Math.max(1, validData.length - 1)) * (width - 2 * padding);
     const y = height - padding - ((item.value - minValue) / range) * (height - 2 * padding);
     return { x, y, value: item.value, time: item.time };
   });
@@ -94,22 +95,21 @@ export function LineChart({ data, color, height = 120 }) {
         </div>
       )}
       <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">
-        {displayPoints.map((p, i) => (
-          <span key={i}>{p.time}</span>
-        ))}
       </div>
     </div>
   );
 }
 
 export function PieChart({ data, size = 120 }) {
-  if (!data || data.length === 0) return null;
+  const validData = (data || []).filter(d => d && typeof d.value === "number" && isFinite(d.value) && d.value > 0);
+  if (validData.length === 0) return null;
 
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const total = validData.reduce((sum, item) => sum + item.value, 0);
+  if (total <= 0 || !isFinite(total)) return null;
   const colors = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16"];
 
   let currentAngle = -90;
-  const segments = data.map((item, index) => {
+  const segments = validData.map((item, index) => {
     const percentage = (item.value / total) * 100;
     const angle = (percentage / 100) * 360;
     const startAngle = currentAngle;

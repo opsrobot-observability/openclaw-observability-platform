@@ -49,6 +49,7 @@ export default {
   "nav.gatewayMonitoring": "Gateway monitoring",
   "nav.otelOverview": "Overview",
   "nav.openclawInstance": "OpenClaw instances",
+  "nav.callChainAnalysis": "Call Chain Analysis",
   "nav.instanceMonitoring": "Cockpit",
   "nav.digitalEmployeeOverview": "Digital Employee Overview",
   "nav.digitalEmployeeList": "Digital employees",
@@ -99,6 +100,8 @@ export default {
 
   "page.openclawInstance.title": "OpenClaw instances",
   "page.openclawInstance.subtitle": "Run overview, instance list & configuration changes",
+  "page.callChainAnalysis.title": "Call Chain Analysis",
+  "page.callChainAnalysis.subtitle": "OpenTelemetry call chain tracing & performance analysis",
 
   "openclawInstance.tabRunOverview": "Run overview",
   "openclawInstance.tabRunDetail": "Run details",
