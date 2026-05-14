@@ -243,8 +243,8 @@ function TopologyTab({ spanData, loading, onViewTrace, onFilterSpanName }) {
     const maxLevel = Math.max(...[...levels.values()], 0);
     const nodeW = 200;
     const nodeH = 88;
-    const gapX = 80;
-    const gapY = 60;
+    const gapX = 120;
+    const gapY = 24;
     const padX = 40;
     const padY = 30;
     const positions = new Map();
@@ -252,14 +252,14 @@ function TopologyTab({ spanData, loading, onViewTrace, onFilterSpanName }) {
       const group = levelGroups.get(lv) || [];
       for (let i = 0; i < group.length; i++) {
         positions.set(group[i].key, {
-          x: padX + i * (nodeW + gapX),
-          y: padY + lv * (nodeH + gapY),
+          x: padX + lv * (nodeW + gapX),
+          y: padY + i * (nodeH + gapY),
         });
       }
     }
     const maxNodesInLevel = Math.max(...[...levelGroups.values()].map(g => g.length), 1);
-    const totalW = padX * 2 + maxNodesInLevel * nodeW + (maxNodesInLevel - 1) * gapX;
-    const totalH = padY * 2 + (maxLevel + 1) * nodeH + maxLevel * gapY;
+    const totalW = padX * 2 + (maxLevel + 1) * nodeW + maxLevel * gapX;
+    const totalH = padY * 2 + maxNodesInLevel * nodeH + (maxNodesInLevel - 1) * gapY;
     return { positions, nodeW, nodeH, maxLevel, totalW, totalH };
   }, [topologyData, edges]);
 
@@ -397,10 +397,10 @@ function TopologyTab({ spanData, loading, onViewTrace, onFilterSpanName }) {
                   const srcPos = positions.get(e.src);
                   const tgtPos = positions.get(e.tgt);
                   if (!srcPos || !tgtPos) return null;
-                  const sx = srcPos.x + nodeW / 2;
-                  const sy = srcPos.y + nodeH;
-                  const tx = tgtPos.x + nodeW / 2;
-                  const ty = tgtPos.y;
+                  const sx = srcPos.x + nodeW;
+                  const sy = srcPos.y + nodeH / 2;
+                  const tx = tgtPos.x;
+                  const ty = tgtPos.y + nodeH / 2;
                   const style = getEdgeStyle(e);
                   const midX = (sx + tx) / 2;
                   const midY = (sy + ty) / 2;

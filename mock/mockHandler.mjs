@@ -17,6 +17,14 @@ import { mockSessionCostOptions } from "./data/session-cost-options.mjs";
 import { mockOtelOverview } from "./data/otel-overview.mjs";
 import { mockOtelTraces } from "./data/otel-traces.mjs";
 import { mockOtelTracesOverview } from "./data/otel-traces-overview.mjs";
+import { mockOtelTracesInstances } from "./data/otel-traces-instances.mjs";
+import {
+  mockInstanceDetailSpans,
+  mockInstanceDetailTraces,
+  mockInstanceDetailScatter,
+  mockInstanceDetailApdex,
+  mockInstanceDetailAggregation,
+} from "./data/instance-detail.mjs";
 import { mockHostMonitorData, mockHostMonitorOverviewData } from "./data/host-monitor.mjs";
 import { mockDigitalEmployeeOverview } from "./data/digital-employee-overview.mjs";
 import { mockDigitalEmployeeProfile } from "./data/digital-employee-profile.mjs";
@@ -116,6 +124,17 @@ export function handleMockRequest(url, res) {
     return true;
   }
 
+  // --- 调用链实例列表（须在 /api/otel-traces 之前匹配）---
+  if (url.startsWith("/api/otel-traces-instances")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockOtelTracesInstances({
+      hours: u.searchParams.get("hours") || "24",
+      startTime: u.searchParams.get("startTime") || null,
+      endTime: u.searchParams.get("endTime") || null,
+    }));
+    return true;
+  }
+
   // --- Gateway 链路分析 ---
   if (url.startsWith("/api/otel-traces")) {
     const u = new URL(url, "http://mock.local");
@@ -123,6 +142,71 @@ export function handleMockRequest(url, res) {
       hours: u.searchParams.get("hours") || "24",
       startTime: u.searchParams.get("startTime") || null,
       endTime: u.searchParams.get("endTime") || null,
+    }));
+    return true;
+  }
+
+  // --- 实例详情：散点图（须在 /api/instance-detail/traces 之前匹配）---
+  if (url.startsWith("/api/instance-detail/scatter")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockInstanceDetailScatter({
+      instanceId: u.searchParams.get("instanceId") || "",
+      hours: u.searchParams.get("hours") || "1",
+    }));
+    return true;
+  }
+
+  // --- 实例详情：Apdex 分析（须在 /api/instance-detail/spans 之前匹配）---
+  if (url.startsWith("/api/instance-detail/apdex")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockInstanceDetailApdex({
+      instanceId: u.searchParams.get("instanceId") || "",
+      hours: u.searchParams.get("hours") || "1",
+      threshold: Number(u.searchParams.get("threshold") || "500"),
+    }));
+    return true;
+  }
+
+  // --- 实例详情：聚合分析（须在 /api/instance-detail/spans 之前匹配）---
+  if (url.startsWith("/api/instance-detail/aggregation")) {
+    const u = new URL(url, "http://mock.local");
+    sendJson(res, 200, mockInstanceDetailAggregation({
+      instanceId: u.searchParams.get("instanceId") || "",
+      hours: u.searchParams.get("hours") || "1",
+      dimension: u.searchParams.get("dimension") || "spanName",
+    }));
+    return true;
+  }
+
+  // --- 实例详情：Traces（须在 /api/instance-detail/spans 之前匹配）---
+  if (url.startsWith("/api/instance-detail/traces")) {
+    const u = new URL(url, "http://mock.local");
+    let filters = null;
+    const filtersStr = u.searchParams.get("filters");
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { filters = null; }
+    }
+    sendJson(res, 200, mockInstanceDetailTraces({
+      instanceId: u.searchParams.get("instanceId") || "",
+      hours: u.searchParams.get("hours") || "1",
+      traceId: u.searchParams.get("traceId") || null,
+      filters,
+    }));
+    return true;
+  }
+
+  // --- 实例详情：Spans ---
+  if (url.startsWith("/api/instance-detail/spans")) {
+    const u = new URL(url, "http://mock.local");
+    let filters = null;
+    const filtersStr = u.searchParams.get("filters");
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { filters = null; }
+    }
+    sendJson(res, 200, mockInstanceDetailSpans({
+      instanceId: u.searchParams.get("instanceId") || "",
+      hours: u.searchParams.get("hours") || "1",
+      filters,
     }));
     return true;
   }
